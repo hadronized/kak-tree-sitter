@@ -14,3 +14,4 @@ rust-version = "1.65.0"
 
 [dependencies]
 clap = { version = "4.2.4", features = ["derive"] }
+daemonize = "0.5.0"

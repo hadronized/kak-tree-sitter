@@ -2,7 +2,15 @@ mod rc;
 mod request;
 
 use clap::Parser;
-use std::{io::Write, os::unix::net::UnixStream, process::Stdio};
+use std::{
+  env,
+  fs::{self, File},
+  io::Write,
+  os::unix::net::UnixListener,
+  path::PathBuf,
+  process::Stdio,
+  time::Duration,
+};
 
 #[derive(Debug, Parser)]
 #[clap(about = "A client/server interface between Kakoune and tree-sitter.")]
@@ -17,7 +25,7 @@ pub struct Cli {
 
   /// Kakoune session to connect to.
   #[clap(short, long)]
-  session: String,
+  session: Option<String>,
 
   /// Kakoune client to connect with, if any.
   #[clap(short, long)]
@@ -27,46 +35,92 @@ pub struct Cli {
 fn main() {
   let cli = Cli::parse();
 
-  if cli.session.is_empty() {
-    std::process::exit(1);
-  }
-
-  let mut kak_sess = KakSession::new(cli.session, cli.client);
-
-  if cli.kakoune {
-    // inject the rc/
-    kak_sess.send(rc::rc_commands());
-  }
-
   if cli.daemonize {
-    // TODO: check if we are already daemonized; if not, start as a daemon; then quit
+    start_daemon();
+  }
+
+  if let Some(session) = cli.session {
+    let mut kak_sess = KakSession::new(session, cli.client);
+
+    if cli.kakoune {
+      // inject the rc/
+      kak_sess.send(rc::rc_commands());
+    }
+  } else {
+    std::process::exit(1);
   }
 }
 
-fn daemonize() {}
+#[derive(Debug)]
+pub struct Daemon {
+  daemon_dir: PathBuf,
+  unix_listener: UnixListener,
+}
+
+impl Daemon {
+  fn new(daemon_dir: PathBuf) -> Self {
+    let unix_listener = UnixListener::bind(daemon_dir.join("socket")).unwrap(); // FIXME: unwrap()
+
+    Self {
+      daemon_dir,
+      unix_listener,
+    }
+  }
+
+  // Wait for incoming client and handle their requests.
+  fn run(&self) {
+    for client in self.unix_listener.incoming() {
+      println!("client connected: {client:?}");
+    }
+  }
+}
+
+impl Drop for Daemon {
+  fn drop(&mut self) {
+    let _ = std::fs::remove_dir_all(&self.daemon_dir);
+  }
+}
+
+fn start_daemon() {
+  // ensure we have a directory to write in
+  let tmpdir = PathBuf::from(env::var("TMPDIR").expect("temporary directory"));
+  let user = env::var("USER").expect("user");
+  let daemon_dir = tmpdir.join(format!("kak-tree-sitter-{}", user));
+  fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
+
+  // create stdout / stderr files
+  let stdout_path = daemon_dir.join("stdout.txt");
+  let stderr_path = daemon_dir.join("stderr.txt");
+  let stdout = File::create(&stdout_path).unwrap();
+  let stderr = File::create(&stderr_path).unwrap();
+
+  // PID file
+  let pid_file = daemon_dir.join("pid");
+
+  daemonize::Daemonize::new()
+    .stdout(stdout)
+    .stderr(stderr)
+    .pid_file(pid_file)
+    .start()
+    .expect("daemon");
+
+  let daemon = Daemon::new(daemon_dir);
+  println!("daemon started: {daemon:?}");
+
+  daemon.run();
+}
 
 #[derive(Debug)]
 struct KakSession {
   session_name: String,
   client_name: Option<String>,
-  unix_stream: UnixStream,
 }
 
 impl KakSession {
-  fn new(session_name: impl AsRef<str>, client_name: impl Into<Option<String>>) -> Self {
-    let user = std::env::var("USER").unwrap(); // FIXME: unwrap
-    let tmpdir = std::env::var("TMPDIR").unwrap(); // FIXME: unwrap
-    let session_name = session_name.as_ref();
-    let path = format!("{tmpdir}kakoune-{user}/{session_name}");
-
-    println!("connecting to {path}…");
-    let unix_stream = UnixStream::connect(path).unwrap(); // FIXME: unwrap
-    println!("connected! {unix_stream:?}");
-
+  fn new(session_name: impl Into<String>, client_name: impl Into<Option<String>>) -> Self {
     Self {
       session_name: session_name.into(),
       client_name: client_name.into(),
-      unix_stream,
     }
   }
 
@@ -93,9 +147,5 @@ impl KakSession {
     let mut child_stdin = child.stdin.unwrap(); // FIXME: unwrap()
     child_stdin.write_all(self.fmt_cmd(cmd).as_bytes()).unwrap(); // FIXME: unwrap
     child_stdin.flush().unwrap(); // FIXME: unwrap
-
-    //let cmd = self.fmt_cmd(cmd);
-    //self.unix_stream.write_all(cmd.as_bytes()).unwrap(); // FIXME: unwrap
-    //self.unix_stream.flush().unwrap(); // FIXME: unwrap
   }
 }
