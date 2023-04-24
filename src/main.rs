@@ -5,11 +5,10 @@ use clap::Parser;
 use std::{
   env,
   fs::{self, File},
-  io::Write,
-  os::unix::net::UnixListener,
+  io::{Read, Write},
+  os::unix::net::{UnixListener, UnixStream},
   path::PathBuf,
   process::Stdio,
-  time::Duration,
 };
 
 #[derive(Debug, Parser)]
@@ -30,15 +29,22 @@ pub struct Cli {
   /// Kakoune client to connect with, if any.
   #[clap(short, long)]
   client: Option<String>,
+
+  /// JSON-serialized request.
+  #[clap(short, long)]
+  request: Option<String>,
 }
 
 fn main() {
   let cli = Cli::parse();
 
+  // server logic
   if cli.daemonize {
     start_daemon();
+    std::process::exit(0);
   }
 
+  // client logic
   if let Some(session) = cli.session {
     let mut kak_sess = KakSession::new(session, cli.client);
 
@@ -46,9 +52,26 @@ fn main() {
       // inject the rc/
       kak_sess.send(rc::rc_commands());
     }
+
+    // TODO: request parsing
+    if let Some(request) = cli.request {
+      handle_request(request);
+    } else {
+      eprintln!("no request");
+      std::process::exit(1);
+    }
   } else {
+    eprintln!("missing session");
     std::process::exit(1);
   }
+}
+
+fn handle_request(request: String) {
+  // connect and send the request to the daemon
+  UnixStream::connect(daemon_dir().join("socket"))
+    .unwrap() // FIXME: unwrap()
+    .write(request.as_bytes())
+    .unwrap(); // FIXME: unwrap()
 }
 
 #[derive(Debug)]
@@ -70,8 +93,20 @@ impl Daemon {
   // Wait for incoming client and handle their requests.
   fn run(&self) {
     for client in self.unix_listener.incoming() {
-      println!("client connected: {client:?}");
+      // FIXME: error handling
+      if let Ok(mut client) = client {
+        println!("client connected: {client:?}");
+        let mut request = String::new();
+        client.read_to_string(&mut request).unwrap(); // FIXME: unwrap()
+        println!("request = {request:#?}");
+
+        if request.is_empty() {
+          break;
+        }
+      }
     }
+
+    println!("bye!");
   }
 }
 
@@ -81,11 +116,15 @@ impl Drop for Daemon {
   }
 }
 
-fn start_daemon() {
-  // ensure we have a directory to write in
+fn daemon_dir() -> PathBuf {
   let tmpdir = PathBuf::from(env::var("TMPDIR").expect("temporary directory"));
   let user = env::var("USER").expect("user");
-  let daemon_dir = tmpdir.join(format!("kak-tree-sitter-{}", user));
+  tmpdir.join(format!("kak-tree-sitter-{}", user))
+}
+
+fn start_daemon() {
+  // ensure we have a directory to write in
+  let daemon_dir = daemon_dir();
   fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
 
   // create stdout / stderr files
