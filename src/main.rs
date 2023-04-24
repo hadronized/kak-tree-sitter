@@ -2,6 +2,7 @@ mod rc;
 mod request;
 
 use clap::Parser;
+use request::Request;
 use std::{
   env,
   fs::{self, File},
@@ -55,7 +56,7 @@ fn main() {
 
     // TODO: request parsing
     if let Some(request) = cli.request {
-      handle_request(request);
+      send_request(request);
     } else {
       eprintln!("no request");
       std::process::exit(1);
@@ -66,7 +67,7 @@ fn main() {
   }
 }
 
-fn handle_request(request: String) {
+fn send_request(request: String) {
   // connect and send the request to the daemon
   UnixStream::connect(daemon_dir().join("socket"))
     .unwrap() // FIXME: unwrap()
@@ -91,7 +92,9 @@ impl Daemon {
   }
 
   // Wait for incoming client and handle their requests.
-  fn run(&self) {
+  fn run(self) {
+    let mut req_handler = RequestHandler::new();
+
     for client in self.unix_listener.incoming() {
       // FIXME: error handling
       if let Ok(mut client) = client {
@@ -103,6 +106,8 @@ impl Daemon {
         if request.is_empty() {
           break;
         }
+
+        req_handler.handle_request(request);
       }
     }
 
@@ -113,6 +118,38 @@ impl Daemon {
 impl Drop for Daemon {
   fn drop(&mut self) {
     let _ = std::fs::remove_dir_all(&self.daemon_dir);
+  }
+}
+
+/// Type responsible in handling requests.
+///
+/// This type is stateful, as requests might have side-effect (i.e. tree-sitter parsing generates trees that can be
+/// reused, for instance).
+#[derive(Debug)]
+pub struct RequestHandler {}
+
+impl RequestHandler {
+  fn new() -> Self {
+    Self {}
+  }
+
+  fn handle_request(&mut self, request: String) {
+    // parse the request and dispatch
+    match serde_json::from_str::<Request>(&request) {
+      Ok(req) => match req {
+        Request::Highlight {
+          buffer_name,
+          lang,
+          content,
+        } => self.handle_highlight_req(buffer_name, lang, content),
+      },
+
+      Err(err) => eprintln!("cannot parse request {request}: {err}"),
+    }
+  }
+
+  fn handle_highlight_req(&mut self, buffer_name: String, lang: String, content: String) {
+    println!("handling highlight request for buffer={buffer_name}, lang={lang}");
   }
 }
 
