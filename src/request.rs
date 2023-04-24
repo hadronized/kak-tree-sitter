@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 pub enum Request {
   /// Ask to highlight the given buffer.
   Highlight {
+    session_name: String,
     buffer_name: String,
     lang: String,
     content: String,
@@ -20,11 +21,12 @@ mod tests {
   #[test]
   fn serialization() {
     let req = Request::Highlight {
+      session_name: "session".to_owned(),
       buffer_name: "foo".to_owned(),
       lang: "rust".to_owned(),
       content: String::new(),
     };
-    let expected = r#"{"type":"highlight","buffer_name":"foo","lang":"rust","content":""}"#;
+    let expected = r#"{"type":"highlight","session_name":"session","buffer_name":"foo","lang":"rust","content":""}"#;
     let serialized = serde_json::to_string(&req);
 
     assert_eq!(serialized.unwrap(), expected);

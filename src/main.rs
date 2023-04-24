@@ -13,6 +13,7 @@ use std::{
   path::PathBuf,
   process::Stdio,
 };
+use tree_sitter::Language;
 
 #[derive(Debug, Parser)]
 #[clap(about = "A client/server interface between Kakoune and tree-sitter.")]
@@ -150,22 +151,41 @@ impl RequestHandler {
     match serde_json::from_str::<Request>(&request) {
       Ok(req) => match req {
         Request::Highlight {
+          session_name,
           buffer_name,
           lang,
           content,
-        } => self.handle_highlight_req(buffer_name, lang, content),
+        } => self.handle_highlight_req(session_name, buffer_name, lang, content),
       },
 
       Err(err) => eprintln!("cannot parse request {request}: {err}"),
     }
   }
 
-  /// Update the parsed tree of a buffer.
-  fn update_parsed_tree(&mut self, session: &str, buffer: &str, lang: &str, content: &str) {}
+  /// Parse and store the tree for a given buffer.
+  fn parse_buffer(&mut self, session: String, buffer: String, lang: Language, content: &str) {
+    let key = (session, buffer);
 
-  fn handle_highlight_req(&mut self, buffer_name: String, lang: String, content: String) {
-    if let Some(lang) = languages::get_lang(&lang) {
-      println!("handling highlight request for buffer={buffer_name}, lang={lang:?}");
+    let mut parser = tree_sitter::Parser::new();
+    parser.set_language(lang).unwrap(); // FIXME: error
+    if let Some(parsed) = parser.parse(content.as_bytes(), None) {
+      println!("tree parsed for {key:?}");
+      self.trees.insert(key, parsed);
+    }
+  }
+
+  fn handle_highlight_req(
+    &mut self,
+    session: String,
+    buffer: String,
+    lang_str: String,
+    content: String,
+  ) {
+    if let Some(lang) = languages::get_lang(&lang_str) {
+      println!(
+        "handling highlight request for session={session}, buffer={buffer}, lang={lang_str}"
+      );
+      self.parse_buffer(session, buffer, lang, &content);
     }
   }
 }
