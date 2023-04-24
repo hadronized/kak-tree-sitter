@@ -1,9 +1,11 @@
+mod languages;
 mod rc;
 mod request;
 
 use clap::Parser;
 use request::Request;
 use std::{
+  collections::HashMap,
   env,
   fs::{self, File},
   io::{Read, Write},
@@ -121,16 +123,26 @@ impl Drop for Daemon {
   }
 }
 
+type SessionName = String;
+type BufferName = String;
+
 /// Type responsible in handling requests.
 ///
 /// This type is stateful, as requests might have side-effect (i.e. tree-sitter parsing generates trees that can be
 /// reused, for instance).
 #[derive(Debug)]
-pub struct RequestHandler {}
+pub struct RequestHandler {
+  /// Cached parsed trees.
+  ///
+  /// Trees are stored for a pair (session, buffer), so that buffers are shared between clients of the same session.
+  trees: HashMap<(SessionName, BufferName), tree_sitter::Tree>,
+}
 
 impl RequestHandler {
   fn new() -> Self {
-    Self {}
+    Self {
+      trees: HashMap::new(),
+    }
   }
 
   fn handle_request(&mut self, request: String) {
@@ -148,8 +160,13 @@ impl RequestHandler {
     }
   }
 
+  /// Update the parsed tree of a buffer.
+  fn update_parsed_tree(&mut self, session: &str, buffer: &str, lang: &str, content: &str) {}
+
   fn handle_highlight_req(&mut self, buffer_name: String, lang: String, content: String) {
-    println!("handling highlight request for buffer={buffer_name}, lang={lang}");
+    if let Some(lang) = languages::get_lang(&lang) {
+      println!("handling highlight request for buffer={buffer_name}, lang={lang:?}");
+    }
   }
 }
 
