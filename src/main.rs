@@ -10,7 +10,7 @@ use std::{
   fs::{self, File},
   io::{Read, Write},
   os::unix::net::{UnixListener, UnixStream},
-  path::PathBuf,
+  path::{Path, PathBuf},
   process::Stdio,
 };
 use tree_sitter::Language;
@@ -154,8 +154,8 @@ impl RequestHandler {
           session_name,
           buffer_name,
           lang,
-          content,
-        } => self.handle_highlight_req(session_name, buffer_name, lang, content),
+          path,
+        } => self.handle_highlight_req(session_name, buffer_name, lang, path),
       },
 
       Err(err) => eprintln!("cannot parse request {request}: {err}"),
@@ -163,8 +163,10 @@ impl RequestHandler {
   }
 
   /// Parse and store the tree for a given buffer.
-  fn parse_buffer(&mut self, session: String, buffer: String, lang: Language, content: &str) {
+  fn parse_buffer(&mut self, session: String, buffer: String, lang: Language, path: &Path) {
     let key = (session, buffer);
+
+    let content = std::fs::read_to_string(path).unwrap(); // FIXME
 
     let mut parser = tree_sitter::Parser::new();
     parser.set_language(lang).unwrap(); // FIXME: error
@@ -179,13 +181,13 @@ impl RequestHandler {
     session: String,
     buffer: String,
     lang_str: String,
-    content: String,
+    path: PathBuf,
   ) {
     if let Some(lang) = languages::get_lang(&lang_str) {
       println!(
         "handling highlight request for session={session}, buffer={buffer}, lang={lang_str}"
       );
-      self.parse_buffer(session, buffer, lang, &content);
+      self.parse_buffer(session, buffer, lang, &path);
     }
   }
 }
