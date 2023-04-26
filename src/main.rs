@@ -1,3 +1,4 @@
+mod config;
 mod languages;
 mod rc;
 mod request;
@@ -187,7 +188,52 @@ impl RequestHandler {
       println!(
         "handling highlight request for session={session}, buffer={buffer}, lang={lang_str}"
       );
-      self.parse_buffer(session, buffer, lang, &path);
+
+      // FIXME: for now, we reparse the whole buffer every time, but we are going to need to implement partial parsing
+      // at some point
+      self.parse_buffer(session.clone(), buffer.clone(), lang, &path);
+
+      // TODO: remove that part, it’s testing only for now
+      if let Some(tree) = self.trees.get(&(session, buffer)) {
+        // walk the tree until we have seen every node
+        let mut cursor = tree.walk();
+        let mut from_child = false;
+
+        loop {
+          // if we are not coming from a child, we try to go deeper; if we can’t we display the node
+          if !from_child {
+            if cursor.goto_first_child() {
+              continue;
+            }
+
+            // display the current node
+            let node = cursor.node();
+            let kind = node.kind();
+            let name = cursor.field_name().unwrap_or("");
+            let pos = node.range();
+            let start = pos.start_point;
+            let end = pos.end_point;
+
+            println!(
+              "{}:{}-{}:{} => {}, {}",
+              start.row, start.column, end.row, end.column, kind, name
+            );
+          }
+
+          from_child = false;
+
+          // if we can go to the next sibling; just do everything over again
+          if cursor.goto_next_sibling() {
+            continue;
+          }
+
+          // we have hit the end of the siblings, go up
+          from_child = true;
+          if !cursor.goto_parent() {
+            break;
+          }
+        }
+      }
     }
   }
 }

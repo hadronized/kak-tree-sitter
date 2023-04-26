@@ -17,6 +17,7 @@ clap = { version = "4.2.4", features = ["derive"] }
 daemonize = "0.5.0"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
+toml = "0.7.3"
 tree-sitter = "0.20.10"
 
 [build-dependencies]
