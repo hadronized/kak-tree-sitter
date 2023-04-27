@@ -73,7 +73,9 @@ impl Daemon {
           break;
         }
 
-        req_handler.handle_request(request);
+        if !req_handler.handle_request(request) {
+          break;
+        }
       }
     }
 

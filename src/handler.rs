@@ -16,10 +16,15 @@ impl Handler {
     Self {}
   }
 
-  pub fn handle_request(&mut self, request: String) {
+  /// Handle the request and return whether the handler should shutdown.
+  pub fn handle_request(&mut self, request: String) -> bool {
     // parse the request and dispatch
     match serde_json::from_str::<Request>(&request) {
       Ok(req) => match req {
+        Request::Shutdown => {
+          return false;
+        }
+
         Request::Highlight {
           session_name,
           buffer_name,
@@ -30,6 +35,8 @@ impl Handler {
 
       Err(err) => eprintln!("cannot parse request {request}: {err}"),
     }
+
+    true
   }
 
   fn handle_highlight_req(

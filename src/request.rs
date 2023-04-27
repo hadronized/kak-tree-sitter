@@ -6,6 +6,9 @@ use std::path::PathBuf;
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
+  /// Ask the server to daemon to close and clean up.
+  Shutdown,
+
   /// Ask to highlight the given buffer.
   Highlight {
     session_name: String,
