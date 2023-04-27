@@ -32,7 +32,6 @@ fn main() {
       kak_sess.send(rc::rc_commands());
     }
 
-    // TODO: request parsing
     if let Some(request) = cli.request {
       Daemon::send_request(request);
     } else {

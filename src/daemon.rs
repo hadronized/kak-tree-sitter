@@ -73,7 +73,9 @@ impl Daemon {
           break;
         }
 
-        if !req_handler.handle_request(request) {
+        let resp = req_handler.handle_request(request);
+
+        if resp.should_shutdown() {
           break;
         }
       }

@@ -6,5 +6,20 @@ pub enum Response {
   /// Status change.
   ///
   /// This response is emitted when the daemon connects or disconnects.
-  StatusChanged(String),
+  StatusChanged { status: String, shutdown: bool },
+}
+
+impl Response {
+  pub fn should_shutdown(&self) -> bool {
+    match self {
+      Response::StatusChanged { shutdown, .. } => *shutdown,
+    }
+  }
+
+  pub fn status_changed(status: impl Into<String>, shutdown: bool) -> Self {
+    Response::StatusChanged {
+      status: status.into(),
+      shutdown,
+    }
+  }
 }

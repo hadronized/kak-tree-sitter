@@ -4,6 +4,7 @@ use crate::{
   highlighting::KakHighlight,
   languages,
   request::{BufferId, Request},
+  response::Response,
 };
 use std::{collections::HashMap, fs, path::PathBuf};
 
@@ -45,12 +46,12 @@ impl Handler {
   }
 
   /// Handle the request and return whether the handler should shutdown.
-  pub fn handle_request(&mut self, request: String) -> bool {
+  pub fn handle_request(&mut self, request: String) -> Response {
     // parse the request and dispatch
     match serde_json::from_str::<Request>(&request) {
       Ok(req) => match req {
         Request::Shutdown => {
-          return false;
+          return Response::status_changed("kak-tree-sitter: quit", true);
         }
 
         Request::Highlight {
@@ -63,7 +64,7 @@ impl Handler {
       Err(err) => eprintln!("cannot parse request {request}: {err}"),
     }
 
-    true
+    Response::status_changed("kak-tree-sitter: unknown request", false)
   }
 
   fn handle_highlight_req(&mut self, buffer_id: BufferId, lang_str: String, path: PathBuf) {
