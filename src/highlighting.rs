@@ -41,21 +41,26 @@ impl KakHighlight {
     let mut faces: Vec<&str> = Vec::new();
     let mut chars = source.char_indices();
     let mut line = 1;
-    let mut col = 1;
+    let mut col = 0;
+    let mut byte_i = 0;
 
     let mut advance_til = |line: &mut usize, col: &mut usize, til_byte: usize| {
-      while let Some((byte, c)) = chars.next() {
-        println!("read {c} at position {byte}; line = {line}, col = {col}");
+      while byte_i != til_byte {
+        if let Some((byte, c)) = chars.next() {
+          byte_i = byte;
 
-        if byte == til_byte {
-          break;
-        }
+          if c == '\n' {
+            *line += 1;
+            *col = 0;
+          } else {
+            *col += 1;
+          }
 
-        if c == '\n' {
-          *line += 1;
-          *col = 1;
+          if byte_i == til_byte {
+            break;
+          }
         } else {
-          *col += 1;
+          break;
         }
       }
     };
@@ -64,8 +69,6 @@ impl KakHighlight {
     for event in hl_events {
       match event {
         HighlightEvent::Source { start, end } => {
-          println!("event: {start}-{end}");
-
           if start == end {
             continue;
           }
@@ -74,7 +77,7 @@ impl KakHighlight {
           let line_start = line;
           let col_start = col;
 
-          advance_til(&mut line, &mut col, end);
+          advance_til(&mut line, &mut col, end - 1);
           let line_end = line;
           let col_end = col;
 
@@ -90,12 +93,10 @@ impl KakHighlight {
         }
 
         HighlightEvent::HighlightStart(Highlight(idx)) => {
-          println!("event: push {idx}");
           faces.push(hl_names[idx]);
         }
 
         HighlightEvent::HighlightEnd => {
-          println!("event: pop");
           faces.pop();
         }
       }
