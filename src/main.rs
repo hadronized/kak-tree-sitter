@@ -2,9 +2,11 @@ mod cli;
 mod config;
 mod daemon;
 mod handler;
+mod highlighting;
 mod languages;
 mod rc;
 mod request;
+mod response;
 
 use clap::Parser;
 use cli::Cli;

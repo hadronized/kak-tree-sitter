@@ -217,7 +217,6 @@ checksum = "453ad9f582a441959e5f0d088b02ce04cfe8d51a8eaf077f12ac6d3e94164ca6"
 name = "kak-tree-sitter"
 version = "0.1.0"
 dependencies = [
- "cc",
  "clap",
  "daemonize",
  "serde",
@@ -225,6 +224,8 @@ dependencies = [
  "toml",
  "tree-sitter",
  "tree-sitter-highlight",
+ "tree-sitter-rust",
+ "tree-sitter-toml",
 ]
 
 [[package]]
@@ -435,6 +436,26 @@ checksum = "042342584c5a7a0b833d9fc4e2bdab3f9868ddc6c4b339a1e01451c6720868bc"
 dependencies = [
  "regex",
  "thiserror",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-rust"
+version = "0.20.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "797842733e252dc11ae5d403a18060bf337b822fc2ae5ddfaa6ff4d9cc20bda6"
+dependencies = [
+ "cc",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-toml"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ca517f578a98b23d20780247cc2688407fa81effad5b627a5a364ec3339b53e8"
+dependencies = [
+ "cc",
  "tree-sitter",
 ]
 
