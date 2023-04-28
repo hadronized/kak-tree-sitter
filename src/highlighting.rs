@@ -41,7 +41,7 @@ impl KakHighlightRange {
     let mut faces: Vec<&str> = Vec::new();
     let mut chars = source.char_indices();
     let mut line = 1;
-    let mut col = 0;
+    let mut col = 1;
     let mut byte_i = 0;
 
     let mut advance_til = |line: &mut usize, col: &mut usize, til_byte: usize| {
@@ -51,7 +51,7 @@ impl KakHighlightRange {
 
           if c == '\n' {
             *line += 1;
-            *col = 0;
+            *col = 1;
           } else {
             *col += 1;
           }
@@ -75,11 +75,11 @@ impl KakHighlightRange {
 
           advance_til(&mut line, &mut col, start);
           let line_start = line;
-          let col_start = col + 1;
+          let col_start = col;
 
           advance_til(&mut line, &mut col, end - 1);
           let line_end = line;
-          let col_end = col + 1;
+          let col_end = col;
 
           let face = faces.last().copied().unwrap_or("unknown");
 

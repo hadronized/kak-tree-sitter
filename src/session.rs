@@ -27,7 +27,6 @@ impl KakSession {
   pub fn send_response_raw(&mut self, resp: impl AsRef<str>) {
     let resp = resp.as_ref();
 
-    println!("sending response: {}", resp);
     let child = std::process::Command::new("kak")
       .args(["-p", self.session_name.as_str()])
       .stdin(Stdio::piped())
