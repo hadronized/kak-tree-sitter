@@ -1,10 +1,11 @@
 use tree_sitter_highlight::{HighlightConfiguration, Highlighter};
 
 use crate::{
-  highlighting::KakHighlight,
+  highlighting::KakHighlightRange,
   languages,
-  request::{BufferId, Request},
+  request::{BufferId, Request, RequestPayload},
   response::Response,
+  session::KakSession,
 };
 use std::{collections::HashMap, fs, path::PathBuf};
 
@@ -12,9 +13,13 @@ use std::{collections::HashMap, fs, path::PathBuf};
 const DEFAULT_HL_NAMES: &[&str] = &[
   "attribute",
   "constant",
+  "constructor",
   "function.builtin",
   "function",
+  "function.macro",
+  "function.method",
   "keyword",
+  "label",
   "operator",
   "property",
   "punctuation",
@@ -46,28 +51,38 @@ impl Handler {
   }
 
   /// Handle the request and return whether the handler should shutdown.
-  pub fn handle_request(&mut self, request: String) -> Response {
+  pub fn handle_request(&mut self, request: String) -> Option<(KakSession, Response)> {
     // parse the request and dispatch
     match serde_json::from_str::<Request>(&request) {
-      Ok(req) => match req {
-        Request::Shutdown => {
-          return Response::status_changed("kak-tree-sitter: quit", true);
+      Ok(req) => match req.payload {
+        RequestPayload::Shutdown => {
+          return Some((req.session, Response::status("kak-tree-sitter: quit", true)));
         }
 
-        Request::Highlight {
+        RequestPayload::Highlight {
           buffer_id,
           lang,
           path,
-        } => self.handle_highlight_req(buffer_id, lang, path),
+        } => {
+          let resp = self.handle_highlight_req(buffer_id, lang, path);
+          return Some((req.session, resp));
+        }
       },
 
-      Err(err) => eprintln!("cannot parse request {request}: {err}"),
+      Err(err) => {
+        eprintln!("cannot parse request {request}: {err}");
+      }
     }
 
-    Response::status_changed("kak-tree-sitter: unknown request", false)
+    None
   }
 
-  fn handle_highlight_req(&mut self, buffer_id: BufferId, lang_str: String, path: PathBuf) {
+  fn handle_highlight_req(
+    &mut self,
+    buffer_id: BufferId,
+    lang_str: String,
+    path: PathBuf,
+  ) -> Response {
     // TODO: move that to the config
     if let Some((lang, hl_query)) = languages::get_lang_hl_query(&lang_str) {
       println!("parsing {buffer_id:?}");
@@ -86,12 +101,11 @@ impl Handler {
         .highlight(&hl_config, source.as_bytes(), None, |_| None)
         .unwrap();
 
-      let kak_hls = KakHighlight::from_iter(&source, DEFAULT_HL_NAMES, events.flatten());
+      let ranges = KakHighlightRange::from_iter(&source, DEFAULT_HL_NAMES, events.flatten());
 
-      for hl in kak_hls {
-        let s = hl.as_ranges_str();
-        println!("{}", s);
-      }
+      Response::Highlights { ranges }
+    } else {
+      Response::status(format!("unsupported language: {lang_str}"), false)
     }
   }
 }

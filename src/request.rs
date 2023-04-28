@@ -3,6 +3,8 @@
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
+use crate::session::KakSession;
+
 /// A unique way to identify a buffer.
 ///
 /// Currently tagged by the session name and the buffer name.
@@ -13,9 +15,21 @@ pub struct BufferId {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct Request {
+  pub session: KakSession,
+  pub payload: RequestPayload,
+}
+
+impl Request {
+  pub fn new(session: KakSession, payload: RequestPayload) -> Self {
+    Self { session, payload }
+  }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum Request {
-  /// Ask the server to daemon to close and clean up.
+pub enum RequestPayload {
+  /// Ask the server/daemon to close and clean up.
   Shutdown,
 
   /// Ask to highlight the given buffer.
@@ -30,11 +44,11 @@ pub enum Request {
 mod tests {
   use std::path::PathBuf;
 
-  use super::{BufferId, Request};
+  use super::{BufferId, RequestPayload};
 
   #[test]
   fn serialization() {
-    let req = Request::Highlight {
+    let req = RequestPayload::Highlight {
       buffer_id: BufferId {
         session: "session".to_owned(),
         buffer: "foo".to_owned(),

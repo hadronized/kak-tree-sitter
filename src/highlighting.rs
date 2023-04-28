@@ -6,7 +6,7 @@ use tree_sitter_highlight::{Highlight, HighlightEvent};
 ///
 /// `:doc highlighters`, `ranges`, for further documentation.
 #[derive(Debug, Eq, PartialEq)]
-pub struct KakHighlight {
+pub struct KakHighlightRange {
   line_start: usize,
   col_start: usize,
   line_end: usize,
@@ -14,7 +14,7 @@ pub struct KakHighlight {
   face: String,
 }
 
-impl KakHighlight {
+impl KakHighlightRange {
   pub fn new(
     line_start: usize,
     col_start: usize,
@@ -75,20 +75,20 @@ impl KakHighlight {
 
           advance_til(&mut line, &mut col, start);
           let line_start = line;
-          let col_start = col;
+          let col_start = col + 1;
 
           advance_til(&mut line, &mut col, end - 1);
           let line_end = line;
-          let col_end = col;
+          let col_end = col + 1;
 
-          let face = faces.last().cloned().unwrap_or_default();
+          let face = faces.last().copied().unwrap_or("unknown");
 
-          kak_hls.push(KakHighlight::new(
+          kak_hls.push(KakHighlightRange::new(
             line_start,
             col_start,
             line_end,
             col_end,
-            face.to_owned(),
+            face.replace('.', "_"),
           ));
         }
 
@@ -106,9 +106,9 @@ impl KakHighlight {
   }
 
   /// Display as a string recognized by the `ranges` Kakoune highlighter.
-  pub fn as_ranges_str(&self) -> String {
+  pub fn to_kak_range_str(&self) -> String {
     format!(
-      "{}.{},{}.{}|{}",
+      "{}.{},{}.{}|ts_{}",
       self.line_start, self.col_start, self.line_end, self.col_end, self.face
     )
   }

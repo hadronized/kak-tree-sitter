@@ -6,7 +6,7 @@ use std::{
   path::PathBuf,
 };
 
-use crate::handler::Handler;
+use crate::{handler::Handler, request::Request};
 
 #[derive(Debug)]
 pub struct Daemon {
@@ -75,8 +75,13 @@ impl Daemon {
 
         let resp = req_handler.handle_request(request);
 
-        if resp.should_shutdown() {
-          break;
+        if let Some((mut session, resp)) = resp {
+          let should_shutdown = resp.should_shutdown();
+          session.send_response(resp);
+
+          if should_shutdown {
+            break;
+          }
         }
       }
     }
@@ -84,11 +89,14 @@ impl Daemon {
     println!("bye!");
   }
 
-  pub fn send_request(request: impl Into<String>) {
+  pub fn send_request(req: Request) {
+    // serialize the request
+    let serialized = serde_json::to_string(&req).unwrap(); // FIXME: unwrap()
+
     // connect and send the request to the daemon
     UnixStream::connect(Self::daemon_dir().join("socket"))
     .unwrap() // FIXME: unwrap()
-    .write_all(request.into().as_bytes())
+    .write_all(serialized.as_bytes())
     .unwrap(); // FIXME: unwrap()
   }
 }
