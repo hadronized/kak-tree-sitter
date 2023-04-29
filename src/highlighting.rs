@@ -39,31 +39,7 @@ impl KakHighlightRange {
   ) -> Vec<Self> {
     let mut kak_hls = Vec::new();
     let mut faces: Vec<&str> = Vec::new();
-    let mut chars = source.char_indices();
-    let mut line = 1;
-    let mut col = 1;
-    let mut byte_i = 0;
-
-    let mut advance_til = |line: &mut usize, col: &mut usize, til_byte: usize| {
-      while byte_i != til_byte {
-        if let Some((byte, c)) = chars.next() {
-          byte_i = byte;
-
-          if c == '\n' {
-            *line += 1;
-            *col = 1;
-          } else {
-            *col += 1;
-          }
-
-          if byte_i == til_byte {
-            break;
-          }
-        } else {
-          break;
-        }
-      }
-    };
+    let mut mapper = ByteLineColMapper::new(source.char_indices());
 
     // iterate on the highlight event
     for event in hl_events {
@@ -73,13 +49,15 @@ impl KakHighlightRange {
             continue;
           }
 
-          advance_til(&mut line, &mut col, start);
-          let line_start = line;
-          let col_start = col;
+          println!("{start}-{end}");
 
-          advance_til(&mut line, &mut col, end - 1);
-          let line_end = line;
-          let col_end = col;
+          mapper.advance(start);
+          let line_start = mapper.line();
+          let col_start = mapper.col();
+
+          mapper.advance(end - 1);
+          let line_end = mapper.line();
+          let col_end = mapper.col();
 
           let face = faces.last().copied().unwrap_or("unknown");
 
@@ -102,6 +80,7 @@ impl KakHighlightRange {
       }
     }
 
+    println!("{kak_hls:#?}");
     kak_hls
   }
 
@@ -111,5 +90,91 @@ impl KakHighlightRange {
       "{}.{},{}.{}|ts_{}",
       self.line_start, self.col_start, self.line_end, self.col_end, self.face
     )
+  }
+}
+
+/// Map byte indices to line and column.
+#[derive(Debug)]
+struct ByteLineColMapper<C> {
+  chars: C,
+  byte_idx: usize,
+  line: usize,
+  col: usize,
+  change_line: bool,
+}
+
+impl<C> ByteLineColMapper<C>
+where
+  C: Iterator<Item = (usize, char)>,
+{
+  fn new(mut chars: C) -> Self {
+    chars.next();
+
+    Self {
+      chars,
+      byte_idx: 0,
+      line: 1,
+      col: 1,
+      change_line: false,
+    }
+  }
+
+  fn line(&self) -> usize {
+    self.line
+  }
+
+  fn col(&self) -> usize {
+    self.col
+  }
+
+  fn advance(&mut self, til: usize) {
+    loop {
+      if self.byte_idx >= til {
+        break;
+      }
+
+      if let Some((idx, c)) = self.chars.next() {
+        println!("read {c}");
+        self.byte_idx = idx;
+
+        if self.change_line {
+          self.line += 1;
+          self.col = 0;
+        }
+
+        self.change_line = c == '\n';
+
+        // TODO: we probably want to compute the « display width » of `c` here instead
+        self.col += 1;
+      } else {
+        break;
+      }
+    }
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::ByteLineColMapper;
+
+  #[test]
+  fn byte_line_col_mapper() {
+    let source = "const x: &'str = \"Hello, world!\";\nconst y = 3;";
+    let mut mapper = ByteLineColMapper::new(source.char_indices());
+
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 1);
+
+    mapper.advance(4);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 5);
+
+    mapper.advance(33);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 34);
+
+    mapper.advance(34);
+    assert_eq!(mapper.line(), 2);
+    assert_eq!(mapper.col(), 1);
   }
 }
