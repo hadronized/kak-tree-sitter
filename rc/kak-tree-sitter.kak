@@ -14,26 +14,26 @@ define-command -override kak-tree-sitter-highlight-request -docstring 'Highlight
 }
 
 # Faces definition
- set-face global ts_unknown                red+ub
- set-face global ts_attribute              attribute
- set-face global ts_constant               red
- set-face global ts_constructor            function
- set-face global ts_function_builtin       function
- set-face global ts_function               function
- set-face global ts_function_macro         yellow
- set-face global ts_function_method        magenta
- set-face global ts_keyword                keyword
- set-face global ts_label                  blue
- set-face global ts_operator               link
- set-face global ts_property               attribute
- set-face global ts_punctuation            link
- set-face global ts_punctuation_bracket    link
- set-face global ts_punctuation_delimiter  link
- set-face global ts_string                 string
- set-face global ts_string_special         meta
- set-face global ts_tag                    builtin
- set-face global ts_type                   type
- set-face global ts_type_builtin           type
- set-face global ts_variable               variable
- set-face global ts_variable_builtin       variable
- set-face global ts_variable_parameter     variable
+#set-face global ts_unknown                red+ub
+set-face global ts_attribute              red
+set-face global ts_constant               'rgb:f5a97f'
+set-face global ts_constructor            'rgb:eed49f'
+set-face global ts_function_builtin       red
+set-face global ts_function               'rgb:8aadf4'
+set-face global ts_function_macro         'rgb:8aadf4+b'
+set-face global ts_function_method        'rgb:8aadf4'
+set-face global ts_keyword                'rgb:c6a0f6'
+set-face global ts_label                  'rgb:7dc4e4'
+set-face global ts_operator               'rgb:8bd5ca'
+set-face global ts_property               attribute
+set-face global ts_punctuation            'rgb:939ab7'
+set-face global ts_punctuation_bracket    'rgb:939ab7'
+set-face global ts_punctuation_delimiter  'rgb:939ab7'
+set-face global ts_string                 'rgb:a6da95'
+set-face global ts_string_special         meta
+set-face global ts_tag                    builtin
+set-face global ts_type                   'rgb:eed49f'
+set-face global ts_type_builtin           'rgb:eed49f'
+set-face global ts_variable               red
+set-face global ts_variable_builtin       red
+set-face global ts_variable_parameter     'rgb:ee99a0+i'
