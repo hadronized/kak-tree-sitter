@@ -6,19 +6,21 @@ use std::{
   path::PathBuf,
 };
 
-use crate::{handler::Handler, request::Request};
+use crate::{config::Config, handler::Handler, request::Request};
 
 #[derive(Debug)]
 pub struct Daemon {
+  config: Config,
   daemon_dir: PathBuf,
   unix_listener: UnixListener,
 }
 
 impl Daemon {
-  fn new(daemon_dir: PathBuf) -> Self {
+  fn new(config: Config, daemon_dir: PathBuf) -> Self {
     let unix_listener = UnixListener::bind(daemon_dir.join("socket")).unwrap(); // FIXME: unwrap()
 
     Self {
+      config,
       daemon_dir,
       unix_listener,
     }
@@ -30,7 +32,7 @@ impl Daemon {
     tmpdir.join(format!("kak-tree-sitter-{}", user))
   }
 
-  pub fn start() {
+  pub fn start(config: Config) {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
@@ -51,7 +53,7 @@ impl Daemon {
       .start()
       .expect("daemon");
 
-    let daemon = Daemon::new(daemon_dir);
+    let daemon = Daemon::new(config, daemon_dir);
     println!("daemon started: {daemon:?}");
 
     daemon.run();
@@ -59,7 +61,7 @@ impl Daemon {
 
   // Wait for incoming client and handle their requests.
   fn run(self) {
-    let mut req_handler = Handler::new();
+    let mut req_handler = Handler::new(&self.config);
 
     for client in self.unix_listener.incoming() {
       // FIXME: error handling

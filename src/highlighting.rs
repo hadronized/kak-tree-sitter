@@ -1,6 +1,58 @@
 //! Convert from tree-sitter-highlight events to Kakoune ranges highlighter.
 
-use tree_sitter_highlight::{Highlight, HighlightEvent};
+use std::{collections::HashMap, fs, path::Path};
+
+use tree_sitter::Language;
+use tree_sitter_highlight::{Highlight, HighlightConfiguration, HighlightEvent, Highlighter};
+
+use crate::{queries::Queries, request::BufferId, response::Response};
+
+/// Session/buffer highlighters.
+///
+/// This type maps a [`BufferId`] with a tree-sitter highlighter.
+pub struct Highlighters {
+  highlighters: HashMap<BufferId, Highlighter>,
+  hl_names: Vec<String>,
+}
+
+impl Highlighters {
+  pub fn new(hl_names: impl Into<Vec<String>>) -> Self {
+    Highlighters {
+      highlighters: HashMap::new(),
+      hl_names: hl_names.into(),
+    }
+  }
+}
+
+impl Highlighters {
+  pub fn highlight(
+    &mut self,
+    lang: Language,
+    queries: &Queries,
+    buffer_id: BufferId,
+    path: impl AsRef<Path>,
+  ) -> Response {
+    println!("parsing {buffer_id:?}");
+
+    let source = fs::read_to_string(path).unwrap(); // FIXME: unwrap()
+
+    let highlighter = self
+      .highlighters
+      .entry(buffer_id)
+      .or_insert(Highlighter::new());
+    // re-parse
+    let mut hl_config = HighlightConfiguration::new(lang, &queries.highlights, "", "").unwrap();
+    hl_config.configure(&self.hl_names); // FIXME: config
+
+    let events = highlighter
+      .highlight(&hl_config, source.as_bytes(), None, |_| None)
+      .unwrap();
+
+    let ranges = KakHighlightRange::from_iter(&source, &self.hl_names, events.flatten());
+
+    Response::Highlights { ranges }
+  }
+}
 
 /// A convenient representation of a single highlight range for Kakoune.
 ///
@@ -34,7 +86,7 @@ impl KakHighlightRange {
   /// Given an iterator of [`HighlightEvent`], generate a list of Kakoune highlights.
   pub fn from_iter(
     source: &str,
-    hl_names: &[&str],
+    hl_names: &[String],
     hl_events: impl Iterator<Item = HighlightEvent>,
   ) -> Vec<Self> {
     let mut kak_hls = Vec::new();
@@ -71,7 +123,7 @@ impl KakHighlightRange {
         }
 
         HighlightEvent::HighlightStart(Highlight(idx)) => {
-          faces.push(hl_names[idx]);
+          faces.push(&hl_names[idx]);
         }
 
         HighlightEvent::HighlightEnd => {

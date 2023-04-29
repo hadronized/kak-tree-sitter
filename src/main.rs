@@ -4,6 +4,7 @@ mod daemon;
 mod handler;
 mod highlighting;
 mod languages;
+mod queries;
 mod rc;
 mod request;
 mod response;
@@ -11,16 +12,19 @@ mod session;
 
 use clap::Parser;
 use cli::Cli;
+use config::Config;
 use daemon::Daemon;
 use request::Request;
 use session::KakSession;
 
 fn main() {
   let cli = Cli::parse();
+  let config = Config::load_from_xdg();
+  println!("running with config: {config:#?}");
 
   // server logic
   if cli.daemonize {
-    Daemon::start();
+    Daemon::start(config);
     std::process::exit(0);
   }
 

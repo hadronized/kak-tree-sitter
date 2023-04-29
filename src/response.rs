@@ -20,7 +20,7 @@ impl Response {
   pub fn should_shutdown(&self) -> bool {
     match self {
       Response::StatusChanged { shutdown, .. } => *shutdown,
-      Response::Highlights { ranges } => false,
+      Response::Highlights { .. } => false,
     }
   }
 
