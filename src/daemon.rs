@@ -54,7 +54,6 @@ impl Daemon {
       .expect("daemon");
 
     let daemon = Daemon::new(config, daemon_dir);
-    println!("daemon started: {daemon:?}");
 
     daemon.run();
   }

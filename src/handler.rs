@@ -7,7 +7,11 @@ use crate::{
   response::Response,
   session::KakSession,
 };
-use std::{collections::HashMap, path::PathBuf};
+use std::{
+  collections::HashMap,
+  fs,
+  path::{Path, PathBuf},
+};
 
 /// Type responsible in handling requests.
 ///
@@ -23,10 +27,25 @@ pub struct Handler {
 
 impl Handler {
   pub fn new(config: &Config) -> Self {
+    let queries = Self::load_queries(&config.queries.path);
+
     Self {
-      queries: HashMap::new(),
+      queries,
       highlighters: Highlighters::new(config.highlight.hl_names.clone()),
     }
+  }
+
+  // FIXME: so many unwrap()
+  /// Load all the queries.
+  fn load_queries(dir: &Path) -> HashMap<String, Queries> {
+    fs::read_dir(dir)
+      .unwrap()
+      .flatten()
+      .map(|dir| {
+        let queries = Queries::load_from_dir(dir.path());
+        (dir.file_name().to_str().unwrap().to_owned(), queries)
+      })
+      .collect()
   }
 
   /// Handle the request and return whether the handler should shutdown.
