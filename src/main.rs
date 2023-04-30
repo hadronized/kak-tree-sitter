@@ -10,6 +10,8 @@ mod request;
 mod response;
 mod session;
 
+use std::process::exit;
+
 use clap::Parser;
 use cli::Cli;
 use config::Config;
@@ -20,22 +22,22 @@ use session::KakSession;
 fn main() {
   let cli = Cli::parse();
   let config = Config::load_from_xdg();
-  println!("running with config: {config:#?}");
 
   // server logic
   if cli.daemonize {
     Daemon::start(config);
-    std::process::exit(0);
+    exit(0);
+  }
+
+  if cli.kakoune {
+    // inject the rc/
+    print!("{}", rc::rc_commands());
+    exit(0);
   }
 
   // client logic
   if let Some(session) = cli.session {
     let mut kak_sess = KakSession::new(session, cli.client);
-
-    if cli.kakoune {
-      // inject the rc/
-      kak_sess.send_response_raw(rc::rc_commands());
-    }
 
     if let Some(request) = cli.request {
       // parse the request payload and embed it in a request
@@ -44,10 +46,10 @@ fn main() {
       Daemon::send_request(req);
     } else {
       eprintln!("no request");
-      std::process::exit(1);
+      exit(1);
     }
   } else {
     eprintln!("missing session");
-    std::process::exit(1);
+    exit(1);
   }
 }
