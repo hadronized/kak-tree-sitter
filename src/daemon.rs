@@ -37,14 +37,21 @@ impl Daemon {
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
 
+    // PID file
+    let pid_file = daemon_dir.join("pid");
+
+    // check whether the PID file is already there; if so, it means the daemon is already running, so we wil just
+    // stop right away
+    if let Ok(true) = pid_file.try_exists() {
+      eprintln!("kak-tree-sitter daemon already running; exiting");
+      return;
+    }
+
     // create stdout / stderr files
     let stdout_path = daemon_dir.join("stdout.txt");
     let stderr_path = daemon_dir.join("stderr.txt");
     let stdout = File::create(&stdout_path).unwrap();
     let stderr = File::create(&stderr_path).unwrap();
-
-    // PID file
-    let pid_file = daemon_dir.join("pid");
 
     daemonize::Daemonize::new()
       .stdout(stdout)

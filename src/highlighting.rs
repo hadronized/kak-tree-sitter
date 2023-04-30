@@ -32,8 +32,6 @@ impl Highlighters {
     buffer_id: BufferId,
     path: impl AsRef<Path>,
   ) -> Response {
-    println!("parsing {buffer_id:?}");
-
     let source = fs::read_to_string(path).unwrap(); // FIXME: unwrap()
 
     let highlighter = self
@@ -105,8 +103,6 @@ impl KakHighlightRange {
             continue;
           }
 
-          println!("{start}-{end}");
-
           mapper.advance(start);
           let line_start = mapper.line();
           let col_start = mapper.col();
@@ -136,7 +132,6 @@ impl KakHighlightRange {
       }
     }
 
-    println!("{kak_hls:#?}");
     kak_hls
   }
 
@@ -190,7 +185,6 @@ where
       }
 
       if let Some((idx, c)) = self.chars.next() {
-        println!("read {c}");
         self.byte_idx = idx;
 
         if self.change_line {

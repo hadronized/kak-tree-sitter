@@ -23,21 +23,20 @@ fn main() {
   let cli = Cli::parse();
   let config = Config::load_from_xdg();
 
+  if cli.kakoune {
+    // inject the rc/
+    print!("{}", rc::rc_commands());
+  }
+
   // server logic
   if cli.daemonize {
     Daemon::start(config);
     exit(0);
   }
 
-  if cli.kakoune {
-    // inject the rc/
-    print!("{}", rc::rc_commands());
-    exit(0);
-  }
-
   // client logic
   if let Some(session) = cli.session {
-    let mut kak_sess = KakSession::new(session, cli.client);
+    let kak_sess = KakSession::new(session, cli.client);
 
     if let Some(request) = cli.request {
       // parse the request payload and embed it in a request
