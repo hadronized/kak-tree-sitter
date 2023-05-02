@@ -16,7 +16,7 @@ impl Config {
   pub fn load_from_xdg() -> Config {
     dirs::config_dir()
       .and_then(|dir| {
-        let path = dir.join("kak-tree-sitter");
+        let path = dir.join("kak-tree-sitter/config.toml");
         let content = fs::read_to_string(path).ok()?;
         toml::from_str(&content).ok()
       })

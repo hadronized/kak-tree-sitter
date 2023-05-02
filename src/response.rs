@@ -49,7 +49,7 @@ impl Response {
     };
 
     if let Some(client_name) = client_name.into() {
-      format!("eval -client {client_name} '{kak_cmd}'\n")
+      format!("eval -no-hooks -client {client_name} '{kak_cmd}'\n")
     } else {
       kak_cmd
     }
