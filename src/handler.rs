@@ -38,6 +38,11 @@ impl Handler {
   // FIXME: so many unwrap()
   /// Load all the queries.
   fn load_queries(dir: &Path) -> HashMap<String, Queries> {
+    if !dir.is_dir() {
+      eprintln!("no query directory!");
+      return HashMap::new();
+    }
+
     fs::read_dir(dir)
       .unwrap()
       .flatten()

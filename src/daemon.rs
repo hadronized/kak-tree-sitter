@@ -1,5 +1,4 @@
 use std::{
-  env,
   fs::{self, File},
   io::{Read, Write},
   os::unix::net::{UnixListener, UnixStream},
@@ -27,15 +26,15 @@ impl Daemon {
   }
 
   fn daemon_dir() -> PathBuf {
-    let tmpdir = PathBuf::from(env::var("TMPDIR").expect("temporary directory"));
-    let user = env::var("USER").expect("user");
-    tmpdir.join(format!("kak-tree-sitter-{}", user))
+    let dir = dirs::runtime_dir().unwrap(); // FIXME: unwrap()
+    dir.join("kak-tree-sitter")
   }
 
   pub fn start(config: Config) {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
+    eprintln!("daemon in {}", daemon_dir.display());
 
     // PID file
     let pid_file = daemon_dir.join("pid");
@@ -103,9 +102,9 @@ impl Daemon {
 
     // connect and send the request to the daemon
     UnixStream::connect(Self::daemon_dir().join("socket"))
-    .unwrap() // FIXME: unwrap()
-    .write_all(serialized.as_bytes())
-    .unwrap(); // FIXME: unwrap()
+      .unwrap() // FIXME: unwrap()
+      .write_all(serialized.as_bytes())
+      .unwrap(); // FIXME: unwrap()
   }
 }
 
