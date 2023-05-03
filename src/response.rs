@@ -13,7 +13,10 @@ pub enum Response {
   /// Highlights.
   ///
   /// This response is generated when new highlights are asked.
-  Highlights { ranges: Vec<KakHighlightRange> },
+  Highlights {
+    timestamp: u64,
+    ranges: Vec<KakHighlightRange>,
+  },
 }
 
 impl Response {
@@ -34,15 +37,15 @@ impl Response {
   pub fn to_kak_cmd<'a>(&self, client_name: impl Into<Option<&'a str>>) -> String {
     let kak_cmd = match self {
       Response::StatusChanged { status, .. } => format!("info '{}'\n", status),
-      Response::Highlights { ranges } => {
+      Response::Highlights { timestamp, ranges } => {
         let ranges_str = ranges
           .iter()
           .map(KakHighlightRange::to_kak_range_str)
           .join(" ");
 
         format!(
-          "{range_specs_decl} {ranges_str};{highlighter_decl}",
-          range_specs_decl = "decl range-specs kak_tree_sitter_highlighter_ranges %val{timestamp}",
+          "{range_specs_decl} {timestamp} {ranges_str};{highlighter_decl}",
+          range_specs_decl = "decl range-specs kak_tree_sitter_highlighter_ranges",
           highlighter_decl = "add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kak_tree_sitter_highlighter_ranges"
         )
       }

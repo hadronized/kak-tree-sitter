@@ -1,7 +1,6 @@
 //! Requests that can be sent to the server from Kakoune.
 
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
 
 use crate::session::KakSession;
 
@@ -36,14 +35,13 @@ pub enum RequestPayload {
   Highlight {
     buffer_id: BufferId,
     lang: String,
-    path: PathBuf,
+    timestamp: u64,
+    stream_name: String,
   },
 }
 
 #[cfg(test)]
 mod tests {
-  use std::path::PathBuf;
-
   use super::{BufferId, RequestPayload};
 
   #[test]
@@ -54,9 +52,10 @@ mod tests {
         buffer: "foo".to_owned(),
       },
       lang: "rust".to_owned(),
-      path: PathBuf::from("/tmp/foo.rs"),
+      timestamp: 0,
+      stream_name: "foo.rs".to_owned(),
     };
-    let expected = r#"{"type":"highlight","buffer_id":{"session":"session","buffer":"foo"},"lang":"rust","path":"/tmp/foo.rs"}"#;
+    let expected = r#"{"type":"highlight","buffer_id":{"session":"session","buffer":"foo"},"lang":"rust","timestamp":0,"stream_name":"foo.rs"}"#;
     let serialized = serde_json::to_string(&req);
 
     assert_eq!(serialized.unwrap(), expected);

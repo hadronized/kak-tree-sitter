@@ -7,11 +7,7 @@ use crate::{
   response::Response,
   session::KakSession,
 };
-use std::{
-  collections::HashMap,
-  fs,
-  path::{Path, PathBuf},
-};
+use std::{collections::HashMap, fs, path::Path};
 
 /// Type responsible in handling requests.
 ///
@@ -65,9 +61,10 @@ impl Handler {
         RequestPayload::Highlight {
           buffer_id,
           lang,
-          path,
+          timestamp,
+          stream_name,
         } => {
-          let resp = self.handle_highlight_req(buffer_id, lang, path);
+          let resp = self.handle_highlight_req(buffer_id, lang, timestamp, stream_name);
           return Some((req.session, resp));
         }
       },
@@ -84,11 +81,14 @@ impl Handler {
     &mut self,
     buffer_id: BufferId,
     lang_str: String,
-    path: PathBuf,
+    timestamp: u64,
+    stream_name: String,
   ) -> Response {
     if let Some(lang) = languages::get_lang(&lang_str) {
       if let Some(queries) = self.queries.get(&lang_str) {
-        self.highlighters.highlight(lang, queries, buffer_id, path)
+        self
+          .highlighters
+          .highlight(lang, queries, buffer_id, timestamp, stream_name)
       } else {
         Response::status(format!("no highlight query for language {lang_str}"), false)
       }

@@ -24,8 +24,8 @@ fn main() {
   let config = Config::load_from_xdg();
 
   if cli.kakoune {
-    // inject the rc/
-    print!("{}", rc::rc_commands());
+    // inject the rc/ and daemon-based settings
+    println!("{}\n{}", rc::rc_commands(), Daemon::kak_daemon_rc());
   }
 
   // server logic

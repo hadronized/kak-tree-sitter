@@ -7,9 +7,27 @@ define-command -override kak-tree-sitter-stop -docstring 'Ask the daemon to shut
   }
 }
 
-define-command -override kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
+define-command -override kak-tree-sitter-enable -docstring 'Enable tree-sitter highlighting for this buffer' %{
+  # Hooks
+  hook -group kak-tree-sitter buffer InsertIdle   .* kak-tree-sitter-highlight-buffer
+  hook -group kak-tree-sitter buffer InsertChar   .* kak-tree-sitter-highlight-buffer
+  hook -group kak-tree-sitter buffer InsertDelete .* kak-tree-sitter-highlight-buffer
+  hook -group kak-tree-sitter buffer BufReload    .* kak-tree-sitter-highlight-buffer
+
+  # remove regular highlighting, if any
+  try %{
+    remove-highlighter window/%opt{filetype}
+  }
+
+  # trigger the first highlight
+  kak-tree-sitter-highlight-buffer
+}
+
+define-command -hidden -override kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
+  declare-option str stream_name %sh{tr '/' '-' <<< "$kak_timestamp-$kak_bufname"}
+  evaluate-commands -draft -no-hooks write -force "%opt{kak_tree_sitter_stream_dir}/%opt{stream_name}"
   nop %sh{
-    kak-tree-sitter -s $kak_session -c $kak_client -r "{\"type\":\"highlight\",\"buffer_id\":{\"session\":\"$kak_session\",\"buffer\":\"$kak_bufname\"},\"lang\":\"$kak_opt_filetype\",\"path\":\"$kak_buffile\"}"
+    kak-tree-sitter -s $kak_session -c $kak_client -r "{\"type\":\"highlight\",\"buffer_id\":{\"session\":\"$kak_session\",\"buffer\":\"$kak_bufname\"},\"lang\":\"$kak_opt_filetype\",\"timestamp\":$kak_timestamp,\"stream_name\":\"$kak_opt_stream_name\"}"
   }
 }
 
