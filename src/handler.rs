@@ -62,9 +62,9 @@ impl Handler {
           buffer_id,
           lang,
           timestamp,
-          stream_name,
+          read_fifo,
         } => {
-          let resp = self.handle_highlight_req(buffer_id, lang, timestamp, stream_name);
+          let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &read_fifo);
           return Some((req.session, resp));
         }
       },
@@ -82,13 +82,13 @@ impl Handler {
     buffer_id: BufferId,
     lang_str: String,
     timestamp: u64,
-    stream_name: String,
+    read_fifo: &Path,
   ) -> Response {
     if let Some(lang) = languages::get_lang(&lang_str) {
       if let Some(queries) = self.queries.get(&lang_str) {
         self
           .highlighters
-          .highlight(lang, queries, buffer_id, timestamp, stream_name)
+          .highlight(lang, queries, buffer_id, timestamp, read_fifo)
       } else {
         Response::status(format!("no highlight query for language {lang_str}"), false)
       }

@@ -1,11 +1,11 @@
 //! Convert from tree-sitter-highlight events to Kakoune ranges highlighter.
 
-use std::{collections::HashMap, fs};
+use std::{collections::HashMap, fs, path::Path};
 
 use tree_sitter::Language;
 use tree_sitter_highlight::{Highlight, HighlightConfiguration, HighlightEvent, Highlighter};
 
-use crate::{daemon::Daemon, queries::Queries, request::BufferId, response::Response};
+use crate::{queries::Queries, request::BufferId, response::Response};
 
 /// Session/buffer highlighters.
 ///
@@ -31,13 +31,9 @@ impl Highlighters {
     queries: &Queries,
     buffer_id: BufferId,
     timestamp: u64,
-    stream_name: impl AsRef<str>,
+    read_fifo: impl AsRef<Path>,
   ) -> Response {
-    let path = Daemon::stream_dir().join(stream_name.as_ref());
-    let source = fs::read_to_string(&path).unwrap(); // FIXME: unwrap()
-
-    // we are done with this file, just delete it
-    fs::remove_file(path).unwrap(); // FIXME: unwrap()
+    let source = fs::read_to_string(read_fifo.as_ref()).unwrap(); // FIXME: unwrap()
 
     let highlighter = self
       .highlighters

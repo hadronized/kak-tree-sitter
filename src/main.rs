@@ -25,7 +25,7 @@ fn main() {
 
   if cli.kakoune {
     // inject the rc/ and daemon-based settings
-    println!("{}\n{}", rc::rc_commands(), Daemon::kak_daemon_rc());
+    println!("{}", rc::rc_commands());
   }
 
   // server logic

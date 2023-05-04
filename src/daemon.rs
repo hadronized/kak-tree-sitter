@@ -30,17 +30,6 @@ impl Daemon {
     dir.join("kak-tree-sitter")
   }
 
-  pub fn stream_dir() -> PathBuf {
-    Self::daemon_dir().join("stream")
-  }
-
-  pub fn kak_daemon_rc() -> String {
-    format!(
-      "decl str kak_tree_sitter_stream_dir {}",
-      Self::stream_dir().display()
-    )
-  }
-
   pub fn start(config: Config) {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
@@ -54,7 +43,7 @@ impl Daemon {
     // PID file
     let pid_file = daemon_dir.join("pid");
 
-    // check whether the PID file is already there; if so, it means the daemon is already running, so we wil just
+    // check whether the PID file is already there; if so, it means the daemon is already running, so we will just
     // stop right away
     if let Ok(true) = pid_file.try_exists() {
       eprintln!("kak-tree-sitter daemon already running; exiting");
