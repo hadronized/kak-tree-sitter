@@ -32,7 +32,7 @@ define-command -override kak-tree-sitter-enable -docstring 'Enable tree-sitter h
 
 define-command -override kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
   nop %sh{
-    echo "write $kak_response_fifo" > $kak_command_fifo
+    echo "evaluate-commands -no-hooks -verbatim write $kak_response_fifo" > $kak_command_fifo
     kak-tree-sitter -s $kak_session -c $kak_client -r "{\"type\":\"highlight\",\"buffer_id\":{\"session\":\"$kak_session\",\"buffer\":\"$kak_bufname\"},\"lang\":\"$kak_opt_filetype\",\"timestamp\":$kak_timestamp,\"read_fifo\":\"$kak_response_fifo\"}"
   }
 }
