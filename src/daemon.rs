@@ -5,7 +5,7 @@ use std::{
   path::PathBuf,
 };
 
-use crate::{config::Config, handler::Handler, request::Request};
+use crate::{config::Config, handler::Handler, request::Request, response::Response};
 
 #[derive(Debug)]
 pub struct Daemon {
@@ -87,10 +87,9 @@ impl Daemon {
         let resp = req_handler.handle_request(request);
 
         if let Some((mut session, resp)) = resp {
-          let should_shutdown = resp.should_shutdown();
-          session.send_response(resp);
+          session.send_response(&resp);
 
-          if should_shutdown {
+          if let Response::Shutdown = resp {
             break;
           }
         }

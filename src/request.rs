@@ -33,6 +33,13 @@ pub enum RequestPayload {
   /// Ask the server/daemon to close and clean up.
   Shutdown,
 
+  /// Try enabling highlighting for a given filetype.
+  ///
+  /// This request starts a “highlighting session.” The response will not replay with « supports highlighting » or
+  /// « does not support highlighting », but instead will insert the Kakoune commands to ask for highlights only if the
+  /// filetype is supported.
+  TryEnableHighlight { lang: String },
+
   /// Ask to highlight the given buffer.
   Highlight {
     buffer_id: BufferId,
