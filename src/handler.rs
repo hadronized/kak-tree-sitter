@@ -1,7 +1,7 @@
 use crate::{
   config::Config,
+  grammars::Grammars,
   highlighting::Highlighters,
-  languages,
   queries::Queries,
   request::{BufferId, Request, RequestPayload},
   response::Response,
@@ -14,6 +14,8 @@ use std::{collections::HashMap, fs, path::Path};
 /// This type is stateful, as requests might have side-effect (i.e. tree-sitter parsing generates trees/highlighters
 /// that can be reused, for instance).
 pub struct Handler {
+  grammars: Grammars,
+
   /// Per-language queries.
   queries: HashMap<String, Queries>,
 
@@ -23,9 +25,11 @@ pub struct Handler {
 
 impl Handler {
   pub fn new(config: &Config) -> Self {
+    let grammars = Grammars::load_from_dir(&config.grammars.path).unwrap(); // FIXME: unwraaaaap
     let queries = Self::load_queries(&config.queries.path);
 
     Self {
+      grammars,
       queries,
       highlighters: Highlighters::new(config.highlight.hl_names.clone()),
     }
@@ -84,7 +88,7 @@ impl Handler {
     timestamp: u64,
     read_fifo: &Path,
   ) -> Response {
-    if let Some(lang) = languages::get_lang(&lang_str) {
+    if let Some(lang) = self.grammars.get(&lang_str) {
       if let Some(queries) = self.queries.get(&lang_str) {
         self
           .highlighters

@@ -7,8 +7,9 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
-  pub highlight: HighlightConfig,
+  pub grammars: GrammarsConfig,
   pub queries: QueriesConfig,
+  pub highlight: HighlightConfig,
 }
 
 impl Config {
@@ -91,6 +92,23 @@ impl Default for QueriesConfig {
       path: dirs::data_dir()
         .map(|dir| dir.join("kak-tree-sitter/queries"))
         .unwrap(), // FIXME: yikes?
+    }
+  }
+}
+
+/// Tree-sitter grammars configuration.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(default)]
+pub struct GrammarsConfig {
+  pub path: PathBuf,
+}
+
+impl Default for GrammarsConfig {
+  fn default() -> Self {
+    GrammarsConfig {
+      path: dirs::data_dir()
+        .map(|dir| dir.join("kak-tree-sitter/grammars"))
+        .unwrap(), // FIXME: yikes again?
     }
   }
 }

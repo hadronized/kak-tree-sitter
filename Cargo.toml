@@ -17,10 +17,9 @@ clap = { version = "4.2.4", features = ["derive"] }
 daemonize = "0.5.0"
 dirs = "5.0.0"
 itertools = "0.10.5"
+libloading = "0.8.0"
 serde = { version = "1.0.160", features = ["derive"] }
 serde_json = "1.0.96"
 toml = "0.7.3"
 tree-sitter = "0.20.10"
 tree-sitter-highlight = "0.20.1"
-tree-sitter-rust = "0.20.3"
-tree-sitter-toml = "0.20.0"

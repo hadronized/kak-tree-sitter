@@ -27,7 +27,7 @@ impl Highlighters {
 impl Highlighters {
   pub fn highlight(
     &mut self,
-    lang: Language,
+    lang: &Language,
     queries: &Queries,
     buffer_id: BufferId,
     timestamp: u64,
@@ -44,7 +44,7 @@ impl Highlighters {
     let injections_query = queries.injections.as_deref().unwrap_or_default();
     let locals_query = queries.locals.as_deref().unwrap_or_default();
     let mut hl_config =
-      HighlightConfiguration::new(lang, hl_query, injections_query, locals_query).unwrap();
+      HighlightConfiguration::new(lang.clone(), hl_query, injections_query, locals_query).unwrap();
     hl_config.configure(&self.hl_names); // FIXME: config
 
     let events = highlighter

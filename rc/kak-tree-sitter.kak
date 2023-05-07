@@ -14,7 +14,7 @@ define-command -override kak-tree-sitter-enable -docstring 'Enable tree-sitter h
 
   # remove regular highlighting, if any
   try %{
-    remove-highlighter window/%opt{filetype}
+    remove-highlighter "window/%opt{filetype}"
   }
 
   # trigger the first highlight

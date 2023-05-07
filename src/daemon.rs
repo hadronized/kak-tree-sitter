@@ -30,15 +30,11 @@ impl Daemon {
     dir.join("kak-tree-sitter")
   }
 
-  pub fn start(config: Config) {
+  pub fn start(config: Config, daemonize: bool) {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
     eprintln!("daemon in {}", daemon_dir.display());
-
-    // create the buffer exchange dir; that place is where we are going to stream buffer updates
-    let buf_stream_dir = daemon_dir.join("stream");
-    fs::create_dir_all(&buf_stream_dir).unwrap(); // FIXME: error
 
     // PID file
     let pid_file = daemon_dir.join("pid");
@@ -50,18 +46,22 @@ impl Daemon {
       return;
     }
 
-    // create stdout / stderr files
-    let stdout_path = daemon_dir.join("stdout.txt");
-    let stderr_path = daemon_dir.join("stderr.txt");
-    let stdout = File::create(&stdout_path).unwrap();
-    let stderr = File::create(&stderr_path).unwrap();
+    if daemonize {
+      // create stdout / stderr files
+      let stdout_path = daemon_dir.join("stdout.txt");
+      let stderr_path = daemon_dir.join("stderr.txt");
+      let stdout = File::create(&stdout_path).unwrap();
+      let stderr = File::create(&stderr_path).unwrap();
 
-    daemonize::Daemonize::new()
-      .stdout(stdout)
-      .stderr(stderr)
-      .pid_file(pid_file)
-      .start()
-      .expect("daemon");
+      daemonize::Daemonize::new()
+        .stdout(stdout)
+        .stderr(stderr)
+        .pid_file(pid_file)
+        .start()
+        .expect("daemon");
+    } else {
+      fs::write(pid_file, format!("{}", std::process::id())).unwrap(); // FIXME: unwrap
+    }
 
     let daemon = Daemon::new(config, daemon_dir);
 
