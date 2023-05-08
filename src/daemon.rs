@@ -30,7 +30,7 @@ impl Daemon {
     dir.join("kak-tree-sitter")
   }
 
-  pub fn start(config: Config, daemonize: bool) {
+  pub fn bootstrap(config: Config, daemonize: bool) {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error

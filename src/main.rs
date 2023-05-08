@@ -45,6 +45,6 @@ fn main() {
     Daemon::send_request(req);
   } else {
     // server logic
-    Daemon::start(config, cli.daemonize);
+    Daemon::bootstrap(config, cli.daemonize);
   }
 }
