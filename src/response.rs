@@ -7,8 +7,14 @@ use crate::highlighting::KakHighlightRange;
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Response {
+  /// Shutdown response.
+  Shutdown,
+
   /// Status change.
-  StatusChanged { status: String, shutdown: bool },
+  StatusChanged { status: String },
+
+  /// Whether a filetype is supported.
+  FiletypeSupported { supported: bool },
 
   /// Highlights.
   ///
@@ -20,23 +26,30 @@ pub enum Response {
 }
 
 impl Response {
-  pub fn should_shutdown(&self) -> bool {
-    match self {
-      Response::StatusChanged { shutdown, .. } => *shutdown,
-      Response::Highlights { .. } => false,
-    }
-  }
-
-  pub fn status(status: impl Into<String>, shutdown: bool) -> Self {
+  pub fn status(status: impl Into<String>) -> Self {
     Response::StatusChanged {
       status: status.into(),
-      shutdown,
     }
   }
 
-  pub fn to_kak_cmd<'a>(&self, client_name: impl Into<Option<&'a str>>) -> String {
+  pub fn to_kak_cmd<'a>(
+    &self,
+    client_name: impl Into<Option<&'a str>>,
+    buffer_name: impl Into<Option<&'a str>>,
+  ) -> Option<String> {
     let kak_cmd = match self {
-      Response::StatusChanged { status, .. } => format!("info '{}'\n", status),
+      Response::Shutdown => return None,
+
+      Response::StatusChanged { status, .. } => format!("info %{{{}}}", status),
+
+      Response::FiletypeSupported { supported } => {
+        if *supported {
+          "kak-tree-sitter-highlight-enable".to_owned()
+        } else {
+          "".to_owned()
+        }
+      }
+
       Response::Highlights { timestamp, ranges } => {
         let ranges_str = ranges
           .iter()
@@ -51,10 +64,22 @@ impl Response {
       }
     };
 
-    if let Some(client_name) = client_name.into() {
-      format!("eval -no-hooks -client {client_name} '{kak_cmd}'\n")
-    } else {
-      kak_cmd
+    // empty command means no response
+    if kak_cmd.is_empty() {
+      return Some(kak_cmd);
     }
+
+    // check if we need to build a command prefix
+    let mut cmd_prefix = String::new();
+
+    if let Some(client_name) = client_name.into() {
+      cmd_prefix = format!("-client {client_name} ");
+    }
+
+    if let Some(buffer_name) = buffer_name.into() {
+      cmd_prefix.push_str(&format!("-buffer {buffer_name} "));
+    }
+
+    Some(format!("eval -no-hooks {cmd_prefix} %{{{kak_cmd}}}"))
   }
 }

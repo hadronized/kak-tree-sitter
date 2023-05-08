@@ -1,39 +1,51 @@
 # This file should be read only once. Either place it in your autoload/, or use the more practical --kakoune option when
 # invoking kak-tree-sitter.
 
+# Stop the kak-tree-sitter daemon.
+#
+# To restart the daemon, the daemon must explicitly be recreated with %sh{kak-tree-sitter -d -s $kak_session}.
 define-command -override kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
+  evaluate-commands -no-hooks -buffer * %{
+    remove-hooks buffer kak-tree-sitter
+  }
+
+  remove-hooks global kak-tree-sitter
+
   nop %sh{
     kak-tree-sitter -s $kak_session -r '{"type":"shutdown"}'
   }
 }
 
-define-command -override kak-tree-sitter-enable -docstring 'Enable tree-sitter highlighting for this buffer' %{
-  # Hooks
-  hook -group kak-tree-sitter buffer InsertIdle .* kak-tree-sitter-highlight-buffer
-  hook -group kak-tree-sitter buffer NormalIdle .* kak-tree-sitter-highlight-buffer
-
-  # remove regular highlighting, if any
+# Enabling highlighting for the current buffer.
+# 
+# This command does a couple of things, among removing the « default » highlighting (Kakoune based) of the buffer and
+# installing some hooks to automatically highlight the buffer.
+define-command -override kak-tree-sitter-highlight-enable -docstring 'Enable tree-sitter highlighting for this buffer' %{
+  # remove regular highlighting, if any; we wrap this with try %{} because the highlighter might not even exist or is
+  # named differently; in such a case we should probably have a mapping or something
   try %{
     remove-highlighter "window/%opt{filetype}"
   }
 
-  # trigger the first highlight
-  kak-tree-sitter-highlight-buffer
+  hook -group kak-tree-sitter buffer InsertIdle .* kak-tree-sitter-highlight-buffer
+  hook -group kak-tree-sitter buffer NormalIdle .* kak-tree-sitter-highlight-buffer
 }
 
-#define-command -hidden -override kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
-#  declare-option str stream_name %sh{tr '/' '-' <<< "$kak_timestamp-$kak_bufname"}
-#  evaluate-commands -draft -no-hooks write -force "%opt{kak_tree_sitter_stream_dir}/%opt{stream_name}"
-#  nop %sh{
-#    kak-tree-sitter -s $kak_session -c $kak_client -r "{\"type\":\"highlight\",\"buffer_id\":{\"session\":\"$kak_session\",\"buffer\":\"$kak_bufname\"},\"lang\":\"$kak_opt_filetype\",\"timestamp\":$kak_timestamp}" > $kak_command_fifo
-#  }
-#}
-
-
+# Send a single request to highlight the current buffer.
 define-command -override kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
   nop %sh{
     echo "evaluate-commands -no-hooks -verbatim write $kak_response_fifo" > $kak_command_fifo
     kak-tree-sitter -s $kak_session -c $kak_client -r "{\"type\":\"highlight\",\"buffer_id\":{\"session\":\"$kak_session\",\"buffer\":\"$kak_bufname\"},\"lang\":\"$kak_opt_filetype\",\"timestamp\":$kak_timestamp,\"read_fifo\":\"$kak_response_fifo\"}"
+  }
+}
+
+# Enable automatic tree-sitter highlights.
+hook -group kak-tree-sitter global WinCreate .* %{
+  hook -group kak-tree-sitter buffer -once WinDisplay .* %{
+    # Check whether this filetype is supported
+    nop %sh{
+      kak-tree-sitter -s "$kak_session" -c "$kak_client" -r "{\"type\":\"try_enable_highlight\",\"lang\":\"$kak_opt_filetype\"}"
+    }
   }
 }
 

@@ -59,7 +59,12 @@ impl Handler {
     match serde_json::from_str::<Request>(&request) {
       Ok(req) => match req.payload {
         RequestPayload::Shutdown => {
-          return Some((req.session, Response::status("kak-tree-sitter: quit", true)));
+          return Some((req.session, Response::Shutdown));
+        }
+
+        RequestPayload::TryEnableHighlight { lang } => {
+          let supported = self.grammars.get(&lang).is_some();
+          return Some((req.session, Response::FiletypeSupported { supported }));
         }
 
         RequestPayload::Highlight {
@@ -94,10 +99,10 @@ impl Handler {
           .highlighters
           .highlight(lang, queries, buffer_id, timestamp, read_fifo)
       } else {
-        Response::status(format!("no highlight query for language {lang_str}"), false)
+        Response::status(format!("no highlight query for language {lang_str}"))
       }
     } else {
-      Response::status(format!("unsupported language: {lang_str}"), false)
+      Response::status(format!("unsupported language: {lang_str}"))
     }
   }
 }

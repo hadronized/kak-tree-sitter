@@ -37,7 +37,7 @@ fn main() {
 
   if let Some(request) = cli.request {
     // client logic
-    let kak_sess = KakSession::new(session, cli.client);
+    let kak_sess = KakSession::new(session, cli.client, cli.buffer);
 
     // parse the request payload and embed it in a request
     let payload = serde_json::from_str(&request).unwrap(); // FIXME: unwrap()

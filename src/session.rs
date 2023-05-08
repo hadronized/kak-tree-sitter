@@ -8,19 +8,30 @@ use crate::response::Response;
 pub struct KakSession {
   session_name: String,
   client_name: Option<String>,
+  buffer_name: Option<String>,
 }
 
 impl KakSession {
-  pub fn new(session_name: impl Into<String>, client_name: impl Into<Option<String>>) -> Self {
+  pub fn new(
+    session_name: impl Into<String>,
+    client_name: impl Into<Option<String>>,
+    buffer_name: impl Into<Option<String>>,
+  ) -> Self {
     Self {
       session_name: session_name.into(),
       client_name: client_name.into(),
+      buffer_name: buffer_name.into(),
     }
   }
 
-  pub fn send_response(&mut self, resp: Response) {
-    let resp = resp.to_kak_cmd(self.client_name.as_deref());
-    self.send_response_raw(resp)
+  pub fn send_response(&mut self, resp: &Response) {
+    let resp = resp.to_kak_cmd(self.client_name.as_deref(), self.buffer_name.as_deref());
+
+    match resp {
+      Some(resp) if !resp.is_empty() => self.send_response_raw(resp),
+
+      _ => (),
+    }
   }
 
   // FIXME: I’m not entirely sure why but something is off with UnixStream. It’s like we’re not correctly connected with the right address?!
