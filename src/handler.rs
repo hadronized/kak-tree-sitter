@@ -1,9 +1,9 @@
 use crate::{
   config::Config,
   grammars::Grammars,
-  highlighting::Highlighters,
+  highlighting::{BufferId, Highlighters},
   queries::Queries,
-  request::{BufferId, Request, RequestPayload},
+  request::{Request, RequestPayload},
   response::Response,
   session::KakSession,
 };
@@ -68,11 +68,12 @@ impl Handler {
         }
 
         RequestPayload::Highlight {
-          buffer_id,
+          buffer,
           lang,
           timestamp,
           read_fifo,
         } => {
+          let buffer_id = BufferId::new(&req.session.session_name, &buffer);
           let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &read_fifo);
           return Some((req.session, resp));
         }

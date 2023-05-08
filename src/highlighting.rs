@@ -2,10 +2,29 @@
 
 use std::{collections::HashMap, fs, path::Path};
 
+use serde::{Deserialize, Serialize};
 use tree_sitter::Language;
 use tree_sitter_highlight::{Highlight, HighlightConfiguration, HighlightEvent, Highlighter};
 
-use crate::{queries::Queries, request::BufferId, response::Response};
+use crate::{queries::Queries, response::Response};
+
+/// A unique way to identify a buffer.
+///
+/// Currently tagged by the session name and the buffer name.
+#[derive(Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct BufferId {
+  session: String,
+  buffer: String,
+}
+
+impl BufferId {
+  pub fn new(session: impl Into<String>, buffer: impl Into<String>) -> Self {
+    Self {
+      session: session.into(),
+      buffer: buffer.into(),
+    }
+  }
+}
 
 /// Session/buffer highlighters.
 ///

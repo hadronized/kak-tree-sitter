@@ -19,10 +19,6 @@ pub struct Cli {
   #[clap(short, long)]
   pub client: Option<String>,
 
-  /// Kakoune buffer context, if any.
-  #[clap(short, long)]
-  pub buffer: Option<String>,
-
   /// JSON-serialized request.
   #[clap(short, long)]
   pub request: Option<String>,

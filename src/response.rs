@@ -32,11 +32,7 @@ impl Response {
     }
   }
 
-  pub fn to_kak_cmd<'a>(
-    &self,
-    client_name: impl Into<Option<&'a str>>,
-    buffer_name: impl Into<Option<&'a str>>,
-  ) -> Option<String> {
+  pub fn to_kak_cmd<'a>(&self, client_name: impl Into<Option<&'a str>>) -> Option<String> {
     let kak_cmd = match self {
       Response::Shutdown => return None,
 
@@ -70,15 +66,11 @@ impl Response {
     }
 
     // check if we need to build a command prefix
-    let mut cmd_prefix = String::new();
-
-    if let Some(client_name) = client_name.into() {
-      cmd_prefix = format!("-client {client_name} ");
-    }
-
-    if let Some(buffer_name) = buffer_name.into() {
-      cmd_prefix.push_str(&format!("-buffer {buffer_name} "));
-    }
+    let cmd_prefix = if let Some(client_name) = client_name.into() {
+      format!("-client {client_name} ")
+    } else {
+      String::new()
+    };
 
     Some(format!("eval -no-hooks {cmd_prefix} %{{{kak_cmd}}}"))
   }
