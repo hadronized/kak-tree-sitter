@@ -7,13 +7,23 @@ use crate::{
   response::Response,
   session::KakSession,
 };
-use std::{collections::HashMap, fs, path::Path};
+use std::{
+  collections::{HashMap, HashSet},
+  fs,
+  path::Path,
+};
 
 /// Type responsible in handling requests.
 ///
 /// This type is stateful, as requests might have side-effect (i.e. tree-sitter parsing generates trees/highlighters
 /// that can be reused, for instance).
 pub struct Handler {
+  /// Active sessions are sessions that are currently up and requesting tree-sitter.
+  ///
+  /// When a session quits, it should send a special request so that we can remove it from this set.
+  active_sessions: HashSet<String>,
+
+  /// Known grammars.
   grammars: Grammars,
 
   /// Per-language queries.
@@ -29,6 +39,7 @@ impl Handler {
     let queries = Self::load_queries(&config.queries.path);
 
     Self {
+      active_sessions: HashSet::new(),
       grammars,
       queries,
       highlighters: Highlighters::new(config.highlight.hl_names.clone()),
@@ -57,27 +68,48 @@ impl Handler {
   pub fn handle_request(&mut self, request: String) -> Option<(KakSession, Response)> {
     // parse the request and dispatch
     match serde_json::from_str::<Request>(&request) {
-      Ok(req) => match req.payload {
-        RequestPayload::Shutdown => {
-          return Some((req.session, Response::Shutdown));
+      Ok(req) => {
+        // mark the session as active
+        if !self.active_sessions.contains(&req.session.session_name) {
+          println!("new active session {}", req.session.session_name);
+
+          self
+            .active_sessions
+            .insert(req.session.session_name.clone());
         }
 
-        RequestPayload::TryEnableHighlight { lang } => {
-          let supported = self.grammars.get(&lang).is_some();
-          return Some((req.session, Response::FiletypeSupported { supported }));
-        }
+        match req.payload {
+          RequestPayload::SessionEnd => {
+            println!("ending session {}", req.session.session_name);
 
-        RequestPayload::Highlight {
-          buffer,
-          lang,
-          timestamp,
-          read_fifo,
-        } => {
-          let buffer_id = BufferId::new(&req.session.session_name, &buffer);
-          let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &read_fifo);
-          return Some((req.session, resp));
+            self.active_sessions.remove(&req.session.session_name);
+
+            if self.active_sessions.is_empty() {
+              return Some((req.session, Response::Shutdown));
+            }
+          }
+
+          RequestPayload::Shutdown => {
+            return Some((req.session, Response::Shutdown));
+          }
+
+          RequestPayload::TryEnableHighlight { lang } => {
+            let supported = self.grammars.get(&lang).is_some();
+            return Some((req.session, Response::FiletypeSupported { supported }));
+          }
+
+          RequestPayload::Highlight {
+            buffer,
+            lang,
+            timestamp,
+            read_fifo,
+          } => {
+            let buffer_id = BufferId::new(&req.session.session_name, &buffer);
+            let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &read_fifo);
+            return Some((req.session, resp));
+          }
         }
-      },
+      }
 
       Err(err) => {
         eprintln!("cannot parse request {request}: {err}");

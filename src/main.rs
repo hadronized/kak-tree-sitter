@@ -10,8 +10,6 @@ mod request;
 mod response;
 mod session;
 
-use std::process::exit;
-
 use clap::Parser;
 use cli::Cli;
 use config::Config;
@@ -23,19 +21,12 @@ fn main() {
   let cli = Cli::parse();
   let config = Config::load_from_xdg();
 
-  // we will always need a session name
-  if cli.session.is_none() {
-    eprintln!("missing session name");
-    exit(1);
-  }
-  let session = cli.session.unwrap();
-
   if cli.kakoune {
     // inject the rc/ and daemon-based settings
     println!("{}", rc::rc_commands());
   }
 
-  if let Some(request) = cli.request {
+  if let (Some(session), Some(request)) = (cli.session, cli.request) {
     // client logic
     let kak_sess = KakSession::new(session, cli.client);
 
