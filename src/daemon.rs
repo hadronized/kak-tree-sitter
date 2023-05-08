@@ -34,7 +34,7 @@ impl Daemon {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
-    eprintln!("daemon in {}", daemon_dir.display());
+    eprintln!("running in {}", daemon_dir.display());
 
     // PID file
     let pid_file = daemon_dir.join("pid");
@@ -42,7 +42,7 @@ impl Daemon {
     // check whether the PID file is already there; if so, it means the daemon is already running, so we will just
     // stop right away
     if let Ok(true) = pid_file.try_exists() {
-      eprintln!("kak-tree-sitter daemon already running; exiting");
+      eprintln!("kak-tree-sitter already running; exiting");
       return;
     }
 
@@ -87,11 +87,11 @@ impl Daemon {
         let resp = req_handler.handle_request(request);
 
         if let Some((mut session, resp)) = resp {
-          session.send_response(&resp);
-
           if let Response::Shutdown = resp {
             break;
           }
+
+          session.send_response(&resp);
         }
       }
     }

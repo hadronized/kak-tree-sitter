@@ -1,6 +1,15 @@
 # This file should be read only once. Either place it in your autoload/, or use the more practical --kakoune option when
 # invoking kak-tree-sitter.
 
+# Mark the session as non-active.
+#
+# This is typically sent when a session is about to die; see KakEnd for further details.
+define-command -override kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
+  nop %sh{
+    kak-tree-sitter -s $kak_session -r '{"type":"session_end"}'
+  }
+}
+
 # Stop the kak-tree-sitter daemon.
 #
 # To restart the daemon, the daemon must explicitly be recreated with %sh{kak-tree-sitter -d -s $kak_session}.
@@ -48,6 +57,9 @@ hook -group kak-tree-sitter global WinCreate .* %{
     }
   }
 }
+
+# Make kak-tree-sitter know the session has ended whenever we end it.
+hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-end-session
 
 # Faces definition
 #set-face global ts_unknown                    red+ub

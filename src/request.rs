@@ -21,6 +21,11 @@ impl Request {
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum RequestPayload {
+  /// A session just ended.
+  ///
+  /// This request is useful to track which sessions are still alive, and eventually make the daemon quit by itself.
+  SessionEnd,
+
   /// Ask the server/daemon to close and clean up.
   Shutdown,
 
