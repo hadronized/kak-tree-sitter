@@ -1,0 +1,17 @@
+[package]
+name = "ktsctl"
+version = "0.1.0"
+license = "BSD-3-Clause"
+authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
+description = "CLI controler of kak-tree-sitter"
+keywords = []
+categories = []
+homepage = "https://github.com/phaazon/kak-tree-sitter"
+repository = "https://github.com/phaazon/kak-tree-sitter"
+readme = "README.md"
+edition = "2021"
+rust-version = "1.65.0"
+
+[dependencies]
+clap = { version = "4.2.7", features = ["derive"] }
+dirs = "5.0.1"

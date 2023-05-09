@@ -283,6 +283,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "ktsctl"
+version = "0.1.0"
+dependencies = [
+ "clap",
+ "dirs",
+]
+
+[[package]]
 name = "libc"
 version = "0.2.144"
 source = "registry+https://github.com/rust-lang/crates.io-index"
