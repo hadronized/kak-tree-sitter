@@ -64,7 +64,7 @@ impl Highlighters {
     let locals_query = queries.locals.as_deref().unwrap_or_default();
     let mut hl_config =
       HighlightConfiguration::new(lang.clone(), hl_query, injections_query, locals_query).unwrap();
-    hl_config.configure(&self.hl_names); // FIXME: config
+    hl_config.configure(&self.hl_names);
 
     let events = highlighter
       .highlight(&hl_config, source.as_bytes(), None, |_| None)
