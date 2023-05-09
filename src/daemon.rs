@@ -26,7 +26,11 @@ impl Daemon {
   }
 
   fn daemon_dir() -> PathBuf {
-    let dir = dirs::runtime_dir().unwrap(); // FIXME: unwrap()
+    let dir = dirs::runtime_dir()
+      .or_else(||
+        // macOS doesn’t implement XDG, yay…
+        std::env::var("TMPDIR").map(PathBuf::from).ok())
+      .unwrap(); // FIXME: unwrap()
     dir.join("kak-tree-sitter")
   }
 
