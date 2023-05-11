@@ -6,7 +6,7 @@ use std::{
 
 use clap::Parser;
 use cli::Cli;
-use kak_tree_sitter_config::Config;
+use kak_tree_sitter_config::{Config, LanguageConfig};
 
 mod cli;
 
@@ -34,24 +34,34 @@ fn main() {
   fs::create_dir_all(&kak_data_dir).unwrap();
 
   let lang = cli.lang;
+  let lang_config = config.languages.get_lang_conf(&lang);
+
+  let fetch_path = PathBuf::from(format!(
+    "{runtime_dir}/grammars/{lang}",
+    runtime_dir = dir.display(),
+  ));
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if cli.fetch {
-    fetch_grammar(&dir, &lang);
+    fetch_grammar(&lang_config, &fetch_path, &dir, &lang);
   }
+
+  let lang_build_dir = dir.join(format!(
+    "{fetch_path}/{extra_path}/build",
+    fetch_path = fetch_path.display(),
+    extra_path = lang_config.grammar.path.display()
+  ));
 
   if cli.compile {
     // ensure the build dir exists
-    let lang_build_dir = dir.join(format!("tree-sitter-{lang}/build"));
     fs::create_dir_all(&lang_build_dir).unwrap(); // FIXME: unwrap()
+    compile(&lang_config, &lang_build_dir, &lang);
+  }
 
-    compile(&lang_build_dir, &lang);
-
-    if cli.install {
-      install_grammar(&lang_build_dir, &lang);
-    }
-  } else if cli.install {
-    eprintln!("installing requires compiling first");
+  if cli.install {
+    // ensure the build dir exists
+    fs::create_dir_all(&lang_build_dir).unwrap(); // FIXME: unwrap()
+    install_grammar(&lang_build_dir, &lang);
   }
 
   if cli.queries {
@@ -65,20 +75,23 @@ fn main() {
 }
 
 /// Fetch lang’s grammars and queries by targetting https://github.com/tree-sitter/tree-sitter-{lang}.
-fn fetch_grammar(runtime_dir: &Path, lang: &str) {
-  // cleanup / remove the runtime_dir/tree-sitter-{lang} directory, if exists
-  let lang_dir = PathBuf::from(format!(
-    "{runtime_dir}/tree-sitter-{lang}",
-    runtime_dir = runtime_dir.display()
-  ));
+fn fetch_grammar(lang_config: &LanguageConfig, fetch_path: &Path, runtime_dir: &Path, lang: &str) {
+  let uri = lang_config.grammar.uri_fmt.replace("{lang}", lang);
+  println!("fetching grammar for language {lang} from {uri}");
 
-  if let Ok(true) = lang_dir.try_exists() {
-    fs::remove_dir_all(lang_dir).unwrap(); // FIXME: unwrap()
+  // cleanup / remove the {runtime_dir}/{lang} directory, if exists
+  if let Ok(true) = fetch_path.try_exists() {
+    fs::remove_dir_all(fetch_path).unwrap(); // FIXME: unwrap()
   }
 
-  let url = format!("https://github.com/tree-sitter/tree-sitter-{lang}");
   Command::new("git")
-    .args(["clone", url.as_str(), "--depth", "1"])
+    .args([
+      "clone",
+      uri.as_str(),
+      "--depth",
+      "1",
+      fetch_path.as_os_str().to_str().unwrap(), // FIXME: unwrap()
+    ])
     .current_dir(runtime_dir)
     .spawn()
     .unwrap()
@@ -87,18 +100,16 @@ fn fetch_grammar(runtime_dir: &Path, lang: &str) {
 }
 
 /// Compile the grammar.
-fn compile(lang_build_dir: &Path, lang: &str) {
+fn compile(lang_config: &LanguageConfig, lang_build_dir: &Path, lang: &str) {
   // compile into .o
-  Command::new("cc")
-    .args([
-      "-c",
-      "-O3",
-      "-fpic",
-      "../src/scanner.c",
-      "../src/parser.c",
-      "-I",
-      "../src",
-    ])
+  Command::new(&lang_config.grammar.compile)
+    .args(
+      lang_config
+        .grammar
+        .compile_args
+        .iter()
+        .map(|arg| arg.replace("{lang}", lang)),
+    )
     .current_dir(&lang_build_dir)
     .spawn()
     .unwrap()
@@ -106,16 +117,14 @@ fn compile(lang_build_dir: &Path, lang: &str) {
     .unwrap(); // FIXME: unwrap()
 
   // link into {lang}.so
-  Command::new("cc")
-    .args([
-      "-shared",
-      "-O3",
-      "-fpic",
-      "scanner.o",
-      "parser.o",
-      "-o",
-      format!("{lang}.so").as_str(),
-    ])
+  Command::new(&lang_config.grammar.link)
+    .args(
+      lang_config
+        .grammar
+        .link_args
+        .iter()
+        .map(|arg| arg.replace("{lang}", lang)),
+    )
     .current_dir(&lang_build_dir)
     .spawn()
     .unwrap()
@@ -128,6 +137,11 @@ fn install_grammar(lang_build_dir: &Path, lang: &str) {
   let source_path = lang_build_dir.join(&lang_so);
   let grammar_dir = kak_tree_sitter_data_dir().join("grammars");
   let install_path = grammar_dir.join(lang_so);
+  println!(
+    "installing grammar for {lang} from {source_path} in {install_path}",
+    source_path = source_path.display(),
+    install_path = install_path.display()
+  );
 
   // ensure the grammars directory exists
   fs::create_dir_all(grammar_dir).unwrap();

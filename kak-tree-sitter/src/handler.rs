@@ -37,7 +37,7 @@ pub struct Handler {
 
 impl Handler {
   pub fn new(config: &Config) -> Self {
-    let grammars = Grammars::load_from_dir(&config.grammars.path).unwrap(); // FIXME: unwraaaaap
+    let grammars = Grammars::load_from_dir(&config.grammars.grammar_libs_dir).unwrap(); // FIXME: unwraaaaap
     let queries = Self::load_queries(&config.queries.path);
 
     Self {
