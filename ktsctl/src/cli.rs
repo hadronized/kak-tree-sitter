@@ -2,11 +2,9 @@ use clap::Parser;
 
 #[derive(Debug, Parser)]
 pub struct Cli {
-  /// Grammar to fetch.
-  ///
-  /// Grammars are currently fetched from https://github.com/tree-sitter/.
+  /// Fetch resources.
   #[clap(short, long)]
-  pub grammar: Option<String>,
+  pub fetch: bool,
 
   /// Whether we should fetch queries.
   ///
@@ -23,4 +21,9 @@ pub struct Cli {
   /// Implies --compile for grammars.
   #[clap(short, long)]
   pub install: bool,
+
+  /// Grammar to fetch.
+  ///
+  /// Grammars are currently fetched from https://github.com/tree-sitter/.
+  pub lang: String,
 }

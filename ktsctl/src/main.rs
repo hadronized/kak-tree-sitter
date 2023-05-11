@@ -6,6 +6,7 @@ use std::{
 
 use clap::Parser;
 use cli::Cli;
+use kak_tree_sitter_config::Config;
 
 mod cli;
 
@@ -22,6 +23,7 @@ fn kak_tree_sitter_data_dir() -> PathBuf {
 
 fn main() {
   let cli = Cli::parse();
+  let config = Config::load_from_xdg();
 
   // check the runtime dir exists
   let dir = runtime_dir();
@@ -31,20 +33,25 @@ fn main() {
   let kak_data_dir = kak_tree_sitter_data_dir();
   fs::create_dir_all(&kak_data_dir).unwrap();
 
-  if let Some(lang) = cli.grammar {
-    fetch_grammar(&dir, &lang);
+  let lang = cli.lang;
 
+  // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
+  if cli.fetch {
+    fetch_grammar(&dir, &lang);
+  }
+
+  if cli.compile {
     // ensure the build dir exists
     let lang_build_dir = dir.join(format!("tree-sitter-{lang}/build"));
     fs::create_dir_all(&lang_build_dir).unwrap(); // FIXME: unwrap()
 
-    if cli.compile {
-      compile(&lang_build_dir, &lang);
-    }
+    compile(&lang_build_dir, &lang);
 
     if cli.install {
       install_grammar(&lang_build_dir, &lang);
     }
+  } else if cli.install {
+    eprintln!("installing requires compiling first");
   }
 
   if cli.queries {
@@ -86,6 +93,7 @@ fn compile(lang_build_dir: &Path, lang: &str) {
     .args([
       "-c",
       "-O3",
+      "-fpic",
       "../src/scanner.c",
       "../src/parser.c",
       "-I",
@@ -102,6 +110,7 @@ fn compile(lang_build_dir: &Path, lang: &str) {
     .args([
       "-shared",
       "-O3",
+      "-fpic",
       "scanner.o",
       "parser.o",
       "-o",
