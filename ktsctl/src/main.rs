@@ -83,7 +83,14 @@ fn fetch_grammar(runtime_dir: &Path, lang: &str) {
 fn compile(lang_build_dir: &Path, lang: &str) {
   // compile into .o
   Command::new("cc")
-    .args(["-c", "-O3", "../src/scanner.c", "../src/parser.c"])
+    .args([
+      "-c",
+      "-O3",
+      "../src/scanner.c",
+      "../src/parser.c",
+      "-I",
+      "../src",
+    ])
     .current_dir(&lang_build_dir)
     .spawn()
     .unwrap()
