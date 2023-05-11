@@ -5,7 +5,9 @@ use std::{
   path::PathBuf,
 };
 
-use crate::{config::Config, handler::Handler, request::Request, response::Response};
+use kak_tree_sitter_config::Config;
+
+use crate::{handler::Handler, request::Request, response::Response};
 
 #[derive(Debug)]
 pub struct Daemon {

@@ -1,5 +1,6 @@
+use kak_tree_sitter_config::Config;
+
 use crate::{
-  config::Config,
   grammars::Grammars,
   highlighting::{BufferId, Highlighters},
   queries::Queries,
@@ -7,6 +8,7 @@ use crate::{
   response::Response,
   session::KakSession,
 };
+
 use std::{
   collections::{HashMap, HashSet},
   fs,

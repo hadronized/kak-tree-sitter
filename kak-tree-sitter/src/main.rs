@@ -1,5 +1,4 @@
 mod cli;
-mod config;
 mod daemon;
 mod grammars;
 mod handler;
@@ -12,8 +11,8 @@ mod session;
 
 use clap::Parser;
 use cli::Cli;
-use config::Config;
 use daemon::Daemon;
+use kak_tree_sitter_config::Config;
 use request::Request;
 use session::KakSession;
 
