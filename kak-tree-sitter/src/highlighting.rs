@@ -214,8 +214,7 @@ where
 
         self.change_line = c == '\n';
 
-        // TODO: we probably want to compute the « display width » of `c` here instead
-        self.col += 1;
+        self.col += c.len_utf8();
       } else {
         break;
       }
