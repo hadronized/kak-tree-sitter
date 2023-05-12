@@ -61,6 +61,9 @@ hook -group kak-tree-sitter global WinCreate .* %{
 # Make kak-tree-sitter know the session has ended whenever we end it.
 hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-end-session
 
+# Highlight ranges used when highlighting buffers.
+declare-option range-specs kak_tree_sitter_highlighter_ranges
+
 # Faces definition; defaults to catppuccin_macchiato
 declare-option str rosewater 'rgb:f4dbd6'
 declare-option str flamingo 'rgb:f0c6c6'
