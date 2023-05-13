@@ -1,19 +1,14 @@
 use kak_tree_sitter_config::Config;
 
 use crate::{
-  grammars::Grammars,
   highlighting::{BufferId, Highlighters},
-  queries::Queries,
+  languages::Languages,
   request::{Request, RequestPayload},
   response::Response,
   session::KakSession,
 };
 
-use std::{
-  collections::{HashMap, HashSet},
-  fs,
-  path::Path,
-};
+use std::{collections::HashSet, path::Path};
 
 /// Type responsible in handling requests.
 ///
@@ -25,45 +20,35 @@ pub struct Handler {
   /// When a session quits, it should send a special request so that we can remove it from this set.
   active_sessions: HashSet<String>,
 
-  /// Known grammars.
-  grammars: Grammars,
-
-  /// Per-language queries.
-  queries: HashMap<String, Queries>,
+  /// Known languages.
+  langs: Languages,
 
   /// Map a highlighter to a [`BufferId`].
   highlighters: Highlighters,
 }
 
+impl Drop for Handler {
+  fn drop(&mut self) {
+    // drop queries and highlighters first before dropping grammars; otherwise we might trying to call tree-sitter code
+    // that was unloaded
+    drop(&mut self.highlighters);
+    drop(&mut self.langs);
+
+    // we don’t care about the order for the rest
+  }
+}
+
 impl Handler {
   pub fn new(config: &Config) -> Self {
-    let grammars = Grammars::load_from_dir(&config.grammars.grammar_libs_dir).unwrap(); // FIXME: unwraaaaap
-    let queries = Self::load_queries(&config.queries.path);
+    let active_sessions = HashSet::new();
+    let langs = Languages::load_from_dir(config);
+    let highlighters = Highlighters::new(config.highlight.hl_names.clone());
 
     Self {
-      active_sessions: HashSet::new(),
-      grammars,
-      queries,
-      highlighters: Highlighters::new(config.highlight.hl_names.clone()),
+      active_sessions,
+      langs,
+      highlighters,
     }
-  }
-
-  // FIXME: so many unwrap()
-  /// Load all the queries.
-  fn load_queries(dir: &Path) -> HashMap<String, Queries> {
-    if !dir.is_dir() {
-      eprintln!("no query directory!");
-      return HashMap::new();
-    }
-
-    fs::read_dir(dir)
-      .unwrap()
-      .flatten()
-      .map(|dir| {
-        let queries = Queries::load_from_dir(dir.path());
-        (dir.file_name().to_str().unwrap().to_owned(), queries)
-      })
-      .collect()
   }
 
   /// Handle the request and return whether the handler should shutdown.
@@ -96,7 +81,7 @@ impl Handler {
           }
 
           RequestPayload::TryEnableHighlight { lang } => {
-            let supported = self.grammars.get(&lang).is_some();
+            let supported = self.langs.get(&lang).is_some();
             return Some((req.session, Response::FiletypeSupported { supported }));
           }
 
@@ -124,20 +109,16 @@ impl Handler {
   fn handle_highlight_req(
     &mut self,
     buffer_id: BufferId,
-    lang_str: String,
+    lang_name: String,
     timestamp: u64,
     read_fifo: &Path,
   ) -> Response {
-    if let Some(lang) = self.grammars.get(&lang_str) {
-      if let Some(queries) = self.queries.get(&lang_str) {
-        self
-          .highlighters
-          .highlight(lang, queries, buffer_id, timestamp, read_fifo)
-      } else {
-        Response::status(format!("no highlight query for language {lang_str}"))
-      }
+    if let Some(lang) = self.langs.get(&lang_name) {
+      self
+        .highlighters
+        .highlight(lang, &self.langs, buffer_id, timestamp, read_fifo)
     } else {
-      Response::status(format!("unsupported language: {lang_str}"))
+      Response::status(format!("unsupported language: {lang_name}"))
     }
   }
 }

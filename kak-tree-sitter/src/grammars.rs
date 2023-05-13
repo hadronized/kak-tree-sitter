@@ -7,10 +7,12 @@ use std::{collections::HashMap, fs, path::Path};
 use libloading::Symbol;
 use tree_sitter::Language;
 
+use crate::queries::Queries;
+
 #[derive(Debug)]
 pub struct Grammars {
-  /// Map a `filetype` to the tree-sitter [`Language`].
-  langs: HashMap<String, (libloading::Library, Language)>,
+  /// Map a `filetype` to the tree-sitter [`Language`] and its queries.
+  langs: HashMap<String, (libloading::Library, Language, Queries)>,
 }
 
 impl Grammars {
@@ -42,6 +44,10 @@ impl Grammars {
           match sym {
             Ok(sym) => {
               let ffi_lang = sym();
+
+              // get the queries
+              let queries = Queries::load_from_dir()
+
               langs.insert(lang.to_owned(), (lib, ffi_lang));
             }
 

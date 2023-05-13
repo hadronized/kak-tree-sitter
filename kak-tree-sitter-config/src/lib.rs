@@ -7,8 +7,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
-  pub grammars: GrammarsConfig,
-  pub queries: QueriesConfig,
   pub highlight: HighlightConfig,
   #[serde(flatten)]
   pub languages: LanguagesConfig,
@@ -86,51 +84,6 @@ impl Default for HighlightConfig {
   }
 }
 
-/// Tree-sitter queries configuration.
-///
-/// We currently support three kind of queries:
-///
-/// - Highlights.
-/// - Injections.
-/// - Locals.
-/// - Text-objects.
-///
-/// All of those properties are set per-language and thus require runtime files. Each language has a specific directory
-/// (same name as the language), which must contain `highlights.scm`, `injections.scm`, `locals.scm` and
-/// `text-objects.scm`. The absence of one of those files disable the linked feature.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default)]
-pub struct QueriesConfig {
-  pub path: PathBuf,
-}
-
-impl Default for QueriesConfig {
-  fn default() -> Self {
-    QueriesConfig {
-      path: dirs::data_dir()
-        .map(|dir| dir.join("kak-tree-sitter/queries"))
-        .unwrap(), // FIXME: yikes?
-    }
-  }
-}
-
-/// Tree-sitter grammars configuration.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default)]
-pub struct GrammarsConfig {
-  pub grammar_libs_dir: PathBuf,
-}
-
-impl Default for GrammarsConfig {
-  fn default() -> Self {
-    GrammarsConfig {
-      grammar_libs_dir: dirs::data_dir()
-        .map(|dir| dir.join("kak-tree-sitter/grammars"))
-        .unwrap(), // FIXME: yikes again?
-    }
-  }
-}
-
 /// Languages configuration.
 ///
 /// It is possible to set the URI and path where to fetch grammars, as well as queries.
@@ -160,6 +113,18 @@ impl LanguagesConfig {
       .or_else(|| self.language.get("default"))
       .cloned()
       .unwrap_or_default()
+  }
+
+  /// Get the grammar path for a given language.
+  pub fn get_grammar_path(&self, lang: impl AsRef<str>) -> Option<PathBuf> {
+    let lang = lang.as_ref();
+    dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
+  }
+
+  /// Get the queries directory for a given language.
+  pub fn get_queries_dir(&self, lang: impl AsRef<str>) -> Option<PathBuf> {
+    let lang = lang.as_ref();
+    dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
   }
 }
 
@@ -195,6 +160,11 @@ pub struct LanguageGrammarConfig {
   /// Wherever the language must appear, you can use `{lang}` as placeholder.
   pub compile_args: Vec<String>,
 
+  /// Compiler extra arguments.
+  ///
+  /// Should be used to pass optimization and debug flags, mainly.
+  pub compile_flags: Vec<String>,
+
   /// Link command to run to link the grammar.
   ///
   /// Should always be `cc`, but, still, who knows.
@@ -204,6 +174,11 @@ pub struct LanguageGrammarConfig {
   ///
   /// Wherever the language must appear, you can use `{lang} as placeholder.
   pub link_args: Vec<String>,
+
+  /// Linker extra arguments.
+  ///
+  /// Should be used to pass optimization and debug flags, mainly.
+  pub link_flags: Vec<String>,
 }
 
 impl Default for LanguageGrammarConfig {
@@ -214,23 +189,23 @@ impl Default for LanguageGrammarConfig {
       compile: "cc".to_owned(),
       compile_args: vec![
         "-c".to_owned(),
-        "-O3".to_owned(),
         "-fpic".to_owned(),
         "../src/scanner.c".to_owned(),
         "../src/parser.c".to_owned(),
         "-I".to_owned(),
         "../src".to_owned(),
       ],
+      compile_flags: vec!["-O3".to_owned()],
       link: "cc".to_owned(),
       link_args: vec![
         "-shared".to_owned(),
-        "-O3".to_owned(),
         "-fpic".to_owned(),
         "scanner.o".to_owned(),
         "parser.o".to_owned(),
         "-o".to_owned(),
         "{lang}.so".to_owned(),
       ],
+      link_flags: vec!["-O3".to_owned()],
     }
   }
 }

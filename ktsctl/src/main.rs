@@ -99,33 +99,33 @@ fn fetch_grammar(lang_config: &LanguageConfig, fetch_path: &Path, runtime_dir: &
     .unwrap(); // FIXME: unwrap()
 }
 
-/// Compile the grammar.
+/// Compile and link the grammar.
 fn compile(lang_config: &LanguageConfig, lang_build_dir: &Path, lang: &str) {
   // compile into .o
+  let args = lang_config
+    .grammar
+    .compile_args
+    .iter()
+    .map(|arg| arg.replace("{lang}", lang))
+    .chain(lang_config.grammar.compile_flags.clone());
   Command::new(&lang_config.grammar.compile)
-    .args(
-      lang_config
-        .grammar
-        .compile_args
-        .iter()
-        .map(|arg| arg.replace("{lang}", lang)),
-    )
-    .current_dir(&lang_build_dir)
+    .args(args)
+    .current_dir(lang_build_dir)
     .spawn()
     .unwrap()
     .wait()
     .unwrap(); // FIXME: unwrap()
 
   // link into {lang}.so
+  let args = lang_config
+    .grammar
+    .link_args
+    .iter()
+    .map(|arg| arg.replace("{lang}", lang))
+    .chain(lang_config.grammar.link_flags.clone());
   Command::new(&lang_config.grammar.link)
-    .args(
-      lang_config
-        .grammar
-        .link_args
-        .iter()
-        .map(|arg| arg.replace("{lang}", lang)),
-    )
-    .current_dir(&lang_build_dir)
+    .args(args)
+    .current_dir(lang_build_dir)
     .spawn()
     .unwrap()
     .wait()

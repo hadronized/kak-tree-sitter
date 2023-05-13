@@ -1,6 +1,6 @@
 mod cli;
 mod daemon;
-mod grammars;
+mod languages;
 mod handler;
 mod highlighting;
 mod queries;

@@ -3,15 +3,17 @@
 use std::{collections::HashMap, fs, path::Path};
 
 use serde::{Deserialize, Serialize};
-use tree_sitter::Language;
-use tree_sitter_highlight::{Highlight, HighlightConfiguration, HighlightEvent, Highlighter};
+use tree_sitter_highlight::{Highlight, HighlightEvent, Highlighter};
 
-use crate::{queries::Queries, response::Response};
+use crate::{
+  languages::{Language, Languages},
+  response::Response,
+};
 
 /// A unique way to identify a buffer.
 ///
 /// Currently tagged by the session name and the buffer name.
-#[derive(Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct BufferId {
   session: String,
   buffer: String,
@@ -47,7 +49,7 @@ impl Highlighters {
   pub fn highlight(
     &mut self,
     lang: &Language,
-    queries: &Queries,
+    langs: &Languages,
     buffer_id: BufferId,
     timestamp: u64,
     read_fifo: impl AsRef<Path>,
@@ -56,18 +58,15 @@ impl Highlighters {
 
     let highlighter = self
       .highlighters
-      .entry(buffer_id)
+      .entry(buffer_id.clone())
       .or_insert(Highlighter::new());
 
-    let hl_query = queries.highlights.as_deref().unwrap_or_default();
-    let injections_query = queries.injections.as_deref().unwrap_or_default();
-    let locals_query = queries.locals.as_deref().unwrap_or_default();
-    let mut hl_config =
-      HighlightConfiguration::new(lang.clone(), hl_query, injections_query, locals_query).unwrap();
-    hl_config.configure(&self.hl_names);
-
+    let injection_callback = |lang_name: &str| {
+      println!("injecting {lang_name} in {buffer_id:?}");
+      langs.get(lang_name).map(|lang| &lang.hl_config)
+    };
     let events = highlighter
-      .highlight(&hl_config, source.as_bytes(), None, |_| None)
+      .highlight(&lang.hl_config, source.as_bytes(), None, injection_callback)
       .unwrap();
 
     let ranges = KakHighlightRange::from_iter(&source, &self.hl_names, events.flatten());
