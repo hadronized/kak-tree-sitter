@@ -115,6 +115,11 @@ impl LanguagesConfig {
       .unwrap_or_default()
   }
 
+  /// Get the directory where all grammars live in.
+  pub fn get_grammars_dir(&self) -> Option<PathBuf> {
+    dirs::data_dir().map(|dir| dir.join("kak-tree-sitter/grammars"))
+  }
+
   /// Get the grammar path for a given language.
   pub fn get_grammar_path(&self, lang: impl AsRef<str>) -> Option<PathBuf> {
     let lang = lang.as_ref();
@@ -135,6 +140,7 @@ impl LanguagesConfig {
 #[serde(default)]
 pub struct LanguageConfig {
   pub grammar: LanguageGrammarConfig,
+  pub queries: LanguageQueriesConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -206,6 +212,27 @@ impl Default for LanguageGrammarConfig {
         "{lang}.so".to_owned(),
       ],
       link_flags: vec!["-O3".to_owned()],
+    }
+  }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default)]
+pub struct LanguageQueriesConfig {
+  /// A format string to form the final URI to fetch the language queries from.
+  ///
+  /// The language is inserted via the `{lang}` placeholder.
+  pub uri_fmt: String,
+
+  /// Path to go to where to find the queries directory.
+  pub path: PathBuf,
+}
+
+impl Default for LanguageQueriesConfig {
+  fn default() -> Self {
+    LanguageQueriesConfig {
+      uri_fmt: "https://github.com/tree-sitter/tree-sitter-{lang}".to_owned(),
+      path: PathBuf::from("queries"),
     }
   }
 }

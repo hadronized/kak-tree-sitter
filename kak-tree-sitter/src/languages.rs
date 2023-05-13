@@ -2,7 +2,11 @@
 //!
 //! Languages have different objects (grammars, queries, etc.) living at runtime and must be loaded beforehand.
 
-use std::{collections::HashMap, path::Path};
+use std::{
+  collections::{HashMap, HashSet},
+  fs,
+  path::Path,
+};
 
 use kak_tree_sitter_config::Config;
 use libloading::Symbol;
@@ -63,8 +67,25 @@ impl Languages {
   pub fn load_from_dir(config: &Config) -> Self {
     let mut langs = HashMap::new();
 
+    let langs_from_grammars = fs::read_dir(config.languages.get_grammars_dir().unwrap())
+      .unwrap()
+      .flatten()
+      .map(|x| {
+        x.file_name()
+          .to_str()
+          .unwrap()
+          .trim_end_matches(".so")
+          .to_owned()
+      });
+    let known_langs: HashSet<_> = config
+      .languages
+      .language
+      .keys()
+      .cloned()
+      .chain(langs_from_grammars)
+      .collect();
     // iterate over all known languages in the configuration
-    for lang_name in config.languages.language.keys() {
+    for lang_name in &known_langs {
       if let Some(grammar_path) = config.languages.get_grammar_path(lang_name) {
         if let Some((ts_lib, ts_lang)) = Self::load_grammar(lang_name, &grammar_path) {
           if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {

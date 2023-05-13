@@ -6,9 +6,14 @@ use std::{
 
 use clap::Parser;
 use cli::Cli;
+use colored::Colorize;
 use kak_tree_sitter_config::{Config, LanguageConfig};
 
 mod cli;
+
+fn info(msg: impl AsRef<str>) {
+  println!("{}", msg.as_ref().blue().bold());
+}
 
 fn runtime_dir() -> PathBuf {
   dirs::runtime_dir()
@@ -36,48 +41,57 @@ fn main() {
   let lang = cli.lang;
   let lang_config = config.languages.get_lang_conf(&lang);
 
-  let fetch_path = PathBuf::from(format!(
-    "{runtime_dir}/grammars/{lang}",
-    runtime_dir = dir.display(),
-  ));
+  let grammar_fetch_path = dir.join(format!("grammars/{lang}"));
+  let queries_fetch_path = if cli.queries {
+    dir.join(format!("queries/{lang}"))
+  } else {
+    grammar_fetch_path.clone()
+  };
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if cli.fetch {
-    fetch_grammar(&lang_config, &fetch_path, &dir, &lang);
+    info(format!(
+      "fetching grammar {maybe_queries} for language {lang}",
+      maybe_queries = if cli.queries { "" } else { "/ queries" }
+    ));
+    fetch_grammar(&lang_config, &grammar_fetch_path, &lang);
+
+    // if cli.queries is passed, fetch the queries; otherwise, reuse the grammar path
+    if cli.queries {
+      info(format!("fetching queries for language {lang}"));
+      fetch_queries(&lang_config, &queries_fetch_path, &lang);
+    }
   }
 
   let lang_build_dir = dir.join(format!(
     "{fetch_path}/{extra_path}/build",
-    fetch_path = fetch_path.display(),
+    fetch_path = grammar_fetch_path.display(),
     extra_path = lang_config.grammar.path.display()
   ));
 
   if cli.compile {
+    info(format!("compiling grammar for language {lang}"));
+
     // ensure the build dir exists
     fs::create_dir_all(&lang_build_dir).unwrap(); // FIXME: unwrap()
     compile(&lang_config, &lang_build_dir, &lang);
   }
 
   if cli.install {
+    info(format!("installing grammar for language {lang}"));
+
     // ensure the build dir exists
     fs::create_dir_all(&lang_build_dir).unwrap(); // FIXME: unwrap()
     install_grammar(&lang_build_dir, &lang);
-  }
 
-  if cli.queries {
-    fetch_queries(&dir);
-
-    if cli.install {
-      let queries_dir = dir.join("helix/runtime/queries");
-      install_queries(&queries_dir);
-    }
+    // install the queries
+    info(format!("installing queries for language {lang}"));
+    install_queries(&queries_fetch_path.join(lang_config.queries.path), &lang);
   }
 }
 
-/// Fetch lang’s grammars and queries by targetting https://github.com/tree-sitter/tree-sitter-{lang}.
-fn fetch_grammar(lang_config: &LanguageConfig, fetch_path: &Path, runtime_dir: &Path, lang: &str) {
+fn fetch_grammar(lang_config: &LanguageConfig, fetch_path: &Path, lang: &str) {
   let uri = lang_config.grammar.uri_fmt.replace("{lang}", lang);
-  println!("fetching grammar for language {lang} from {uri}");
 
   // cleanup / remove the {runtime_dir}/{lang} directory, if exists
   if let Ok(true) = fetch_path.try_exists() {
@@ -92,7 +106,6 @@ fn fetch_grammar(lang_config: &LanguageConfig, fetch_path: &Path, runtime_dir: &
       "1",
       fetch_path.as_os_str().to_str().unwrap(), // FIXME: unwrap()
     ])
-    .current_dir(runtime_dir)
     .spawn()
     .unwrap()
     .wait()
@@ -137,41 +150,37 @@ fn install_grammar(lang_build_dir: &Path, lang: &str) {
   let source_path = lang_build_dir.join(&lang_so);
   let grammar_dir = kak_tree_sitter_data_dir().join("grammars");
   let install_path = grammar_dir.join(lang_so);
-  println!(
-    "installing grammar for {lang} from {source_path} in {install_path}",
-    source_path = source_path.display(),
-    install_path = install_path.display()
-  );
 
   // ensure the grammars directory exists
   fs::create_dir_all(grammar_dir).unwrap();
   fs::copy(source_path, install_path).unwrap(); // FIXME: unwrap()
 }
 
-fn fetch_queries(runtime_dir: &Path) {
-  // cleanup / remove the helix directory
-  let hx_dir = PathBuf::from(format!(
-    "{runtime_dir}/helix",
-    runtime_dir = runtime_dir.display()
-  ));
+fn fetch_queries(lang_config: &LanguageConfig, fetch_path: &Path, lang: &str) {
+  let uri = lang_config.grammar.uri_fmt.replace("{lang}", lang);
 
-  if let Ok(true) = hx_dir.try_exists() {
-    fs::remove_dir_all(hx_dir).unwrap(); // FIXME: unwrap()
+  // cleanup / remove the {runtime_dir}/{lang} directory, if exists
+  if let Ok(true) = fetch_path.try_exists() {
+    fs::remove_dir_all(fetch_path).unwrap(); // FIXME: unwrap()
   }
 
-  let url = format!("https://github.com/helix-editor/helix");
   Command::new("git")
-    .args(["clone", url.as_str(), "--depth", "1"])
-    .current_dir(runtime_dir)
+    .args([
+      "clone",
+      uri.as_str(),
+      "--depth",
+      "1",
+      fetch_path.as_os_str().to_str().unwrap(), // FIXME: unwrap()
+    ])
     .spawn()
     .unwrap()
     .wait()
     .unwrap(); // FIXME: unwrap()
 }
 
-fn install_queries(query_dir: &Path) {
+fn install_queries(query_dir: &Path, lang: &str) {
   // ensure the queries directory exists
-  let install_path = kak_tree_sitter_data_dir().join("queries");
+  let install_path = kak_tree_sitter_data_dir().join(format!("queries/{lang}"));
   fs::create_dir_all(&install_path).unwrap();
 
   rec_copy_dir(query_dir, &install_path);
