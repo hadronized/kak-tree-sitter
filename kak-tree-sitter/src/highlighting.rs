@@ -33,14 +33,12 @@ impl BufferId {
 /// This type maps a [`BufferId`] with a tree-sitter highlighter.
 pub struct Highlighters {
   highlighters: HashMap<BufferId, Highlighter>,
-  hl_names: Vec<String>,
 }
 
 impl Highlighters {
-  pub fn new(hl_names: impl Into<Vec<String>>) -> Self {
+  pub fn new() -> Self {
     Highlighters {
       highlighters: HashMap::new(),
-      hl_names: hl_names.into(),
     }
   }
 }
@@ -69,7 +67,7 @@ impl Highlighters {
       .highlight(&lang.hl_config, source.as_bytes(), None, injection_callback)
       .unwrap();
 
-    let ranges = KakHighlightRange::from_iter(&source, &self.hl_names, events.flatten());
+    let ranges = KakHighlightRange::from_iter(&source, &lang.hl_names, events.flatten());
 
     Response::Highlights { timestamp, ranges }
   }
@@ -142,7 +140,14 @@ impl KakHighlightRange {
         }
 
         HighlightEvent::HighlightStart(Highlight(idx)) => {
-          faces.push(&hl_names[idx]);
+          if idx >= hl_names.len() {
+            eprintln!(
+              "unrecognized highlight group index: {idx} (len: {len}), groups = {hl_names:?}",
+              len = hl_names.len()
+            );
+          } else {
+            faces.push(&hl_names[idx]);
+          }
         }
 
         HighlightEvent::HighlightEnd => {
@@ -151,6 +156,7 @@ impl KakHighlightRange {
       }
     }
 
+    println!("computed Kakouke highlights:\n{kak_hls:#?}");
     kak_hls
   }
 

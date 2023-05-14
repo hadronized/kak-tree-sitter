@@ -42,7 +42,7 @@ impl Handler {
   pub fn new(config: &Config) -> Self {
     let active_sessions = HashSet::new();
     let langs = Languages::load_from_dir(config);
-    let highlighters = Highlighters::new(config.highlight.hl_names.clone());
+    let highlighters = Highlighters::new();
 
     Self {
       active_sessions,

@@ -16,19 +16,28 @@ use crate::queries::Queries;
 
 pub struct Language {
   // NOTE: we need to keep that alive *probably*; better be safe than sorry
-  #[allow(dead_code)]
-  pub ts_lib: libloading::Library,
-
-  pub ts_lang: tree_sitter::Language,
-
-  pub queries: Queries,
+  _ts_lib: libloading::Library,
+  ts_lang: tree_sitter::Language,
 
   pub hl_config: HighlightConfiguration,
+
+  pub hl_names: Vec<String>,
 }
 
 pub struct Languages {
   /// Map a `filetype` to the tree-sitter [`Language`] and its queries.
   langs: HashMap<String, Language>,
+}
+
+impl Drop for Language {
+  fn drop(&mut self) {
+    // drop tree-sitter object in order before dropping the library
+    drop(&mut self.hl_config);
+    drop(&mut self.ts_lang);
+    drop(&mut self._ts_lib);
+
+    // we don’t care about the order of the rest
+  }
 }
 
 impl Languages {
@@ -97,13 +106,15 @@ impl Languages {
               queries.locals.as_deref().unwrap_or(""),
             )
             .unwrap();
-            hl_config.configure(&config.highlight.hl_names);
+
+            let hl_names = config.languages.get_lang_conf(lang_name).highlight.hl_names;
+            hl_config.configure(&hl_names);
 
             let lang = Language {
               ts_lang,
-              ts_lib,
-              queries,
+              _ts_lib: ts_lib,
               hl_config,
+              hl_names,
             };
             langs.insert(lang_name.to_owned(), lang);
           }

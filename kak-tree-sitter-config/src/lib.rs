@@ -7,7 +7,6 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct Config {
-  pub highlight: HighlightConfig,
   #[serde(flatten)]
   pub languages: LanguagesConfig,
 }
@@ -22,65 +21,6 @@ impl Config {
         toml::from_str(&content).ok()
       })
       .unwrap_or_default()
-  }
-}
-
-/// Configuration for highlighting.
-///
-/// Highlighting configuration consists of a default set of settings, and per-language overrides.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default)]
-pub struct HighlightConfig {
-  /// List of highlight names to detect in grammars.
-  pub hl_names: Vec<String>,
-}
-
-impl Default for HighlightConfig {
-  fn default() -> Self {
-    let hl_names = [
-      "attribute",
-      "comment",
-      "conceal",
-      "constant",
-      "constructor",
-      "function.builtin",
-      "function",
-      "function.macro",
-      "function.method",
-      "keyword",
-      "keyword.control.conditional",
-      "keyword.function",
-      "label",
-      "namespace",
-      "operator",
-      "property",
-      "punctuation",
-      "punctuation.bracket",
-      "punctuation.delimiter",
-      "punctuation.special",
-      "special",
-      "spell",
-      "string",
-      "string.escape",
-      "string.special",
-      "tag",
-      "text",
-      "text.literal",
-      "text.reference",
-      "text.title",
-      "text.quote",
-      "text.uri",
-      "type",
-      "type.builtin",
-      "variable",
-      "variable.builtin",
-      "variable.other_member",
-      "variable.parameter",
-    ]
-    .into_iter()
-    .map(|n| n.to_owned())
-    .collect();
-    HighlightConfig { hl_names }
   }
 }
 
@@ -141,6 +81,7 @@ impl LanguagesConfig {
 pub struct LanguageConfig {
   pub grammar: LanguageGrammarConfig,
   pub queries: LanguageQueriesConfig,
+  pub highlight: LanguageHighlightConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -234,5 +175,64 @@ impl Default for LanguageQueriesConfig {
       uri_fmt: "https://github.com/tree-sitter/tree-sitter-{lang}".to_owned(),
       path: PathBuf::from("queries"),
     }
+  }
+}
+
+/// Configuration for highlighting.
+///
+/// Highlighting configuration consists of a default set of settings, and per-language overrides.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(default)]
+pub struct LanguageHighlightConfig {
+  /// List of highlight names to detect in grammars.
+  pub hl_names: Vec<String>,
+}
+
+impl Default for LanguageHighlightConfig {
+  fn default() -> Self {
+    let hl_names = [
+      "attribute",
+      "comment",
+      "conceal",
+      "constant",
+      "constructor",
+      "function.builtin",
+      "function",
+      "function.macro",
+      "function.method",
+      "keyword",
+      "keyword.control.conditional",
+      "keyword.function",
+      "label",
+      "namespace",
+      "operator",
+      "property",
+      "punctuation",
+      "punctuation.bracket",
+      "punctuation.delimiter",
+      "punctuation.special",
+      "special",
+      "spell",
+      "string",
+      "string.escape",
+      "string.special",
+      "tag",
+      "text",
+      "text.literal",
+      "text.reference",
+      "text.title",
+      "text.quote",
+      "text.uri",
+      "type",
+      "type.builtin",
+      "variable",
+      "variable.builtin",
+      "variable.other_member",
+      "variable.parameter",
+    ]
+    .into_iter()
+    .map(|n| n.to_owned())
+    .collect();
+    LanguageHighlightConfig { hl_names }
   }
 }

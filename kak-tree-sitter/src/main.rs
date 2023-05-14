@@ -1,8 +1,8 @@
 mod cli;
 mod daemon;
-mod languages;
 mod handler;
 mod highlighting;
+mod languages;
 mod queries;
 mod rc;
 mod request;
