@@ -156,7 +156,6 @@ impl KakHighlightRange {
       }
     }
 
-    println!("computed Kakouke highlights:\n{kak_hls:#?}");
     kak_hls
   }
 
