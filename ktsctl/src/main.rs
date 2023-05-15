@@ -86,7 +86,8 @@ fn main() {
 
     // install the queries
     info(format!("installing queries for language {lang}"));
-    install_queries(&queries_fetch_path.join(lang_config.queries.path), &lang);
+    let queries_path = queries_fetch_path.join(&lang_config.queries.path);
+    install_queries(&queries_path, &lang);
   }
 }
 
@@ -157,7 +158,7 @@ fn install_grammar(lang_build_dir: &Path, lang: &str) {
 }
 
 fn fetch_queries(lang_config: &LanguageConfig, fetch_path: &Path, lang: &str) {
-  let uri = lang_config.grammar.uri_fmt.replace("{lang}", lang);
+  let uri = lang_config.queries.uri_fmt.replace("{lang}", lang);
 
   // cleanup / remove the {runtime_dir}/{lang} directory, if exists
   if let Ok(true) = fetch_path.try_exists() {
