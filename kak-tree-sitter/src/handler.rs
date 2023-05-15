@@ -20,86 +20,69 @@ pub struct Handler {
   /// When a session quits, it should send a special request so that we can remove it from this set.
   active_sessions: HashSet<String>,
 
-  /// Known languages.
-  langs: Languages,
-
   /// Map a highlighter to a [`BufferId`].
   highlighters: Highlighters,
-}
 
-impl Drop for Handler {
-  fn drop(&mut self) {
-    // drop queries and highlighters first before dropping grammars; otherwise we might trying to call tree-sitter code
-    // that was unloaded
-    drop(&mut self.highlighters);
-    drop(&mut self.langs);
-
-    // we don’t care about the order for the rest
-  }
+  /// Known languages.
+  langs: Languages,
 }
 
 impl Handler {
   pub fn new(config: &Config) -> Self {
     let active_sessions = HashSet::new();
-    let langs = Languages::load_from_dir(config);
     let highlighters = Highlighters::new();
+    let langs = Languages::load_from_dir(config);
 
     Self {
       active_sessions,
-      langs,
       highlighters,
+      langs,
     }
   }
 
   /// Handle the request and return whether the handler should shutdown.
-  pub fn handle_request(&mut self, request: String) -> Option<(KakSession, Response)> {
-    // parse the request and dispatch
-    match serde_json::from_str::<Request<KakTreeSitterOrigin>>(&request) {
-      Ok(req) => {
-        // mark the session as active
-        if !self.active_sessions.contains(&req.session.session_name) {
-          println!("new active session {}", req.session.session_name);
+  pub fn handle_request(
+    &mut self,
+    req: Request<KakTreeSitterOrigin>,
+  ) -> Option<(KakSession, Response)> {
+    // mark the session as active
+    if !self.active_sessions.contains(&req.session.session_name) {
+      println!("new active session {}", req.session.session_name);
 
-          self
-            .active_sessions
-            .insert(req.session.session_name.clone());
-        }
+      self
+        .active_sessions
+        .insert(req.session.session_name.clone());
+    }
 
-        match req.payload {
-          RequestPayload::SessionEnd => {
-            println!("ending session {}", req.session.session_name);
+    match req.payload {
+      RequestPayload::SessionEnd => {
+        println!("ending session {}", req.session.session_name);
 
-            self.active_sessions.remove(&req.session.session_name);
+        self.active_sessions.remove(&req.session.session_name);
 
-            if self.active_sessions.is_empty() {
-              return Some((req.session, Response::Shutdown));
-            }
-          }
-
-          RequestPayload::Shutdown => {
-            return Some((req.session, Response::Shutdown));
-          }
-
-          RequestPayload::TryEnableHighlight { lang } => {
-            let supported = self.langs.get(&lang).is_some();
-            return Some((req.session, Response::FiletypeSupported { supported }));
-          }
-
-          RequestPayload::Highlight {
-            buffer,
-            lang,
-            timestamp,
-            payload,
-          } => {
-            let buffer_id = BufferId::new(&req.session.session_name, &buffer);
-            let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &payload);
-            return Some((req.session, resp));
-          }
+        if self.active_sessions.is_empty() {
+          return Some((req.session, Response::Shutdown));
         }
       }
 
-      Err(err) => {
-        eprintln!("cannot parse request {request}: {err}");
+      RequestPayload::Shutdown => {
+        return Some((req.session, Response::Shutdown));
+      }
+
+      RequestPayload::TryEnableHighlight { lang } => {
+        let supported = self.langs.get(&lang).is_some();
+        return Some((req.session, Response::FiletypeSupported { supported }));
+      }
+
+      RequestPayload::Highlight {
+        buffer,
+        lang,
+        timestamp,
+        payload,
+      } => {
+        let buffer_id = BufferId::new(&req.session.session_name, buffer);
+        let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &payload);
+        return Some((req.session, resp));
       }
     }
 

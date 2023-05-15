@@ -15,29 +15,17 @@ use tree_sitter_highlight::HighlightConfiguration;
 use crate::queries::Queries;
 
 pub struct Language {
-  // NOTE: we need to keep that alive *probably*; better be safe than sorry
-  _ts_lib: libloading::Library,
-  ts_lang: tree_sitter::Language,
-
   pub hl_config: HighlightConfiguration,
-
   pub hl_names: Vec<String>,
+
+  // NOTE: we need to keep that alive *probably*; better be safe than sorry
+  _ts_lang: tree_sitter::Language,
+  _ts_lib: libloading::Library,
 }
 
 pub struct Languages {
   /// Map a `filetype` to the tree-sitter [`Language`] and its queries.
   langs: HashMap<String, Language>,
-}
-
-impl Drop for Language {
-  fn drop(&mut self) {
-    // drop tree-sitter object in order before dropping the library
-    drop(&mut self.hl_config);
-    drop(&mut self.ts_lang);
-    drop(&mut self._ts_lib);
-
-    // we don’t care about the order of the rest
-  }
 }
 
 impl Languages {
@@ -100,7 +88,7 @@ impl Languages {
           if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {
             let queries = Queries::load_from_dir(queries_dir);
             let mut hl_config = HighlightConfiguration::new(
-              ts_lang.clone(),
+              ts_lang,
               queries.highlights.as_deref().unwrap_or(""),
               queries.injections.as_deref().unwrap_or(""),
               queries.locals.as_deref().unwrap_or(""),
@@ -111,10 +99,10 @@ impl Languages {
             hl_config.configure(&hl_names);
 
             let lang = Language {
-              ts_lang,
-              _ts_lib: ts_lib,
               hl_config,
               hl_names,
+              _ts_lang: ts_lang,
+              _ts_lib: ts_lib,
             };
             langs.insert(lang_name.to_owned(), lang);
           }

@@ -65,7 +65,7 @@ impl Highlighters {
       .highlight(&lang.hl_config, source.as_bytes(), None, injection_callback)
       .unwrap();
 
-    let ranges = KakHighlightRange::from_iter(&source, &lang.hl_names, events.flatten());
+    let ranges = KakHighlightRange::from_iter(source, &lang.hl_names, events.flatten());
 
     Response::Highlights { timestamp, ranges }
   }

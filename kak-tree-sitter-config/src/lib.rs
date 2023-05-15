@@ -27,18 +27,10 @@ impl Config {
 /// Languages configuration.
 ///
 /// It is possible to set the URI and path where to fetch grammars, as well as queries.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
 pub struct LanguagesConfig {
   pub language: HashMap<String, LanguageConfig>,
-}
-
-impl Default for LanguagesConfig {
-  fn default() -> Self {
-    Self {
-      language: HashMap::new(),
-    }
-  }
 }
 
 impl LanguagesConfig {
