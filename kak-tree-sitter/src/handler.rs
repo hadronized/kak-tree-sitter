@@ -3,12 +3,12 @@ use kak_tree_sitter_config::Config;
 use crate::{
   highlighting::{BufferId, Highlighters},
   languages::Languages,
-  request::{Request, RequestPayload},
+  request::{KakTreeSitterOrigin, Request, RequestPayload},
   response::Response,
   session::KakSession,
 };
 
-use std::{collections::HashSet, path::Path};
+use std::collections::HashSet;
 
 /// Type responsible in handling requests.
 ///
@@ -54,7 +54,7 @@ impl Handler {
   /// Handle the request and return whether the handler should shutdown.
   pub fn handle_request(&mut self, request: String) -> Option<(KakSession, Response)> {
     // parse the request and dispatch
-    match serde_json::from_str::<Request>(&request) {
+    match serde_json::from_str::<Request<KakTreeSitterOrigin>>(&request) {
       Ok(req) => {
         // mark the session as active
         if !self.active_sessions.contains(&req.session.session_name) {
@@ -89,10 +89,10 @@ impl Handler {
             buffer,
             lang,
             timestamp,
-            read_fifo,
+            payload,
           } => {
             let buffer_id = BufferId::new(&req.session.session_name, &buffer);
-            let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &read_fifo);
+            let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &payload);
             return Some((req.session, resp));
           }
         }
@@ -111,12 +111,12 @@ impl Handler {
     buffer_id: BufferId,
     lang_name: String,
     timestamp: u64,
-    read_fifo: &Path,
+    source: &str,
   ) -> Response {
     if let Some(lang) = self.langs.get(&lang_name) {
       self
         .highlighters
-        .highlight(lang, &self.langs, buffer_id, timestamp, read_fifo)
+        .highlight(lang, &self.langs, buffer_id, timestamp, source)
     } else {
       Response::status(format!("unsupported language: {lang_name}"))
     }

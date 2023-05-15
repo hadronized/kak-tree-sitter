@@ -7,7 +7,11 @@ use std::{
 
 use kak_tree_sitter_config::Config;
 
-use crate::{handler::Handler, request::Request, response::Response};
+use crate::{
+  handler::Handler,
+  request::{KakouneOrigin, Request},
+  response::Response,
+};
 
 #[derive(Debug)]
 pub struct Daemon {
@@ -105,9 +109,12 @@ impl Daemon {
     println!("bye!");
   }
 
-  pub fn send_request(req: Request) {
+  pub fn send_request(req: Request<KakouneOrigin>) {
+    // reintepret the request to mark it as from kak-tree-sitter
+    let kts_req = req.reinterpret();
+
     // serialize the request
-    let serialized = serde_json::to_string(&req).unwrap(); // FIXME: unwrap()
+    let serialized = serde_json::to_string(&kts_req).unwrap(); // FIXME: unwrap()
 
     // connect and send the request to the daemon
     UnixStream::connect(Self::daemon_dir().join("socket"))
