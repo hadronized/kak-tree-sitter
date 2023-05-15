@@ -227,7 +227,7 @@ impl Default for LanguageHighlightConfig {
       "type.builtin",
       "variable",
       "variable.builtin",
-      "variable.other_member",
+      "variable.other.member",
       "variable.parameter",
     ]
     .into_iter()
