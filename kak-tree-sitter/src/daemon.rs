@@ -108,7 +108,10 @@ impl Daemon {
       let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).unwrap(); // FIXME: unwrap()
       println!("request = {req:#?}");
 
-      let shutdown = matches!(req.payload, RequestPayload::Shutdown);
+      let shutdown = matches!(
+        req.payload,
+        RequestPayload::Shutdown | RequestPayload::SessionEnd
+      );
 
       req_sx.send(req).unwrap();
 
