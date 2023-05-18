@@ -57,10 +57,7 @@ impl Highlighters {
       .entry(buffer_id.clone())
       .or_insert(Highlighter::new());
 
-    let injection_callback = |lang_name: &str| {
-      println!("injecting {lang_name} in {buffer_id:?}");
-      langs.get(lang_name).map(|lang| &lang.hl_config)
-    };
+    let injection_callback = |lang_name: &str| langs.get(lang_name).map(|lang| &lang.hl_config);
     let events = highlighter
       .highlight(&lang.hl_config, source.as_bytes(), None, injection_callback)
       .unwrap();
