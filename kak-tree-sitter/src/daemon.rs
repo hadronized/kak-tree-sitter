@@ -125,7 +125,7 @@ impl Daemon {
   }
 
   pub fn send_request(req: Request<KakouneOrigin>) {
-    // reintepret the request to mark it as from kak-tree-sitter
+    // reinterpret the request to mark it as from kak-tree-sitter
     let kts_req = req.reinterpret();
 
     // serialize the request
