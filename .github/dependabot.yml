@@ -1,0 +1,16 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  versioning-strategy: auto
+  directory: "/."
+  schedule:
+    interval: daily
+    time: "04:00"
+  open-pull-requests-limit: 10
+  target-branch: master
+  reviewers:
+  - phaazon
+  assignees:
+  - phaazon
+  labels:
+  - dependency-update
