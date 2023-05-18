@@ -36,7 +36,7 @@ fn main() {
 
   // check the kak-tree-sitter data dir exists
   let kak_data_dir = kak_tree_sitter_data_dir();
-  fs::create_dir_all(&kak_data_dir).unwrap();
+  fs::create_dir_all(kak_data_dir).unwrap();
 
   let lang = cli.lang;
   let lang_config = config.languages.get_lang_conf(&lang);

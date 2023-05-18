@@ -1,0 +1,24 @@
+name: CI
+on: [pull_request]
+
+jobs:
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build and test
+        run: cargo test
+
+  build-macosx:
+    runs-on: macOS-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build
+        run: cargo test
+
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: rustfmt
+        run: cargo fmt --check

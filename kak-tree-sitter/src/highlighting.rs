@@ -1,6 +1,6 @@
 //! Convert from tree-sitter-highlight events to Kakoune ranges highlighter.
 
-use std::{collections::HashMap, fs, path::Path};
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use tree_sitter_highlight::{Highlight, HighlightEvent, Highlighter};
@@ -50,10 +50,8 @@ impl Highlighters {
     langs: &Languages,
     buffer_id: BufferId,
     timestamp: u64,
-    read_fifo: impl AsRef<Path>,
+    source: &str,
   ) -> Response {
-    let source = fs::read_to_string(read_fifo.as_ref()).unwrap(); // FIXME: unwrap()
-
     let highlighter = self
       .highlighters
       .entry(buffer_id.clone())
@@ -67,7 +65,7 @@ impl Highlighters {
       .highlight(&lang.hl_config, source.as_bytes(), None, injection_callback)
       .unwrap();
 
-    let ranges = KakHighlightRange::from_iter(&source, &lang.hl_names, events.flatten());
+    let ranges = KakHighlightRange::from_iter(source, &lang.hl_names, events.flatten());
 
     Response::Highlights { timestamp, ranges }
   }

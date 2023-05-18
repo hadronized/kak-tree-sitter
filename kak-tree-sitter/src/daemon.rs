@@ -3,11 +3,16 @@ use std::{
   io::{Read, Write},
   os::unix::net::{UnixListener, UnixStream},
   path::PathBuf,
+  sync::mpsc,
 };
 
 use kak_tree_sitter_config::Config;
 
-use crate::{handler::Handler, request::Request, response::Response};
+use crate::{
+  handler::Handler,
+  request::{KakTreeSitterOrigin, KakouneOrigin, Request, RequestPayload},
+  response::Response,
+};
 
 #[derive(Debug)]
 pub struct Daemon {
@@ -56,8 +61,8 @@ impl Daemon {
       // create stdout / stderr files
       let stdout_path = daemon_dir.join("stdout.txt");
       let stderr_path = daemon_dir.join("stderr.txt");
-      let stdout = File::create(&stdout_path).unwrap();
-      let stderr = File::create(&stderr_path).unwrap();
+      let stdout = File::create(stdout_path).unwrap();
+      let stderr = File::create(stderr_path).unwrap();
 
       daemonize::Daemonize::new()
         .stdout(stdout)
@@ -74,23 +79,13 @@ impl Daemon {
     daemon.run();
   }
 
-  // Wait for incoming client and handle their requests.
+  // Wait for incoming client and enqueue their requests.
   fn run(self) {
     let mut req_handler = Handler::new(&self.config);
-
-    for client in self.unix_listener.incoming() {
-      // FIXME: error handling
-      if let Ok(mut client) = client {
-        println!("client connected: {client:?}");
-        let mut request = String::new();
-        client.read_to_string(&mut request).unwrap(); // FIXME: unwrap()
-        println!("request = {request:#?}");
-
-        if request.is_empty() {
-          break;
-        }
-
-        let resp = req_handler.handle_request(request);
+    let (req_sx, req_rx) = mpsc::channel();
+    let handler_handle = std::thread::spawn(move || {
+      for req in req_rx {
+        let resp = req_handler.handle_request(req);
 
         if let Some((mut session, resp)) = resp {
           if let Response::Shutdown = resp {
@@ -100,14 +95,41 @@ impl Daemon {
           session.send_response(&resp);
         }
       }
+    });
+
+    for mut client in self.unix_listener.incoming().flatten() {
+      // FIXME: error handling
+      println!("client connected: {client:?}");
+
+      // read the request and parse it
+      let mut req_str = String::new();
+      client.read_to_string(&mut req_str).unwrap(); // FIXME: unwrap()
+
+      let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).unwrap(); // FIXME: unwrap()
+      println!("request = {req:#?}");
+
+      let shutdown = matches!(
+        req.payload,
+        RequestPayload::Shutdown | RequestPayload::SessionEnd
+      );
+
+      req_sx.send(req).unwrap();
+
+      if shutdown {
+        break;
+      }
     }
 
+    handler_handle.join().unwrap(); // FIXME: unwrap
     println!("bye!");
   }
 
-  pub fn send_request(req: Request) {
+  pub fn send_request(req: Request<KakouneOrigin>) {
+    // reinterpret the request to mark it as from kak-tree-sitter
+    let kts_req = req.reinterpret();
+
     // serialize the request
-    let serialized = serde_json::to_string(&req).unwrap(); // FIXME: unwrap()
+    let serialized = serde_json::to_string(&kts_req).unwrap(); // FIXME: unwrap()
 
     // connect and send the request to the daemon
     UnixStream::connect(Self::daemon_dir().join("socket"))
