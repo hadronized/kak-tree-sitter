@@ -42,7 +42,7 @@ impl Daemon {
     dir.join("kak-tree-sitter")
   }
 
-  pub async fn bootstrap(config: Config, daemonize: bool) {
+  pub fn bootstrap(config: Config, daemonize: bool) {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
@@ -75,9 +75,11 @@ impl Daemon {
       fs::write(pid_file, format!("{}", std::process::id())).unwrap(); // FIXME: unwrap
     }
 
-    let daemon = Daemon::new(config, daemon_dir);
-
-    daemon.run().await;
+    let async_rt = tokio::runtime::Runtime::new().unwrap(); // FIXME: unwrap
+    async_rt.block_on(async {
+      let daemon = Daemon::new(config, daemon_dir);
+      daemon.run().await;
+    });
   }
 
   /// Wait for incoming client and enqueue their requests.

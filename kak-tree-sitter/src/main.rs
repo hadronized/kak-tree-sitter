@@ -35,7 +35,6 @@ fn main() {
     Daemon::send_request(req);
   } else {
     // server logic
-    let async_rt = tokio::runtime::Runtime::new().unwrap(); // FIXME: unwrap
-    async_rt.block_on(Daemon::bootstrap(config, cli.daemonize));
+    Daemon::bootstrap(config, cli.daemonize);
   }
 }
