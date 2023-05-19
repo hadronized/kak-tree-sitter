@@ -2,15 +2,16 @@
 
 This document provides a list of common highlight faces used by `kak-tree-sitter` when highlighting a buffer. However,
 due to the nature of tree-sitter queries, it is possible that a specific query adds a capture group that is not known to
-us. In that case, it is suggested to open a PR to add it here / to the `rc` file.
+us. In that case, it is suggested to open a PR to add it here / to the `rc` file. You can also use the configuration
+for your specific language to set the recognized highlight groups, and use your own face definitions.
 
 > However, please note that everyone can in theory create any kind of capture group they want and thus, we will only
 > accept capture groups that make sense in terms of sharing and language support. We will not support a specific
 > capture group for a subset of users, but we will accept anything that makes sense for a specific language, even if the
 > capture group is only defined for that language.
 
-- `ts_unknown` _(note: you should ignore this face and only define it to debug)_
-- `ts_attribute`
+- `ts_unknown` _(you should ignore this as it might overload visual space)_
+- _(you should ignore this as it might overload visual space)_ `ts_attribute`
 - `ts_comment`
 - `ts_conceal`
 - `ts_constant`
