@@ -1,16 +1,18 @@
 use std::{
   fs::{self, File},
-  io::{Read, Write},
+  io::{ErrorKind, Read, Write},
   os::unix::net::{UnixListener, UnixStream},
   path::PathBuf,
   sync::mpsc,
+  thread,
+  time::Duration,
 };
 
 use kak_tree_sitter_config::Config;
 
 use crate::{
   handler::Handler,
-  request::{KakTreeSitterOrigin, KakouneOrigin, Request, RequestPayload},
+  request::{KakTreeSitterOrigin, KakouneOrigin, Request},
   response::Response,
 };
 
@@ -24,6 +26,9 @@ pub struct Daemon {
 impl Daemon {
   fn new(config: Config, daemon_dir: PathBuf) -> Self {
     let unix_listener = UnixListener::bind(daemon_dir.join("socket")).unwrap(); // FIXME: unwrap()
+    unix_listener
+      .set_nonblocking(true)
+      .expect("UNIX socket non blocking");
 
     Self {
       config,
@@ -79,16 +84,19 @@ impl Daemon {
     daemon.run();
   }
 
-  // Wait for incoming client and enqueue their requests.
+  /// Wait for incoming client and enqueue their requests.
   fn run(self) {
     let mut req_handler = Handler::new(&self.config);
     let (req_sx, req_rx) = mpsc::channel();
+    let (shutdown_sx, shutdown_rx) = mpsc::channel();
+
     let handler_handle = std::thread::spawn(move || {
       for req in req_rx {
         let resp = req_handler.handle_request(req);
 
         if let Some((mut session, resp)) = resp {
           if let Response::Shutdown = resp {
+            shutdown_sx.send(()).unwrap(); // FIXME: unwrap
             break;
           }
 
@@ -97,26 +105,34 @@ impl Daemon {
       }
     });
 
-    for mut client in self.unix_listener.incoming().flatten() {
-      // FIXME: error handling
-      println!("client connected: {client:?}");
+    loop {
+      let p = self.unix_listener.accept();
+      match p {
+        Ok((mut client, _)) => {
+          // FIXME: error handling
+          println!("client connected: {client:?}");
 
-      // read the request and parse it
-      let mut req_str = String::new();
-      client.read_to_string(&mut req_str).unwrap(); // FIXME: unwrap()
+          // read the request and parse it
+          let mut req_str = String::new();
+          client.read_to_string(&mut req_str).unwrap(); // FIXME: unwrap()
 
-      let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).unwrap(); // FIXME: unwrap()
-      println!("request = {req:#?}");
+          let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).unwrap(); // FIXME: unwrap()
+          println!("request = {req:#?}");
 
-      let shutdown = matches!(
-        req.payload,
-        RequestPayload::Shutdown | RequestPayload::SessionEnd
-      );
+          req_sx.send(req).unwrap();
+        }
 
-      req_sx.send(req).unwrap();
+        Err(err) if err.kind() == ErrorKind::WouldBlock => {
+          if shutdown_rx.try_recv().is_ok() {
+            break;
+          }
 
-      if shutdown {
-        break;
+          thread::sleep(Duration::from_millis(50));
+        }
+
+        Err(err) => {
+          eprintln!("error while waiting for client: {err}");
+        }
       }
     }
 
