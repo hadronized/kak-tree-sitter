@@ -113,7 +113,6 @@ impl Daemon {
           client.read_to_string(&mut req_str).await.unwrap(); // FIXME: unwrap()
 
           let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).unwrap(); // FIXME: unwrap()
-          println!("request = {req:#?}");
 
           req_sx.send(req).unwrap();
         }
