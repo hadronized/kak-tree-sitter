@@ -1,14 +1,13 @@
 use std::{
   fs::{self, File},
-  io::{ErrorKind, Read, Write},
-  os::unix::net::{UnixListener, UnixStream},
+  io::Write,
+  os::unix::net::UnixStream,
   path::PathBuf,
   sync::mpsc,
-  thread,
-  time::Duration,
 };
 
 use kak_tree_sitter_config::Config;
+use tokio::{io::AsyncReadExt, net::UnixListener, select};
 
 use crate::{
   handler::Handler,
@@ -26,9 +25,6 @@ pub struct Daemon {
 impl Daemon {
   fn new(config: Config, daemon_dir: PathBuf) -> Self {
     let unix_listener = UnixListener::bind(daemon_dir.join("socket")).unwrap(); // FIXME: unwrap()
-    unix_listener
-      .set_nonblocking(true)
-      .expect("UNIX socket non blocking");
 
     Self {
       config,
@@ -46,7 +42,7 @@ impl Daemon {
     dir.join("kak-tree-sitter")
   }
 
-  pub fn bootstrap(config: Config, daemonize: bool) {
+  pub async fn bootstrap(config: Config, daemonize: bool) {
     // ensure we have a directory to write in
     let daemon_dir = Self::daemon_dir();
     fs::create_dir_all(&daemon_dir).unwrap(); // FIXME: error
@@ -81,16 +77,16 @@ impl Daemon {
 
     let daemon = Daemon::new(config, daemon_dir);
 
-    daemon.run();
+    daemon.run().await;
   }
 
   /// Wait for incoming client and enqueue their requests.
-  fn run(self) {
+  async fn run(self) {
     let mut req_handler = Handler::new(&self.config);
     let (req_sx, req_rx) = mpsc::channel();
-    let (shutdown_sx, shutdown_rx) = mpsc::channel();
+    let (shutdown_sx, mut shutdown_rx) = tokio::sync::mpsc::unbounded_channel();
 
-    let handler_handle = std::thread::spawn(move || {
+    let handler_handle = tokio::task::spawn_blocking(move || {
       for req in req_rx {
         let resp = req_handler.handle_request(req);
 
@@ -106,37 +102,25 @@ impl Daemon {
     });
 
     loop {
-      let p = self.unix_listener.accept();
-      match p {
-        Ok((mut client, _)) => {
+      select! {
+        _ = shutdown_rx.recv() => break,
+        Ok((mut client, _)) = self.unix_listener.accept() => {
           // FIXME: error handling
           println!("client connected: {client:?}");
 
           // read the request and parse it
           let mut req_str = String::new();
-          client.read_to_string(&mut req_str).unwrap(); // FIXME: unwrap()
+          client.read_to_string(&mut req_str).await.unwrap(); // FIXME: unwrap()
 
           let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).unwrap(); // FIXME: unwrap()
           println!("request = {req:#?}");
 
           req_sx.send(req).unwrap();
         }
-
-        Err(err) if err.kind() == ErrorKind::WouldBlock => {
-          if shutdown_rx.try_recv().is_ok() {
-            break;
-          }
-
-          thread::sleep(Duration::from_millis(50));
-        }
-
-        Err(err) => {
-          eprintln!("error while waiting for client: {err}");
-        }
       }
     }
 
-    handler_handle.join().unwrap(); // FIXME: unwrap
+    handler_handle.await.unwrap(); // FIXME: unwrap
     println!("bye!");
   }
 
