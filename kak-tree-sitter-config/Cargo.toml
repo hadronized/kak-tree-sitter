@@ -3,9 +3,9 @@ name = "kak-tree-sitter-config"
 version = "0.1.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
-description = "Server between Kakoune and tree-sitter"
-keywords = []
-categories = []
+description = "Server between Kakoune and tree-sitter; configuration layer"
+keywords = ["tree-sitter", "kakoune"]
+categories = ["text-editors"]
 homepage = "https://github.com/phaazon/kak-tree-sitter"
 repository = "https://github.com/phaazon/kak-tree-sitter"
 readme = "README.md"
@@ -16,4 +16,3 @@ rust-version = "1.65.0"
 dirs = "5.0.1"
 serde = { version = "1.0.163", features = ["derive"] }
 toml = "0.7.4"
-
