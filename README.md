@@ -19,15 +19,26 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 
 ## Install
 
-Planned.
+Currently, the only installation channel, which is not ideal, is via `cargo`:
+
+```sh
+cargo install kak-tree-sitter
+```
+
+Optionally, you can install the CLI controller:
+
+```sh
+cargo install ktsctl
+```
 
 ## Usage
 
-Planned.
+See the [wiki](https://github.com/phaazon/kak-tree-sitter/wiki).
 
 ## Design
 
 - [Overall design](./doc/design.md)
+- [Kakoune faces](./doc/faces.md)
 
 ## Alternatives
 
