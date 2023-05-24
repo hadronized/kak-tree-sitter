@@ -8,7 +8,7 @@ keywords = ["tree-sitter", "kakoune"]
 categories = ["text-editors"]
 homepage = "https://github.com/phaazon/kak-tree-sitter"
 repository = "https://github.com/phaazon/kak-tree-sitter"
-readme = "README.md"
+readme = "../README.md"
 edition = "2021"
 rust-version = "1.65.0"
 
