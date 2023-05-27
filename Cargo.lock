@@ -346,6 +346,7 @@ dependencies = [
  "colored",
  "dirs",
  "kak-tree-sitter-config",
+ "thiserror",
 ]
 
 [[package]]
