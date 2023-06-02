@@ -12,7 +12,7 @@ use kak_tree_sitter_config::Config;
 use libloading::Symbol;
 use tree_sitter_highlight::HighlightConfiguration;
 
-use crate::queries::Queries;
+use crate::{error::OhNo, queries::Queries};
 
 pub struct Language {
   pub hl_config: HighlightConfiguration,
@@ -61,18 +61,19 @@ impl Languages {
   /// Load languages.
   ///
   /// This function will scan the directory and extract / map all the languages.
-  pub fn load_from_dir(config: &Config) -> Self {
+  pub fn load_from_dir(config: &Config) -> Result<Self, OhNo> {
     let mut langs = HashMap::new();
 
-    let langs_from_grammars = fs::read_dir(config.languages.get_grammars_dir().unwrap())
-      .unwrap()
+    let grammar_dir = config
+      .languages
+      .get_grammars_dir()
+      .ok_or_else(|| OhNo::MissingGrammarDir)?;
+    let langs_from_grammars = fs::read_dir(grammar_dir)
+      .map_err(|_| OhNo::MissingGrammarDir)?
       .flatten()
-      .map(|x| {
-        x.file_name()
-          .to_str()
-          .unwrap()
-          .trim_end_matches(".so")
-          .to_owned()
+      .filter_map(|x| {
+        let lang = x.file_name().to_str()?.trim_end_matches(".so").to_owned();
+        Some(lang)
       });
     let known_langs: HashSet<_> = config
       .languages
@@ -93,7 +94,9 @@ impl Languages {
               queries.injections.as_deref().unwrap_or(""),
               queries.locals.as_deref().unwrap_or(""),
             )
-            .unwrap();
+            .map_err(|err| OhNo::HighlightError {
+              err: err.to_string(),
+            })?;
 
             let hl_names = config.languages.get_lang_conf(lang_name).highlight.hl_names;
             hl_config.configure(&hl_names);
@@ -110,7 +113,7 @@ impl Languages {
       }
     }
 
-    Self { langs }
+    Ok(Self { langs })
   }
 
   pub fn get(&self, filetype: impl AsRef<str>) -> Option<&Language> {
