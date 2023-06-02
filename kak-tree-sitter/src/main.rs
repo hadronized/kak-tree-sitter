@@ -28,7 +28,7 @@ fn main() {
 
 fn start() -> Result<(), OhNo> {
   let cli = Cli::parse();
-  let config = Config::load_from_xdg();
+  let config = Config::load();
 
   if cli.kakoune {
     // inject the rc/ and daemon-based settings

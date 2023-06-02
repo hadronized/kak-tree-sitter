@@ -1,6 +1,10 @@
 //! Configuration for both the daemon and client.
 
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{
+  collections::HashMap,
+  fs,
+  path::{Path, PathBuf},
+};
 
 use serde::{Deserialize, Serialize};
 
@@ -12,11 +16,18 @@ pub struct Config {
 }
 
 impl Config {
-  /// Load the config from the default user location (XDG).
-  pub fn load_from_xdg() -> Config {
+  /// Load the config from the default user location (XDG), and if not found, default to the system location (FHS).
+  /// If not found, a default, empty configuration is used.
+  pub fn load() -> Config {
     dirs::config_dir()
       .and_then(|dir| {
         let path = dir.join("kak-tree-sitter/config.toml");
+        let content = fs::read_to_string(path).ok()?;
+        toml::from_str(&content).ok()
+      })
+      .or_else(|| {
+        let path = Path::new(option_env!("SHARE_PREFIX").unwrap_or("/usr/local/share"))
+          .join("kak-tree-sitter/config.toml");
         let content = fs::read_to_string(path).ok()?;
         toml::from_str(&content).ok()
       })
