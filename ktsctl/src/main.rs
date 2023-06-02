@@ -20,6 +20,9 @@ pub enum AppError {
   #[error("no data directory to hold grammars / queries")]
   NoDataDir,
 
+  #[error("bad path")]
+  BadPath,
+
   #[error("cannot create directory {dir}: {err}")]
   CannotCreateDir { dir: PathBuf, err: io::Error },
 
@@ -88,7 +91,10 @@ fn start() -> Result<(), AppError> {
 
   // check the runtime dir exists
   let dir = runtime_dir()?;
-  fs::create_dir_all(&dir).unwrap();
+  fs::create_dir_all(&dir).map_err(|err| AppError::CannotCreateDir {
+    dir: dir.clone(),
+    err,
+  })?;
 
   // check the kak-tree-sitter data dir exists
   let kak_data_dir = kak_tree_sitter_data_dir()?;
@@ -179,7 +185,10 @@ fn fetch_grammar(
       uri.as_str(),
       "--depth",
       "1",
-      fetch_path.as_os_str().to_str().unwrap(), // FIXME: unwrap()
+      fetch_path
+        .as_os_str()
+        .to_str()
+        .ok_or_else(|| AppError::BadPath)?,
     ])
     .spawn()
     .map_err(|err| AppError::GrammarFetchError {
@@ -285,7 +294,7 @@ fn fetch_queries(
       uri.as_str(),
       "--depth",
       "1",
-      fetch_path.as_os_str().to_str().unwrap(), // FIXME: unwrap()
+      fetch_path.as_os_str().to_str().ok_or(AppError::BadPath)?,
     ])
     .spawn()
     .map_err(|err| AppError::QueriesFetchError {

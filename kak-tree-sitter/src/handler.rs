@@ -1,6 +1,7 @@
 use kak_tree_sitter_config::Config;
 
 use crate::{
+  error::OhNo,
   highlighting::{BufferId, Highlighters},
   languages::Languages,
   request::{KakTreeSitterOrigin, Request, RequestPayload},
@@ -28,23 +29,23 @@ pub struct Handler {
 }
 
 impl Handler {
-  pub fn new(config: &Config) -> Self {
+  pub fn new(config: &Config) -> Result<Self, OhNo> {
     let active_sessions = HashSet::new();
     let highlighters = Highlighters::new();
-    let langs = Languages::load_from_dir(config);
+    let langs = Languages::load_from_dir(config)?;
 
-    Self {
+    Ok(Self {
       active_sessions,
       highlighters,
       langs,
-    }
+    })
   }
 
   /// Handle the request and return whether the handler should shutdown.
   pub fn handle_request(
     &mut self,
     req: Request<KakTreeSitterOrigin>,
-  ) -> Option<(KakSession, Response)> {
+  ) -> Result<Option<(KakSession, Response)>, OhNo> {
     // mark the session as active
     if !self.active_sessions.contains(&req.session.session_name) {
       println!("new active session {}", req.session.session_name);
@@ -61,17 +62,20 @@ impl Handler {
         self.active_sessions.remove(&req.session.session_name);
 
         if self.active_sessions.is_empty() {
-          return Some((req.session, Response::Shutdown));
+          return Ok(Some((req.session, Response::Shutdown)));
         }
       }
 
       RequestPayload::Shutdown => {
-        return Some((req.session, Response::Shutdown));
+        return Ok(Some((req.session, Response::Shutdown)));
       }
 
       RequestPayload::TryEnableHighlight { lang } => {
         let supported = self.langs.get(&lang).is_some();
-        return Some((req.session, Response::FiletypeSupported { supported }));
+        return Ok(Some((
+          req.session,
+          Response::FiletypeSupported { supported },
+        )));
       }
 
       RequestPayload::Highlight {
@@ -81,12 +85,14 @@ impl Handler {
         payload,
       } => {
         let buffer_id = BufferId::new(&req.session.session_name, buffer);
-        let resp = self.handle_highlight_req(buffer_id, lang, timestamp, &payload);
-        return Some((req.session, resp));
+        return Ok(Some((
+          req.session,
+          self.handle_highlight_req(buffer_id, lang, timestamp, &payload)?,
+        )));
       }
     }
 
-    None
+    Ok(None)
   }
 
   fn handle_highlight_req(
@@ -95,13 +101,15 @@ impl Handler {
     lang_name: String,
     timestamp: u64,
     source: &str,
-  ) -> Response {
+  ) -> Result<Response, OhNo> {
     if let Some(lang) = self.langs.get(&lang_name) {
       self
         .highlighters
         .highlight(lang, &self.langs, buffer_id, timestamp, source)
     } else {
-      Response::status(format!("unsupported language: {lang_name}"))
+      Ok(Response::status(format!(
+        "unsupported language: {lang_name}"
+      )))
     }
   }
 }

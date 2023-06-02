@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use tree_sitter_highlight::{Highlight, HighlightEvent, Highlighter};
 
 use crate::{
+  error::OhNo,
   languages::{Language, Languages},
   response::Response,
 };
@@ -51,7 +52,7 @@ impl Highlighters {
     buffer_id: BufferId,
     timestamp: u64,
     source: &str,
-  ) -> Response {
+  ) -> Result<Response, OhNo> {
     let highlighter = self
       .highlighters
       .entry(buffer_id.clone())
@@ -60,11 +61,13 @@ impl Highlighters {
     let injection_callback = |lang_name: &str| langs.get(lang_name).map(|lang| &lang.hl_config);
     let events = highlighter
       .highlight(&lang.hl_config, source.as_bytes(), None, injection_callback)
-      .unwrap();
+      .map_err(|err| OhNo::HighlightError {
+        err: err.to_string(),
+      })?;
 
     let ranges = KakHighlightRange::from_iter(source, &lang.hl_names, events.flatten());
 
-    Response::Highlights { timestamp, ranges }
+    Ok(Response::Highlights { timestamp, ranges })
   }
 }
 

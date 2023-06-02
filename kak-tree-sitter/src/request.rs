@@ -5,6 +5,7 @@ use std::{fmt::Debug, fs};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
+use crate::error::OhNo;
 use crate::session::KakSession;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -28,7 +29,7 @@ where
 impl Request<KakouneOrigin> {
   // TODO: this might fail actually
   /// Reinterpret the request to change its origin to kak-tree-sitter.
-  pub fn reinterpret(self) -> Request<KakTreeSitterOrigin> {
+  pub fn reinterpret(self) -> Result<Request<KakTreeSitterOrigin>, OhNo> {
     let payload = match self.payload {
       RequestPayload::SessionEnd => RequestPayload::SessionEnd,
       RequestPayload::Shutdown => RequestPayload::Shutdown,
@@ -39,7 +40,7 @@ impl Request<KakouneOrigin> {
         timestamp,
         payload,
       } => {
-        let source = fs::read_to_string(payload).unwrap(); // FIXME: unwrap()
+        let source = fs::read_to_string(payload).map_err(|err| OhNo::CannotReadBuffer { err })?;
         RequestPayload::Highlight {
           buffer,
           lang,
@@ -49,7 +50,7 @@ impl Request<KakouneOrigin> {
       }
     };
 
-    Request::new(self.session, payload)
+    Ok(Request::new(self.session, payload))
   }
 }
 
