@@ -18,7 +18,6 @@ pub enum ConfigError {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-#[serde(default)]
 pub struct Config {
   #[serde(flatten)]
   pub languages: LanguagesConfig,
@@ -40,7 +39,6 @@ impl Config {
 ///
 /// It is possible to set the URI and path where to fetch grammars, as well as queries.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-#[serde(default)]
 pub struct LanguagesConfig {
   pub language: HashMap<String, LanguageConfig>,
 }
@@ -139,5 +137,5 @@ pub struct LanguageQueriesConfig {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LanguageHighlightConfig {
   /// List of highlight names to detect in grammars.
-  pub groups: Vec<String>,
+  pub groups: HashMap<String, String>,
 }

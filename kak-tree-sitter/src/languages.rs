@@ -62,15 +62,14 @@ impl Languages {
 
     // iterate over all known languages in the configuration
     for (lang_name, lang_config) in &config.languages.language {
-      println!("  loading configuration for {lang_name}");
-      println!("    configuration: {lang_config:?}");
+      println!("loading configuration for {lang_name}");
 
       if let Some(grammar_path) = config.languages.get_grammar_path(lang_name) {
-        println!("    grammar path: {}", grammar_path.display());
+        println!("  grammar path: {}", grammar_path.display());
 
         if let Some((ts_lib, ts_lang)) = Self::load_grammar(lang_name, &grammar_path) {
           if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {
-            println!("    queries directory: {}", queries_dir.display());
+            println!("  queries directory: {}", queries_dir.display());
 
             let queries = Queries::load_from_dir(queries_dir);
             let mut hl_config = HighlightConfiguration::new(
@@ -83,12 +82,12 @@ impl Languages {
               err: err.to_string(),
             })?;
 
-            let hl_names = &lang_config.highlight.groups;
-            hl_config.configure(hl_names);
+            let hl_names: Vec<_> = lang_config.highlight.groups.keys().cloned().collect();
+            hl_config.configure(&hl_names);
 
             let lang = Language {
               hl_config,
-              hl_names: hl_names.clone(),
+              hl_names,
               _ts_lang: ts_lang,
               _ts_lib: ts_lib,
             };
