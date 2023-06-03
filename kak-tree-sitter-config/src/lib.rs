@@ -1,8 +1,21 @@
 //! Configuration for both the daemon and client.
 
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, io, path::PathBuf};
 
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
+
+#[derive(Debug, Error)]
+pub enum ConfigError {
+  #[error("no configuration directory known for your system; please adjust XDG_CONFIG_HOME")]
+  NoConfigDir,
+
+  #[error("cannot read configuration: {err}")]
+  CannotReadConfig { err: io::Error },
+
+  #[error("cannot parse configuration: {err}")]
+  CannotParseConfig { err: String },
+}
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(default)]
@@ -13,14 +26,13 @@ pub struct Config {
 
 impl Config {
   /// Load the config from the default user location (XDG).
-  pub fn load_from_xdg() -> Config {
-    dirs::config_dir()
-      .and_then(|dir| {
-        let path = dir.join("kak-tree-sitter/config.toml");
-        let content = fs::read_to_string(path).ok()?;
-        toml::from_str(&content).ok()
-      })
-      .unwrap_or_default()
+  pub fn load_from_xdg() -> Result<Config, ConfigError> {
+    let dir = dirs::config_dir().ok_or(ConfigError::NoConfigDir)?;
+    let path = dir.join("kak-tree-sitter/config.toml");
+    let content = fs::read_to_string(path).map_err(|err| ConfigError::CannotReadConfig { err })?;
+    toml::from_str(&content).map_err(|err| ConfigError::CannotParseConfig {
+      err: err.to_string(),
+    })
   }
 }
 
@@ -35,16 +47,8 @@ pub struct LanguagesConfig {
 
 impl LanguagesConfig {
   /// Get the configuration for `lang`.
-  ///
-  /// If there is no specific configuration for `lang`, this function tries to get the overridden default configuration.
-  /// If there is none, the default configuration is returned.
-  pub fn get_lang_conf(&self, lang: impl AsRef<str>) -> LanguageConfig {
-    self
-      .language
-      .get(lang.as_ref())
-      .or_else(|| self.language.get("default"))
-      .cloned()
-      .unwrap_or_default()
+  pub fn get_lang_conf(&self, lang: impl AsRef<str>) -> Option<&LanguageConfig> {
+    self.language.get(lang.as_ref())
   }
 
   /// Get the directory where all grammars live in.
@@ -68,8 +72,7 @@ impl LanguagesConfig {
 /// Specific language configuration.
 ///
 /// Not providing one will default to the default language configuration.
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
-#[serde(default)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LanguageConfig {
   pub grammar: LanguageGrammarConfig,
   pub queries: LanguageQueriesConfig,
@@ -77,16 +80,11 @@ pub struct LanguageConfig {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default)]
 pub struct LanguageGrammarConfig {
-  /// A format string to form the final URI to fetch the language grammar from.
-  ///
-  /// The language is inserted via the `{lang}` placeholder.
-  pub uri_fmt: String,
+  /// URL to fetch the language grammar from.
+  pub url: String,
 
-  /// Path to go to where to find the grammar source.
-  ///
-  /// This is not the src/ directory; it is its parent.
+  /// Path to find the grammar source.
   pub path: PathBuf,
 
   /// Compile command to run to compile the grammar.
@@ -120,111 +118,26 @@ pub struct LanguageGrammarConfig {
   pub link_flags: Vec<String>,
 }
 
-impl Default for LanguageGrammarConfig {
-  fn default() -> Self {
-    Self {
-      uri_fmt: "https://github.com/tree-sitter/tree-sitter-{lang}".to_owned(),
-      path: ".".into(),
-      compile: "cc".to_owned(),
-      compile_args: vec![
-        "-c".to_owned(),
-        "-fpic".to_owned(),
-        "../src/scanner.c".to_owned(),
-        "../src/parser.c".to_owned(),
-        "-I".to_owned(),
-        "../src".to_owned(),
-      ],
-      compile_flags: vec!["-O3".to_owned()],
-      link: "cc".to_owned(),
-      link_args: vec![
-        "-shared".to_owned(),
-        "-fpic".to_owned(),
-        "scanner.o".to_owned(),
-        "parser.o".to_owned(),
-        "-o".to_owned(),
-        "{lang}.so".to_owned(),
-      ],
-      link_flags: vec!["-O3".to_owned()],
-    }
-  }
-}
-
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default)]
 pub struct LanguageQueriesConfig {
-  /// A format string to form the final URI to fetch the language queries from.
+  /// URL to fetch the language queries from.
   ///
   /// The language is inserted via the `{lang}` placeholder.
-  pub uri_fmt: String,
+  ///
+  /// If set to [`None`], the URL used will be the same as the one for the grammar and no fetch will be done (the
+  /// grammar is required).
+  pub url: Option<String>,
 
   /// Path to go to where to find the queries directory.
   pub path: PathBuf,
 }
 
-impl Default for LanguageQueriesConfig {
-  fn default() -> Self {
-    LanguageQueriesConfig {
-      uri_fmt: "https://github.com/tree-sitter/tree-sitter-{lang}".to_owned(),
-      path: PathBuf::from("queries"),
-    }
-  }
-}
-
 /// Configuration for highlighting.
 ///
-/// Highlighting configuration consists of a default set of settings, and per-language overrides.
+/// Highlighting consists in mapping between highlight groups, such as `keyword.control.conditional`, and a Kakoune face
+/// definition. Each highlight group is then converted to `set-face global ts_<name> <face definition>`.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(default)]
 pub struct LanguageHighlightConfig {
   /// List of highlight names to detect in grammars.
-  pub hl_names: Vec<String>,
-}
-
-impl Default for LanguageHighlightConfig {
-  fn default() -> Self {
-    let hl_names = [
-      "attribute",
-      "comment",
-      "conceal",
-      "constant",
-      "constructor",
-      "function.builtin",
-      "function",
-      "function.macro",
-      "function.method",
-      "keyword",
-      "keyword.control.conditional",
-      "keyword.function",
-      "label",
-      "namespace",
-      "operator",
-      "property",
-      "punctuation",
-      "punctuation.bracket",
-      "punctuation.delimiter",
-      "punctuation.special",
-      "special",
-      "spell",
-      "string",
-      "string.escape",
-      "string.special",
-      "tag",
-      "text",
-      "text.literal",
-      "text.reference",
-      "text.title",
-      "text.quote",
-      "text.uri",
-      "type",
-      "type.builtin",
-      "variable",
-      "variable.builtin",
-      "variable.other.member",
-      "variable.parameter",
-    ]
-    .into_iter()
-    .map(|n| n.to_owned())
-    .collect();
-    LanguageHighlightConfig { hl_names }
-  }
+  pub groups: Vec<String>,
 }

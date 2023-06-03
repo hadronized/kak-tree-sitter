@@ -28,7 +28,13 @@ fn main() {
 
 fn start() -> Result<(), OhNo> {
   let cli = Cli::parse();
-  let config = Config::load_from_xdg();
+  let config = match Config::load_from_xdg() {
+    Ok(config) => config,
+    Err(err) => {
+      eprintln!("configuration error; will be using empty configuration: {err}");
+      Config::default()
+    }
+  };
 
   if cli.kakoune {
     // inject the rc/ and daemon-based settings

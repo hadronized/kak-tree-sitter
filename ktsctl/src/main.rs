@@ -29,6 +29,15 @@ pub enum AppError {
   #[error("cannot remove directory {dir}: {err}")]
   CannotRemoveDir { dir: PathBuf, err: io::Error },
 
+  #[error("configuration error: {err}")]
+  ConfigError {
+    #[from]
+    err: kak_tree_sitter_config::ConfigError,
+  },
+
+  #[error("no configuration for language {lang}")]
+  MissingLangConfig { lang: String },
+
   #[error("error while waiting for process {process} to end: {err}")]
   ErrorWhileWaitingForProcess { process: String, err: io::Error },
 
@@ -87,7 +96,7 @@ fn kak_tree_sitter_data_dir() -> Result<PathBuf, AppError> {
 
 fn start() -> Result<(), AppError> {
   let cli = Cli::parse();
-  let config = Config::load_from_xdg();
+  let config = Config::load_from_xdg()?;
 
   // check the runtime dir exists
   let dir = runtime_dir()?;
@@ -104,34 +113,37 @@ fn start() -> Result<(), AppError> {
   })?;
 
   let lang = cli.lang;
-  let lang_config = config.languages.get_lang_conf(&lang);
+  let lang_config =
+    config
+      .languages
+      .get_lang_conf(&lang)
+      .ok_or_else(|| AppError::MissingLangConfig {
+        lang: lang.to_owned(),
+      })?;
 
   let grammar_fetch_path = dir.join(format!("grammars/{lang}"));
-  let queries_fetch_path = if cli.queries {
-    dir.join(format!("queries/{lang}"))
+  let queries_fetch_path = if lang_config.queries.url.is_some() {
+    &lang_config.queries.path
   } else {
-    grammar_fetch_path.clone()
+    &grammar_fetch_path
   };
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if cli.fetch {
-    info(format!(
-      "fetching grammar {maybe_queries} for language {lang}",
-      maybe_queries = if cli.queries { "" } else { "/ queries" }
-    ));
-    fetch_grammar(&lang_config, &grammar_fetch_path, &lang)?;
+    info(format!("fetching grammar for language {lang}",));
+    fetch_grammar(lang_config, &grammar_fetch_path, &lang)?;
 
     // if cli.queries is passed, fetch the queries; otherwise, reuse the grammar path
-    if cli.queries {
+    if let Some(ref url) = lang_config.queries.url {
       info(format!("fetching queries for language {lang}"));
-      fetch_queries(&lang_config, &queries_fetch_path, &lang)?;
+      fetch_queries(queries_fetch_path, url, &lang)?;
     }
   }
 
   let lang_build_dir = dir.join(format!(
-    "{fetch_path}/{extra_path}/build",
+    "{fetch_path}/{src_path}/build",
     fetch_path = grammar_fetch_path.display(),
-    extra_path = lang_config.grammar.path.display()
+    src_path = lang_config.grammar.path.display()
   ));
 
   if cli.compile {
@@ -142,7 +154,7 @@ fn start() -> Result<(), AppError> {
       dir: lang_build_dir.clone(),
       err,
     })?;
-    compile(&lang_config, &lang_build_dir, &lang)?;
+    compile(lang_config, &lang_build_dir, &lang)?;
   }
 
   if cli.install {
@@ -157,8 +169,7 @@ fn start() -> Result<(), AppError> {
 
     // install the queries
     info(format!("installing queries for language {lang}"));
-    let queries_path = queries_fetch_path.join(&lang_config.queries.path);
-    install_queries(&queries_path, &lang)?;
+    install_queries(queries_fetch_path, &lang)?;
   }
 
   Ok(())
@@ -169,7 +180,7 @@ fn fetch_grammar(
   fetch_path: &Path,
   lang: &str,
 ) -> Result<(), AppError> {
-  let uri = lang_config.grammar.uri_fmt.replace("{lang}", lang);
+  let url = lang_config.grammar.url.replace("{lang}", lang);
 
   // cleanup / remove the {runtime_dir}/{lang} directory, if exists
   if let Ok(true) = fetch_path.try_exists() {
@@ -182,7 +193,7 @@ fn fetch_grammar(
   Command::new("git")
     .args([
       "clone",
-      uri.as_str(),
+      url.as_str(),
       "--depth",
       "1",
       fetch_path
@@ -273,13 +284,7 @@ fn install_grammar(lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
   Ok(())
 }
 
-fn fetch_queries(
-  lang_config: &LanguageConfig,
-  fetch_path: &Path,
-  lang: &str,
-) -> Result<(), AppError> {
-  let uri = lang_config.queries.uri_fmt.replace("{lang}", lang);
-
+fn fetch_queries(fetch_path: &Path, url: &str, lang: &str) -> Result<(), AppError> {
   // cleanup / remove the {runtime_dir}/{lang} directory, if exists
   if let Ok(true) = fetch_path.try_exists() {
     fs::remove_dir_all(fetch_path).map_err(|err| AppError::CannotRemoveDir {
@@ -291,7 +296,7 @@ fn fetch_queries(
   Command::new("git")
     .args([
       "clone",
-      uri.as_str(),
+      url,
       "--depth",
       "1",
       fetch_path.as_os_str().to_str().ok_or(AppError::BadPath)?,
@@ -317,21 +322,18 @@ fn install_queries(query_dir: &Path, lang: &str) -> Result<(), AppError> {
     err,
   })?;
 
-  rec_copy_dir(query_dir, &install_path).map_err(|err| AppError::CannotCopyDir {
+  copy_dir(query_dir, &install_path).map_err(|err| AppError::CannotCopyDir {
     src: query_dir.to_owned(),
     dest: install_path,
     err,
   })
 }
 
-fn rec_copy_dir(from: &Path, to: &Path) -> Result<(), io::Error> {
+fn copy_dir(from: &Path, to: &Path) -> Result<(), io::Error> {
   for entry in from.read_dir()?.flatten() {
     let new_to = to.join(entry.file_name());
 
-    if entry.file_type()?.is_dir() {
-      fs::create_dir_all(&new_to)?;
-      rec_copy_dir(&entry.path(), &new_to)?;
-    } else {
+    if entry.file_type()?.is_file() {
       fs::copy(&entry.path(), &new_to)?;
     }
   }
