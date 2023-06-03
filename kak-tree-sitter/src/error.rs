@@ -25,9 +25,6 @@ pub enum OhNo {
   #[error("cannot start server: {err}")]
   CannotStartServer { err: io::Error },
 
-  #[error("missing grammar directory; hint: populate it with ktsctl?")]
-  MissingGrammarDir,
-
   #[error("invalid request: {err}")]
   InvalidRequest { err: String },
 

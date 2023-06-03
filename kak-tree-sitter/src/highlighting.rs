@@ -55,7 +55,7 @@ impl Highlighters {
   ) -> Result<Response, OhNo> {
     let highlighter = self
       .highlighters
-      .entry(buffer_id.clone())
+      .entry(buffer_id)
       .or_insert(Highlighter::new());
 
     let injection_callback = |lang_name: &str| langs.get(lang_name).map(|lang| &lang.hl_config);

@@ -27,7 +27,6 @@ where
 }
 
 impl Request<KakouneOrigin> {
-  // TODO: this might fail actually
   /// Reinterpret the request to change its origin to kak-tree-sitter.
   pub fn reinterpret(self) -> Result<Request<KakTreeSitterOrigin>, OhNo> {
     let payload = match self.payload {

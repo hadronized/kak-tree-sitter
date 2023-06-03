@@ -2,11 +2,7 @@
 //!
 //! Languages have different objects (grammars, queries, etc.) living at runtime and must be loaded beforehand.
 
-use std::{
-  collections::{HashMap, HashSet},
-  fs,
-  path::Path,
-};
+use std::{collections::HashMap, path::Path};
 
 use kak_tree_sitter_config::Config;
 use libloading::Symbol;
@@ -64,29 +60,17 @@ impl Languages {
   pub fn load_from_dir(config: &Config) -> Result<Self, OhNo> {
     let mut langs = HashMap::new();
 
-    let grammar_dir = config
-      .languages
-      .get_grammars_dir()
-      .ok_or_else(|| OhNo::MissingGrammarDir)?;
-    let langs_from_grammars = fs::read_dir(grammar_dir)
-      .map_err(|_| OhNo::MissingGrammarDir)?
-      .flatten()
-      .filter_map(|x| {
-        let lang = x.file_name().to_str()?.trim_end_matches(".so").to_owned();
-        Some(lang)
-      });
-    let known_langs: HashSet<_> = config
-      .languages
-      .language
-      .keys()
-      .cloned()
-      .chain(langs_from_grammars)
-      .collect();
     // iterate over all known languages in the configuration
-    for lang_name in &known_langs {
+    for (lang_name, lang_config) in &config.languages.language {
+      println!("loading configuration for {lang_name}");
+
       if let Some(grammar_path) = config.languages.get_grammar_path(lang_name) {
+        println!("  grammar path: {}", grammar_path.display());
+
         if let Some((ts_lib, ts_lang)) = Self::load_grammar(lang_name, &grammar_path) {
           if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {
+            println!("  queries directory: {}", queries_dir.display());
+
             let queries = Queries::load_from_dir(queries_dir);
             let mut hl_config = HighlightConfiguration::new(
               ts_lang,
@@ -98,7 +82,7 @@ impl Languages {
               err: err.to_string(),
             })?;
 
-            let hl_names = config.languages.get_lang_conf(lang_name).highlight.hl_names;
+            let hl_names: Vec<_> = lang_config.highlight.groups.keys().cloned().collect();
             hl_config.configure(&hl_names);
 
             let lang = Language {

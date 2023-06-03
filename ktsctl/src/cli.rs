@@ -6,12 +6,6 @@ pub struct Cli {
   #[clap(short, long)]
   pub fetch: bool,
 
-  /// Whether we should fetch queries.
-  ///
-  /// Queries are currently fetched from https://github.com/helix-editor/helix/.
-  #[clap(short, long)]
-  pub queries: bool,
-
   /// Whether we should compile fetched grammars.
   #[clap(short, long)]
   pub compile: bool,

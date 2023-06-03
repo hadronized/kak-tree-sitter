@@ -1,0 +1,761 @@
+# kak-tree-sitter default configuration file.
+#
+# It is highly recommended for users to copy that file and edit it manually if they need to add support for languages
+# not present yet. Also, please consider opening a PR to https://github.com/phaazon/kak-tree-sitter.
+
+# astro
+# TODO
+
+# awk
+[language.awk.grammar]
+url = "https://github.com/Beaglefoot/tree-sitter-awk"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../src/scanner.c", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "awk.so"]
+link_flags = ["-O3"]
+
+[language.awk.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/awk"
+
+[language.awk.highlight.groups]
+"comment" = "default,default,default"
+"constant.numeric" = "default,default,default"
+"function" = "default,default,default"
+"include" = "default,default,default"
+"keyword" = "default,default,default"
+"load" = "default,default,default"
+"namespace" = "default,default,default"
+"operator" = "default,default,default"
+"string" = "default,default,default"
+"string.regexp" = "default,default,default"
+"variable" = "default,default,default"
+
+# bash
+[language.bash.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-bash"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "bash.so"]
+link_flags = ["-O3"]
+
+[language.bash.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/bash"
+
+[language.bash.highlight.groups]
+"comment" = "default,default,default"
+"constant" = "default,default,default"
+"constant.numeric.integer" = "default,default,default"
+"embedded" = "default,default,default"
+"function" = "default,default,default"
+"keyword" = "default,default,default"
+"operator" = "default,default,default"
+"string" = "default,default,default"
+"variable.other.member" = "default,default,default"
+
+# bass
+# TODO
+
+# beancount
+# TODO
+
+# bibtex
+# TODO
+
+# bicep
+# TODO
+
+# c
+[language.c.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-c"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "c.so"]
+link_flags = ["-O3"]
+
+[language.c.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/c"
+
+[language.c.highlight.groups]
+"attribute" = "default,default,default"
+"comment" = "default,default,default"
+"constant" = "default,default,default"
+"constant.builtin.boolean" = "default,default,default"
+"constant.character" = "default,default,default"
+"constant.character.escape" = "default,default,default"
+"constant.numeric" = "default,default,default"
+"function" = "default,default,default"
+"function.special" = "default,default,default"
+"keyword" = "default,default,default"
+"keyword.control" = "default,default,default"
+"keyword.control.conditional" = "default,default,default"
+"keyword.control.repeat" = "default,default,default"
+"keyword.control.return" = "default,default,default"
+"keyword.directive" = "default,default,default"
+"keyword.storage.modifier" = "default,default,default"
+"keyword.storage.type" = "default,default,default"
+"label" = "default,default,default"
+"operator" = "default,default,default"
+"punctuation" = "default,default,default"
+"punctuation.bracket" = "default,default,default"
+"punctuation.delimiter" = "default,default,default"
+"string" = "default,default,default"
+"type" = "default,default,default"
+"type.builtin" = "default,default,default"
+"type.enum.variant" = "default,default,default"
+"variable" = "default,default,default"
+"variable.other.member" = "default,default,default"
+"variable.parameter" = "default,default,default"
+
+# cabal
+[language.cabal.grammar]
+url = "https://gitlab.com/magus/tree-sitter-cabal"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "cabal.so"]
+link_flags = ["-O3"]
+
+[language.cabal.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/cabal"
+
+[language.cabal.highlight.groups]
+"comment" = "default,default,default"
+"keyword" = "default,default,default"
+"type" = "default,default,default"
+
+# cairo
+# TODO
+
+# capnp
+# TODO
+
+# clojure
+# TODO
+
+# cmake
+# TODO
+
+# comment
+[language.comment.grammar]
+url = "https://github.com/stsewd/tree-sitter-comment"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "comment.so"]
+link_flags = ["-O3"]
+
+[language.comment.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/comment"
+
+[language.comment.highlight.groups]
+"constant" = "default,default,default"
+"constant.numeric" = "default,default,default"
+"error" = "default,default,default"
+"hint" = "default,default,default"
+"info" = "default,default,default"
+"punctuation.bracket" = "default,default,default"
+"punctuation.delimiter" = "default,default,default"
+"tag" = "default,default,default"
+"ui.text" = "default,default,default"
+"user" = "default,default,default"
+"warning" = "default,default,default"
+
+# common-lisp
+# TODO
+
+# cpon
+# TODO
+
+# cpp
+# TODO
+
+# crystal
+# TODO
+
+# c-sharp
+# TODO
+
+# css
+# TODO
+
+# cue
+# TODO
+
+# d
+# TODO
+
+# dart
+# TODO
+
+# devicetree
+# TODO
+
+# dhall
+# TODO
+
+# diff
+# TODO
+
+# dockerfile
+# TODO
+
+# dot
+# TODO
+
+# dtd
+# TODO
+
+# ecma
+# TODO
+
+# edoc
+# TODO
+
+# eex
+# TODO
+
+# ejs
+# TODO
+
+# elixir
+# TODO
+
+# elm
+# TODO
+
+# elvish
+# TODO
+
+# env
+# TODO
+
+# erb
+# TODO
+
+# erlang
+# TODO
+
+# esdl
+# TODO
+
+# fish
+# TODO
+
+# fortran
+# TODO
+
+# gdscript
+# TODO
+
+# git-attributes
+# TODO
+
+# git-commit
+# TODO
+
+# git-config
+# TODO
+
+# git-ignore
+# TODO
+
+# git-rebase
+# TODO
+
+# gleam
+# TODO
+
+# glsl
+# TODO
+
+# go
+# TODO
+
+# godot-resource
+# TODO
+
+# gomod
+# TODO
+
+# gotmpl
+# TODO
+
+# gowork
+# TODO
+
+# graphql
+# TODO
+
+# hare
+# TODO
+
+# haskell
+# TODO
+
+# hcl
+# TODO
+
+# heex
+# TODO
+
+# hosts
+# TODO
+
+# html
+[language.html.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-html"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../src/parser.c", "../src/scanner.cc", "-I", "../src", "-lc++"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "html.so"]
+link_flags = ["-O3"]
+
+[language.html.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/html"
+
+[language.html.highlight.groups]
+"tag" = "default,default,default"
+"tag.error" = "default,default,default"
+"constant" = "default,default,default"
+"attribute" = "default,default,default"
+"comment" = "default,default,default"
+"string" = "default,default,default"
+"punctuation.bracket" = "default,default,default"
+"punctuation.delimiter" = "default,default,default"
+
+# hurl
+# TODO
+
+# iex
+# TODO
+
+# ini
+# TODO
+
+# java
+# TODO
+
+# javascript
+# TODO
+
+# jsdoc
+# TODO
+
+# json
+# TODO
+
+# jsonnet
+# TODO
+
+# jsx
+# TODO
+
+# julia
+# TODO
+
+# just
+# TODO
+
+# kdl
+# TODO
+
+# kotlin
+# TODO
+
+# latex
+# TODO
+
+# lean
+# TODO
+
+# ledger
+# TODO
+
+# llvm
+# TODO
+
+# llvm-mir
+# TODO
+
+# llvm-mir-yaml
+# TODO
+
+# lua
+# TODO
+
+# make
+# TODO
+
+# markdoc
+# TODO
+
+# markdown
+[language.markdown.grammar]
+url = "https://github.com/MDeiml/tree-sitter-markdown"
+path = "tree-sitter-markdown/src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown.so"]
+link_flags = ["-O3"]
+
+[language.markdown.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/markdown"
+
+[language.markdown.highlight.groups]
+"label" = "default,default,default"
+"markup.heading.1" = "default,default,default"
+"markup.heading.2" = "default,default,default"
+"markup.heading.3" = "default,default,default"
+"markup.heading.4" = "default,default,default"
+"markup.heading.5" = "default,default,default"
+"markup.heading.6" = "default,default,default"
+"markup.heading.marker" = "default,default,default"
+"markup.list.checked" = "default,default,default"
+"markup.list.numbered" = "default,default,default"
+"markup.list.unchecked" = "default,default,default"
+"markup.list.unnumbered" = "default,default,default"
+"markup.link.url" = "default,default,default"
+"markup.quote" = "default,default,default"
+"markup.raw.block" = "default,default,default"
+"punctuation.bracket" = "default,default,default"
+"punctuation.special" = "default,default,default"
+"string.escape" = "default,default,default"
+
+# markdown.inline
+[language.markdown_inline.grammar]
+url = "https://github.com/MDeiml/tree-sitter-markdown"
+path = "tree-sitter-markdown-inline/src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown_inline.so"]
+link_flags = ["-O3"]
+
+[language.markdown_inline.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/markdown.inline"
+
+[language.markdown_inline.highlight.groups]
+"constant.character.escape" = "default,default,default"
+"markup.bold" = "default,default,default"
+"markup.italic" = "default,default,default"
+"markup.link.label" = "default,default,default"
+"markup.link.text" = "default,default,default"
+"markup.link.url" = "default,default,default"
+"markup.raw.inline" = "default,default,default"
+"markup.strikethrough" = "default,default,default"
+"punctuation.bracket" = "default,default,default"
+"punctuation.special" = "default,default,default"
+
+# matlab
+# TODO
+
+# mermaid
+# TODO
+
+# meson
+# TODO
+
+# msbuild
+# TODO
+
+# nasm
+# TODO
+
+# nickel
+# TODO
+
+# nim
+# TODO
+
+# nix
+# TODO
+
+# nu
+# TODO
+
+# ocaml
+# TODO
+
+# ocaml-interface
+# TODO
+
+# odin
+# TODO
+
+# opencl
+# TODO
+
+# openscad
+# TODO
+
+# org
+# TODO
+
+# pascal
+# TODO
+
+# passwd
+# TODO
+
+# pem
+# TODO
+
+# perl
+# TODO
+
+# php
+# TODO
+
+# po
+# TODO
+
+# ponylang
+# TODO
+
+# prisma
+# TODO
+
+# protobuf
+# TODO
+
+# prql
+# TODO
+
+# purescript
+# TODO
+
+# python
+# TODO
+
+# qml
+# TODO
+
+# r
+# TODO
+
+# racket
+# TODO
+
+# regex
+# TODO
+
+# rego
+# TODO
+
+# rescript
+# TODO
+
+# rmarkdown
+# TODO
+
+# robot
+# TODO
+
+# ron
+# TODO
+
+# rst
+# TODO
+
+# ruby
+# TODO
+
+# rust
+[language.rust.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-rust"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../src/parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "rust.so"]
+link_flags = ["-O3"]
+
+[language.rust.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/rust"
+
+[language.rust.highlight.groups]
+"attribute" = "default,default,default"
+"comment" = "default,default,default"
+"constant" = "default,default,default"
+"constant.builtin.boolean" = "default,default,default"
+"constant.character" = "default,default,default"
+"constant.character.escape" = "default,default,default"
+"constant.numeric.float" = "default,default,default"
+"constant.numeric.integer" = "default,default,default"
+"constructor" = "default,default,default"
+"function" = "default,default,default"
+"function.macro" = "default,default,default"
+"function.method" = "default,default,default"
+"keyword" = "default,default,default"
+"keyword.control" = "default,default,default"
+"keyword.control.conditional" = "default,default,default"
+"keyword.control.import" = "default,default,default"
+"keyword.control.repeat" = "default,default,default"
+"keyword.control.return" = "default,default,default"
+"keyword.function" = "default,default,default"
+"keyword.operator" = "default,default,default"
+"keyword.special" = "default,default,default"
+"keyword.storage" = "default,default,default"
+"keyword.storage.modifier" = "default,default,default"
+"keyword.storage.modifier.mut" = "default,default,default"
+"keyword.storage.modifier.ref" = "default,default,default"
+"keyword.storage.type" = "default,default,default"
+"label" = "default,default,default"
+"namespace" = "default,default,default"
+"operator" = "default,default,default"
+"punctuation.bracket" = "default,default,default"
+"punctuation.delimiter" = "default,default,default"
+"special" = "default,default,default"
+"string" = "default,default,default"
+"type" = "default,default,default"
+"type.builtin" = "default,default,default"
+"type.enum.variant" = "default,default,default"
+"variable" = "default,default,default"
+"variable.builtin" = "default,default,default"
+"variable.other.member" = "default,default,default"
+"variable.parameter" = "default,default,default"
+
+# sage
+# TODO
+
+# scala
+# TODO
+
+# scheme
+# TODO
+
+# scss
+# TODO
+
+# slint
+# TODO
+
+# smithy
+# TODO
+
+# sml
+# TODO
+
+# solidity
+# TODO
+
+# sql
+# TODO
+
+# sshclientconfig
+# TODO
+
+# starlark
+# TODO
+
+# svelte
+# TODO
+
+# sway
+# TODO
+
+# swift
+# TODO
+
+# tablegen
+# TODO
+
+# task
+# TODO
+
+# tfvars
+# TODO
+
+# toml
+# TODO
+
+# tsq
+# TODO
+
+# tsx
+# TODO
+
+# twig
+# TODO
+
+# typescript
+# TODO
+
+# ungrammar
+# TODO
+
+# uxntal
+# TODO
+
+# v
+# TODO
+
+# vala
+# TODO
+
+# verilog
+# TODO
+
+# vhdl
+# TODO
+
+# vhs
+# TODO
+
+# vue
+# TODO
+
+# wast
+# TODO
+
+# wat
+# TODO
+
+# wgsl
+# TODO
+
+# wit
+# TODO
+
+# xit
+# TODO
+
+# xml
+# TODO
+
+# yaml
+# TODO
+
+# yuck
+# TODO
+
+# zig
+# TODO
