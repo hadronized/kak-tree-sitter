@@ -72,6 +72,6 @@ impl Response {
       String::new()
     };
 
-    Some(format!("eval -no-hooks {cmd_prefix} %{{{kak_cmd}}}"))
+    Some(format!("eval -no-hooks {cmd_prefix}%{{{kak_cmd}}}"))
   }
 }

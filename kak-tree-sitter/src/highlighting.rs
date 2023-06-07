@@ -133,7 +133,7 @@ impl KakHighlightRange {
             col_start,
             line_end,
             col_end,
-            face.replace('.', "_"),
+            format!("ts_{}", face.replace('.', "_")),
           ));
         }
 
@@ -160,7 +160,7 @@ impl KakHighlightRange {
   /// Display as a string recognized by the `ranges` Kakoune highlighter.
   pub fn to_kak_range_str(&self) -> String {
     format!(
-      "{}.{},{}.{}|ts_{}",
+      "{}.{},{}.{}|{}",
       self.line_start, self.col_start, self.line_end, self.col_end, self.face
     )
   }

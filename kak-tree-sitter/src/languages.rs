@@ -4,6 +4,7 @@
 
 use std::{collections::HashMap, path::Path};
 
+use colored::Colorize;
 use kak_tree_sitter_config::Config;
 use libloading::Symbol;
 use tree_sitter_highlight::HighlightConfiguration;
@@ -26,32 +27,26 @@ pub struct Languages {
 
 impl Languages {
   /// Load a grammar.
-  fn load_grammar(lang: &str, path: &Path) -> Option<(libloading::Library, tree_sitter::Language)> {
+  fn load_grammar(
+    lang: &str,
+    path: &Path,
+  ) -> Result<(libloading::Library, tree_sitter::Language), OhNo> {
     let lib = unsafe { libloading::Library::new(path) };
-    match lib {
-      Ok(lib) => {
-        let fn_sym = format!("tree_sitter_{}", lang);
+    let lib = lib.map_err(|err| OhNo::CannotLoadGrammar {
+      lang: lang.to_owned(),
+      err: err.to_string(),
+    })?;
+    let fn_sym = format!("tree_sitter_{}", lang);
 
-        let sym: Result<Symbol<fn() -> tree_sitter::Language>, _> =
-          unsafe { lib.get(fn_sym.as_bytes()) };
-        match sym {
-          Ok(sym) => {
-            let ffi_lang = sym();
-            Some((lib, ffi_lang))
-          }
+    let sym: Result<Symbol<fn() -> tree_sitter::Language>, _> =
+      unsafe { lib.get(fn_sym.as_bytes()) };
+    let sym = sym.map_err(|err| OhNo::CannotLoadGrammar {
+      lang: lang.to_owned(),
+      err: format!("cannot find language: {err}"),
+    })?;
+    let sym = sym();
 
-          Err(err) => {
-            eprintln!("cannot find {lang}: {err}");
-            None
-          }
-        }
-      }
-
-      Err(err) => {
-        eprintln!("cannot load grammar {}: {err}", path.display());
-        None
-      }
-    }
+    Ok((lib, sym))
   }
 
   /// Load languages.
@@ -62,37 +57,46 @@ impl Languages {
 
     // iterate over all known languages in the configuration
     for (lang_name, lang_config) in &config.languages.language {
-      println!("loading configuration for {lang_name}");
+      println!(
+        "loading configuration for {lang_name}",
+        lang_name = lang_name.blue()
+      );
 
       if let Some(grammar_path) = config.languages.get_grammar_path(lang_name) {
         println!("  grammar path: {}", grammar_path.display());
 
-        if let Some((ts_lib, ts_lang)) = Self::load_grammar(lang_name, &grammar_path) {
-          if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {
-            println!("  queries directory: {}", queries_dir.display());
-
-            let queries = Queries::load_from_dir(queries_dir);
-            let mut hl_config = HighlightConfiguration::new(
-              ts_lang,
-              queries.highlights.as_deref().unwrap_or(""),
-              queries.injections.as_deref().unwrap_or(""),
-              queries.locals.as_deref().unwrap_or(""),
-            )
-            .map_err(|err| OhNo::HighlightError {
-              err: err.to_string(),
-            })?;
-
-            let hl_names: Vec<_> = lang_config.highlight.groups.keys().cloned().collect();
-            hl_config.configure(&hl_names);
-
-            let lang = Language {
-              hl_config,
-              hl_names,
-              _ts_lang: ts_lang,
-              _ts_lib: ts_lib,
-            };
-            langs.insert(lang_name.to_owned(), lang);
+        let (ts_lib, ts_lang) = match Self::load_grammar(lang_name, &grammar_path) {
+          Ok(x) => x,
+          Err(err) => {
+            eprintln!("{}", err.to_string().red());
+            continue;
           }
+        };
+
+        if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {
+          println!("  queries directory: {}", queries_dir.display());
+
+          let queries = Queries::load_from_dir(queries_dir);
+          let mut hl_config = HighlightConfiguration::new(
+            ts_lang,
+            queries.highlights.as_deref().unwrap_or(""),
+            queries.injections.as_deref().unwrap_or(""),
+            queries.locals.as_deref().unwrap_or(""),
+          )
+          .map_err(|err| OhNo::HighlightError {
+            err: err.to_string(),
+          })?;
+
+          let hl_names: Vec<_> = lang_config.highlight.groups.iter().cloned().collect();
+          hl_config.configure(&hl_names);
+
+          let lang = Language {
+            hl_config,
+            hl_names,
+            _ts_lang: ts_lang,
+            _ts_lib: ts_lib,
+          };
+          langs.insert(lang_name.to_owned(), lang);
         }
       }
     }

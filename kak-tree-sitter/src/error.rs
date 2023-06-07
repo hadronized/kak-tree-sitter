@@ -25,6 +25,9 @@ pub enum OhNo {
   #[error("cannot start server: {err}")]
   CannotStartServer { err: io::Error },
 
+  #[error("cannot load grammar for language {lang}: {err}")]
+  CannotLoadGrammar { lang: String, err: String },
+
   #[error("invalid request: {err}")]
   InvalidRequest { err: String },
 

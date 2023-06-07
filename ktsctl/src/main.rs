@@ -123,9 +123,9 @@ fn start() -> Result<(), AppError> {
 
   let grammar_fetch_path = dir.join(format!("grammars/{lang}"));
   let queries_fetch_path = if lang_config.queries.url.is_some() {
-    &lang_config.queries.path
+    dir.join(format!("queries/{lang}"))
   } else {
-    &grammar_fetch_path
+    grammar_fetch_path.clone()
   };
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
@@ -136,7 +136,7 @@ fn start() -> Result<(), AppError> {
     // if cli.queries is passed, fetch the queries; otherwise, reuse the grammar path
     if let Some(ref url) = lang_config.queries.url {
       info(format!("fetching queries for language {lang}"));
-      fetch_queries(queries_fetch_path, url, &lang)?;
+      fetch_queries(&queries_fetch_path, url, &lang)?;
     }
   }
 
@@ -169,7 +169,7 @@ fn start() -> Result<(), AppError> {
 
     // install the queries
     info(format!("installing queries for language {lang}"));
-    install_queries(queries_fetch_path, &lang)?;
+    install_queries(&queries_fetch_path.join(&lang_config.queries.path), &lang)?;
   }
 
   Ok(())

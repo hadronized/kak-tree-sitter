@@ -21,18 +21,20 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/awk"
 
-[language.awk.highlight.groups]
-"comment" = "default,default,default"
-"constant.numeric" = "default,default,default"
-"function" = "default,default,default"
-"include" = "default,default,default"
-"keyword" = "default,default,default"
-"load" = "default,default,default"
-"namespace" = "default,default,default"
-"operator" = "default,default,default"
-"string" = "default,default,default"
-"string.regexp" = "default,default,default"
-"variable" = "default,default,default"
+[language.awk.highlight]
+groups = [
+  "comment",
+  "constant.numeric",
+  "function",
+  "include",
+  "keyword",
+  "load",
+  "namespace",
+  "operator",
+  "string",
+  "string.regexp",
+  "variable"
+]
 
 # bash
 [language.bash.grammar]
@@ -49,16 +51,18 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/bash"
 
-[language.bash.highlight.groups]
-"comment" = "default,default,default"
-"constant" = "default,default,default"
-"constant.numeric.integer" = "default,default,default"
-"embedded" = "default,default,default"
-"function" = "default,default,default"
-"keyword" = "default,default,default"
-"operator" = "default,default,default"
-"string" = "default,default,default"
-"variable.other.member" = "default,default,default"
+[language.bash.highlight]
+groups = [
+  "comment",
+  "constant",
+  "constant.numeric.integer",
+  "embedded",
+  "function",
+  "keyword",
+  "operator",
+  "string",
+  "variable.other.member"
+]
 
 # bass
 # TODO
@@ -87,36 +91,38 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/c"
 
-[language.c.highlight.groups]
-"attribute" = "default,default,default"
-"comment" = "default,default,default"
-"constant" = "default,default,default"
-"constant.builtin.boolean" = "default,default,default"
-"constant.character" = "default,default,default"
-"constant.character.escape" = "default,default,default"
-"constant.numeric" = "default,default,default"
-"function" = "default,default,default"
-"function.special" = "default,default,default"
-"keyword" = "default,default,default"
-"keyword.control" = "default,default,default"
-"keyword.control.conditional" = "default,default,default"
-"keyword.control.repeat" = "default,default,default"
-"keyword.control.return" = "default,default,default"
-"keyword.directive" = "default,default,default"
-"keyword.storage.modifier" = "default,default,default"
-"keyword.storage.type" = "default,default,default"
-"label" = "default,default,default"
-"operator" = "default,default,default"
-"punctuation" = "default,default,default"
-"punctuation.bracket" = "default,default,default"
-"punctuation.delimiter" = "default,default,default"
-"string" = "default,default,default"
-"type" = "default,default,default"
-"type.builtin" = "default,default,default"
-"type.enum.variant" = "default,default,default"
-"variable" = "default,default,default"
-"variable.other.member" = "default,default,default"
-"variable.parameter" = "default,default,default"
+[language.c.highlight]
+groups = [
+  "attribute",
+  "comment",
+  "constant",
+  "constant.builtin.boolean",
+  "constant.character",
+  "constant.character.escape",
+  "constant.numeric",
+  "function",
+  "function.special",
+  "keyword",
+  "keyword.control",
+  "keyword.control.conditional",
+  "keyword.control.repeat",
+  "keyword.control.return",
+  "keyword.directive",
+  "keyword.storage.modifier",
+  "keyword.storage.type",
+  "label",
+  "operator",
+  "punctuation",
+  "punctuation.bracket",
+  "punctuation.delimiter",
+  "string",
+  "type",
+  "type.builtin",
+  "type.enum.variant",
+  "variable",
+  "variable.other.member",
+  "variable.parameter"
+]
 
 # cabal
 [language.cabal.grammar]
@@ -133,10 +139,12 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/cabal"
 
-[language.cabal.highlight.groups]
-"comment" = "default,default,default"
-"keyword" = "default,default,default"
-"type" = "default,default,default"
+[language.cabal.highlight]
+groups = [
+  "comment",
+  "keyword",
+  "type"
+]
 
 # cairo
 # TODO
@@ -165,18 +173,20 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/comment"
 
-[language.comment.highlight.groups]
-"constant" = "default,default,default"
-"constant.numeric" = "default,default,default"
-"error" = "default,default,default"
-"hint" = "default,default,default"
-"info" = "default,default,default"
-"punctuation.bracket" = "default,default,default"
-"punctuation.delimiter" = "default,default,default"
-"tag" = "default,default,default"
-"ui.text" = "default,default,default"
-"user" = "default,default,default"
-"warning" = "default,default,default"
+[language.comment.highlight]
+groups = [
+  "constant",
+  "constant.numeric",
+  "error",
+  "hint",
+  "info",
+  "punctuation.bracket",
+  "punctuation.delimiter",
+  "tag",
+  "ui.text",
+  "user",
+  "warning"
+]
 
 # common-lisp
 # TODO
@@ -334,15 +344,17 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/html"
 
-[language.html.highlight.groups]
-"tag" = "default,default,default"
-"tag.error" = "default,default,default"
-"constant" = "default,default,default"
-"attribute" = "default,default,default"
-"comment" = "default,default,default"
-"string" = "default,default,default"
-"punctuation.bracket" = "default,default,default"
-"punctuation.delimiter" = "default,default,default"
+[language.html.highlight]
+groups = [
+  "tag",
+  "tag.error",
+  "constant",
+  "attribute",
+  "comment",
+  "string",
+  "punctuation.bracket",
+  "punctuation.delimiter"
+]
 
 # hurl
 # TODO
@@ -425,25 +437,27 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/markdown"
 
-[language.markdown.highlight.groups]
-"label" = "ts_label"
-"markup.heading.1" = "ts_keyword"
-"markup.heading.2" = "ts_function"
-"markup.heading.3" = "ts_constructor"
-"markup.heading.4" = "ts_constant"
-"markup.heading.5" = "ts_operator"
-"markup.heading.6" = "ts_special"
-"markup.heading.marker" = "ts_punctation"
-"markup.list.checked" = "ts_comment"
-"markup.list.numbered" = "ts_special"
-"markup.list.unchecked" = "ts_conceal"
-"markup.list.unnumbered" = "ts_constant"
-"markup.link.url" = "ts_special"
-"markup.quote" = "ts_string"
-"markup.raw.block" = "ts_string"
-"punctuation.bracket" = "ts_punctuation"
-"punctuation.special" = "ts_punctuation"
-"string.escape" = "ts_string_escape"
+[language.markdown.highlight]
+groups = [
+  "label",
+  "markup.heading.1",
+  "markup.heading.2",
+  "markup.heading.3",
+  "markup.heading.4",
+  "markup.heading.5",
+  "markup.heading.6",
+  "markup.heading.marker",
+  "markup.list.checked",
+  "markup.list.numbered",
+  "markup.list.unchecked",
+  "markup.list.unnumbered",
+  "markup.link.url",
+  "markup.quote",
+  "markup.raw.block",
+  "punctuation.bracket",
+  "punctuation.special",
+  "string.escape"
+]
 
 # markdown.inline
 [language.markdown_inline.grammar]
@@ -460,17 +474,19 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/markdown.inline"
 
-[language.markdown_inline.highlight.groups]
-"constant.character.escape" = "ts_constant"
-"markup.bold" = "default+b"
-"markup.italic" = "default+i"
-"markup.link.label" = "ts_label"
-"markup.link.text" = "ts_text"
-"markup.link.url" = "ts_variable_other_member"
-"markup.raw.inline" = "ts_spell"
-"markup.strikethrough" = "default+s"
-"punctuation.bracket" = "ts_punctuation"
-"punctuation.special" = "ts_punctuation"
+[language.markdown_inline.highlight]
+groups = [
+  "constant.character.escape",
+  "markup.bold",
+  "markup.italic",
+  "markup.link.label",
+  "markup.link.text",
+  "markup.link.url",
+  "markup.raw.inline",
+  "markup.strikethrough",
+  "punctuation.bracket",
+  "punctuation.special",
+]
 
 # matlab
 # TODO
@@ -601,47 +617,49 @@ link_flags = ["-O3"]
 url = "https://github.com/helix-editor/helix"
 path = "runtime/queries/rust"
 
-[language.rust.highlight.groups]
-"attribute" = "ts_attribute"
-"comment" = "ts_comment"
-"constant" = "ts_constant"
-"constant.builtin.boolean" = "ts_constant"
-"constant.character" = "ts_constant"
-"constant.character.escape" = "ts_constant"
-"constant.numeric.float" = "ts_constant"
-"constant.numeric.integer" = "ts_constant"
-"constructor" = "ts_constructor"
-"function" = "ts_function"
-"function.macro" = "ts_function_macro"
-"function.method" = "ts_function"
-"keyword" = "ts_keyword"
-"keyword.control" = "ts_keyword_control"
-"keyword.control.conditional" = "ts_keyword_control_conditional"
-"keyword.control.import" = "ts_keyword"
-"keyword.control.repeat" = "ts_keyword"
-"keyword.control.return" = "ts_keyword"
-"keyword.function" = "ts_keyword"
-"keyword.operator" = "ts_keyword"
-"keyword.special" = "ts_keyword"
-"keyword.storage" = "ts_keyword"
-"keyword.storage.modifier" = "ts_keyword"
-"keyword.storage.modifier.mut" = "ts_keyword"
-"keyword.storage.modifier.ref" = "ts_keyword"
-"keyword.storage.type" = "ts_keyword"
-"label" = "ts_label"
-"namespace" = "ts_namespace"
-"operator" = "ts_operator"
-"punctuation.bracket" = "ts_punctuation"
-"punctuation.delimiter" = "ts_punctuation"
-"special" = "ts_special"
-"string" = "ts_string"
-"type" = "ts_type"
-"type.builtin" = "ts_type_builtin"
-"type.enum.variant" = "ts_type"
-"variable" = "ts_variable"
-"variable.builtin" = "ts_variable_builtin"
-"variable.other.member" = "ts_variable_other_member"
-"variable.parameter" = "ts_variable_parameter"
+[language.rust.highlight]
+groups = [
+  "attribute",
+  "comment",
+  "constant",
+  "constant.builtin.boolean",
+  "constant.character",
+  "constant.character.escape",
+  "constant.numeric.float",
+  "constant.numeric.integer",
+  "constructor",
+  "function",
+  "function.macro",
+  "function.method",
+  "keyword",
+  "keyword.control",
+  "keyword.control.conditional",
+  "keyword.control.import",
+  "keyword.control.repeat",
+  "keyword.control.return",
+  "keyword.function",
+  "keyword.operator",
+  "keyword.special",
+  "keyword.storage",
+  "keyword.storage.modifier",
+  "keyword.storage.modifier.mut",
+  "keyword.storage.modifier.ref",
+  "keyword.storage.type",
+  "label",
+  "namespace",
+  "operator",
+  "punctuation.bracket",
+  "punctuation.delimiter",
+  "special",
+  "string",
+  "type",
+  "type.builtin",
+  "type.enum.variant",
+  "variable",
+  "variable.builtin",
+  "variable.other.member",
+  "variable.parameter",
+]
 
 # sage
 # TODO

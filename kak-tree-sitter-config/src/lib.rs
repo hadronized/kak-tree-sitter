@@ -1,6 +1,10 @@
 //! Configuration for both the daemon and client.
 
-use std::{collections::HashMap, fs, io, path::PathBuf};
+use std::{
+  collections::{HashMap, HashSet},
+  fs, io,
+  path::PathBuf,
+};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -130,12 +134,8 @@ pub struct LanguageQueriesConfig {
   pub path: PathBuf,
 }
 
-/// Configuration for highlighting.
-///
-/// Highlighting consists in mapping between highlight groups, such as `keyword.control.conditional`, and a Kakoune face
-/// definition. Each highlight group is then converted to `set-face global ts_<name> <face definition>`.
+/// Per-language highlighting configuration.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LanguageHighlightConfig {
-  /// List of highlight names to detect in grammars.
-  pub groups: HashMap<String, String>,
+  pub groups: HashSet<String>,
 }

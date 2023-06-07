@@ -1,3 +1,4 @@
+use colored::Colorize;
 use kak_tree_sitter_config::Config;
 
 use crate::{
@@ -72,6 +73,11 @@ impl Handler {
 
       RequestPayload::TryEnableHighlight { lang } => {
         let supported = self.langs.get(&lang).is_some();
+
+        if !supported {
+          eprintln!("{}", format!("language {lang} is not supported").red());
+        }
+
         return Ok(Some((
           req.session,
           Response::FiletypeSupported { supported },
