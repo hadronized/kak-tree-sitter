@@ -713,7 +713,33 @@ groups = [
 # TODO
 
 # toml
-# TODO
+[language.toml.grammar]
+url = "https://github.com/ikatyang/tree-sitter-toml"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "toml.so"]
+link_flags = ["-O3"]
+
+[language.toml.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/toml"
+
+[language.toml.highlight]
+groups = [
+  "comment",
+  "constant.builtin.boolean",
+  "constant.numeric.float",
+  "constant.numeric.integer",
+  "operator",
+  "punctuation.bracket",
+  "punctuation.delimiter",
+  "string",
+  "string.special",
+  "variable.other.member"
+]
 
 # tsq
 # TODO
