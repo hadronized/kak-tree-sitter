@@ -732,7 +732,42 @@ groups = [
 # TODO
 
 # scheme
-# TODO
+[language.scheme.grammar]
+url = "https://github.com/6cdh/tree-sitter-scheme"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "scheme.so"]
+link_flags = ["-O3"]
+
+[language.scheme.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/scheme"
+
+[language.scheme.highlight]
+groups = [
+  "comment.block",
+  "comment.line",
+  "constant.builtin.boolean",
+  "constant.character",
+  "constant.character.escape",
+  "constant.numeric",
+  "function",
+  "function.builtin",
+  "keyword",
+  "keyword.conditional",
+  "keyword.directive",
+  "namespace",
+  "operator",
+  "punctuation.bracket",
+  "string",
+  "string.symbol",
+  "variable",
+  "variable.builtin",
+  "variable.parameter"
+]
 
 # scss
 # TODO
