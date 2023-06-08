@@ -195,7 +195,39 @@ groups = [
 # TODO
 
 # cpp
-# TODO
+[language.cpp.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-cpp"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", "../src"]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "cpp.so"]
+link_flags = ["-O3", "-lstdc++"]
+
+[language.cpp.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/cpp"
+
+[language.cpp.highlight]
+groups = [
+  "constant.builtin",
+  "function",
+  "function.special",
+  "keyword",
+  "keyword.control.exception",
+  "keyword.operator",
+  "keyword.storage.modifier",
+  "keyword.storage.type",
+  "namespace",
+  "operator",
+  "punctuation.bracket",
+  "string",
+  "type",
+  "type.builtin",
+  "type.enum.variant",
+  "variable.builtin"
+]
 
 # crystal
 # TODO

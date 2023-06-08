@@ -1,6 +1,6 @@
 [package]
 name = "kak-tree-sitter"
-version = "0.2.0"
+version = "0.3.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "Server between Kakoune and tree-sitter"
@@ -18,7 +18,7 @@ colored = "2.0.0"
 daemonize = "0.5.0"
 dirs = "5.0.0"
 itertools = "0.10.5"
-kak-tree-sitter-config = { version = "0.1.0", path = "../kak-tree-sitter-config" }
+kak-tree-sitter-config = { version = "0.2.0", path = "../kak-tree-sitter-config" }
 libloading = "0.8.0"
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.96"
