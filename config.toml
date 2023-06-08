@@ -828,7 +828,37 @@ groups = [
 # TODO
 
 # yaml
-# TODO
+[language.yaml.grammar]
+url = "https://github.com/ikatyang/tree-sitter-yaml"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "yaml.so"]
+link_flags = ["-O3", "-lstdc++"]
+
+[language.yaml.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/yaml"
+
+[language.yaml.highlight]
+groups = [
+  "comment",
+  "constant.builtin",
+  "constant.builtin.boolean",
+  "constant.character.escape",
+  "constant.numeric.float",
+  "constant.numeric.integer",
+  "error",
+  "keyword",
+  "punctuation.bracket",
+  "punctuation.delimiter",
+  "punctuation.special",
+  "string",
+  "type",
+  "variable.other.member"
+]
 
 # yuck
 # TODO
