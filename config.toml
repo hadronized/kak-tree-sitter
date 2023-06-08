@@ -398,7 +398,39 @@ groups = [
 # TODO
 
 # java
-# TODO
+[language.java.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-java"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "java.so"]
+link_flags = ["-O3"]
+
+[language.java.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/java"
+
+[language.java.highlight]
+groups = [
+  "attribute",
+  "comment",
+  "constant",
+  "constant.builtin",
+  "constant.character",
+  "constant.numeric.float",
+  "constant.numeric.integer",
+  "function.builtin",
+  "function.method",
+  "keyword",
+  "operator",
+  "string",
+  "type",
+  "type.builtin",
+  "variable",
+  "variable.builtin"
+]
 
 # javascript
 # TODO
