@@ -168,21 +168,7 @@ pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/c"
 
 # cabal
-[language.cabal.grammar]
-url = "https://gitlab.com/magus/tree-sitter-cabal"
-pin = "7d5fa6887ae05a0b06d046f1e754c197c8ad869b"
-path = "src"
-compile = "cc"
-compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
-compile_flags = ["-O3"]
-link = "cc"
-link_args = ["-shared", "-fpic", "parser.o", "-o", "cabal.so"]
-link_flags = ["-O3"]
-
-[language.cabal.queries]
-url = "https://github.com/helix-editor/helix"
-pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
-path = "runtime/queries/cabal"
+# TODO
 
 # cairo
 # TODO
