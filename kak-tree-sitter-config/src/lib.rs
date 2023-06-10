@@ -23,6 +23,8 @@ pub enum ConfigError {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct Config {
+  pub highlight: HighlightConfig,
+
   #[serde(flatten)]
   pub languages: LanguagesConfig,
 }
@@ -33,10 +35,17 @@ impl Config {
     let dir = dirs::config_dir().ok_or(ConfigError::NoConfigDir)?;
     let path = dir.join("kak-tree-sitter/config.toml");
     let content = fs::read_to_string(path).map_err(|err| ConfigError::CannotReadConfig { err })?;
+
     toml::from_str(&content).map_err(|err| ConfigError::CannotParseConfig {
       err: err.to_string(),
     })
   }
+}
+
+/// Highlight configuration.
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct HighlightConfig {
+  pub groups: HashSet<String>,
 }
 
 /// Languages configuration.
@@ -78,13 +87,15 @@ impl LanguagesConfig {
 pub struct LanguageConfig {
   pub grammar: LanguageGrammarConfig,
   pub queries: LanguageQueriesConfig,
-  pub highlight: LanguageHighlightConfig,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct LanguageGrammarConfig {
   /// URL to fetch the language grammar from.
   pub url: String,
+
+  /// Pin to use. Can be a commit, a branch, etc.
+  pub pin: Option<String>,
 
   /// Path to find the grammar source.
   pub path: PathBuf,
@@ -130,12 +141,9 @@ pub struct LanguageQueriesConfig {
   /// grammar is required).
   pub url: Option<String>,
 
+  /// Pin to use. Can be a commit, a branch, etc.
+  pub pin: Option<String>,
+
   /// Path to go to where to find the queries directory.
   pub path: PathBuf,
-}
-
-/// Per-language highlighting configuration.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct LanguageHighlightConfig {
-  pub groups: HashSet<String>,
 }
