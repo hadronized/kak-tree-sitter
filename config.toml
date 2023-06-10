@@ -411,7 +411,7 @@ path = "runtime/queries/html"
 # java
 [language.java.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-java"
-pin = "c194ee5e6ede5f26cf4799feead4a8f165dcf14d"
+pin = "09d650def6cdf7f479f4b78f595e9ef5b58ce31e"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
