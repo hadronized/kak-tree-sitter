@@ -632,7 +632,7 @@ path = "runtime/queries/rust"
 # scheme
 [language.scheme.grammar]
 url = "https://github.com/6cdh/tree-sitter-scheme"
-pin = "0c763bd5f85b18e354bc338d17cf1daa23b478b1"
+pin = "c0741320bfca6b7b5b7a13b5171275951e96a842"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
