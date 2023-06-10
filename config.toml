@@ -261,7 +261,21 @@ path = "runtime/queries/cpp"
 # TODO
 
 # diff
-# TODO
+[language.diff.grammar]
+url = "https://github.com/the-mikedavis/tree-sitter-diff"
+pin = "fd74c78fa88a20085dbc7bbeaba066f4d1692b63"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "diff.so"]
+link_flags = ["-O3"]
+
+[language.diff.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/diff"
 
 # dockerfile
 # TODO
