@@ -471,8 +471,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown.so"]
 link_flags = ["-O3"]
 
 [language.markdown.queries]
-url = "https://github.com/helix-editor/helix"
-pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+url = "https://github.com/phaazon/kak-tree-sitter"
 path = "runtime/queries/markdown"
 
 # markdown.inline
