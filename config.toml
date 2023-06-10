@@ -367,11 +367,11 @@ url = "https://github.com/tree-sitter/tree-sitter-html"
 pin = "86c253e675e7fdd1c0482efe0706f24bafbc3a7d"
 path = "src"
 compile = "cc"
-compile_args = ["-c", "-fpic", "../parser.c", "../scanner.cc", "-I", "..", "-lc++"]
+compile_args = ["-c", "-fpic", "../parser.c", "../scanner.cc", "-I", ".."]
 compile_flags = ["-O3"]
 link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "html.so"]
-link_flags = ["-O3"]
+link_flags = ["-O3", "-lstdc++"]
 
 [language.html.queries]
 url = "https://github.com/helix-editor/helix"

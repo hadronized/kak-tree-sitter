@@ -1,0 +1,8 @@
+; kak-tree-sitter notes: taken from helix/helix-editor
+
+((comment) @injection.content
+ (#set! injection.language "comment"))
+
+(raw_string_literal
+  delimiter: (raw_string_delimiter) @injection.language
+  (raw_string_content) @injection.content)
