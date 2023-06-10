@@ -36,7 +36,7 @@ impl Languages {
       lang: lang.to_owned(),
       err: err.to_string(),
     })?;
-    let fn_sym = format!("tree_sitter_{}", lang.replace('.', "_"));
+    let fn_sym = format!("tree_sitter_{}", lang.replace(['.', '-'], "_"));
 
     let sym: Result<Symbol<fn() -> tree_sitter::Language>, _> =
       unsafe { lib.get(fn_sym.as_bytes()) };

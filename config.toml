@@ -19,6 +19,10 @@ highlight.groups = [
   "constant.numeric.float",
   "constant.numeric.integer",
   "constructor",
+  "diff.plus",
+  "diff.minus",
+  "diff.delta",
+  "diff.delta.moved",
   "embedded",
   "error",
   "function",
@@ -49,6 +53,7 @@ highlight.groups = [
   "label",
   "load",
   "markup.bold",
+  "markup.heading",
   "markup.heading.1",
   "markup.heading.2",
   "markup.heading.3",
@@ -79,6 +84,8 @@ highlight.groups = [
   "string.escape",
   "string.regexp",
   "string.special",
+  "string.special.path",
+  "string.special.symbol",
   "string.symbol",
   "tag",
   "tag.error",
@@ -311,7 +318,21 @@ path = "runtime/queries/cpp"
 # TODO
 
 # git-commit
-# TODO
+[language.git-commit.grammar]
+url = "https://github.com/the-mikedavis/tree-sitter-git-commit"
+pin = "db88cffa3952dd2328b741af5d0fc69bdb76704f"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "git-commit.so"]
+link_flags = ["-O3"]
+
+[language.git-commit.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/git-commit"
 
 # git-config
 # TODO
