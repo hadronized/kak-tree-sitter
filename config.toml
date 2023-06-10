@@ -65,11 +65,13 @@ highlight.groups = [
   "markup.link.label",
   "markup.link.text",
   "markup.link.url",
+  "markup.link.uri",
   "markup.list.checked",
   "markup.list.numbered",
   "markup.list.unchecked",
   "markup.list.unnumbered",
   "markup.quote" ,
+  "markup.raw",
   "markup.raw.block",
   "markup.raw.inline",
   "markup.strikethrough",
@@ -82,6 +84,7 @@ highlight.groups = [
   "special",
   "string",
   "string.escape",
+  "string.regex",
   "string.regexp",
   "string.special",
   "string.special.path",
@@ -453,7 +456,21 @@ path = "runtime/queries/java"
 # TODO
 
 # latex
-# TODO
+[language.latex.grammar]
+url = "https://github.com/latex-lsp/tree-sitter-latex"
+pin = "dfe891922ccd2e7cef52eccb2775e1b576727165"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "latex.so"]
+link_flags = ["-O3"]
+
+[language.latex.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/latex"
 
 # lean
 # TODO
