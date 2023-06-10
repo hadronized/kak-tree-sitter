@@ -472,6 +472,7 @@ link_flags = ["-O3"]
 
 [language.markdown.queries]
 url = "https://github.com/phaazon/kak-tree-sitter"
+pin = "d2d9761f309d6204a8f4480dc23f10558a165e29"
 path = "runtime/queries/markdown"
 
 # markdown.inline
