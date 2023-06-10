@@ -36,7 +36,7 @@ impl Languages {
       lang: lang.to_owned(),
       err: err.to_string(),
     })?;
-    let fn_sym = format!("tree_sitter_{}", lang);
+    let fn_sym = format!("tree_sitter_{}", lang.replace('.', "_"));
 
     let sym: Result<Symbol<fn() -> tree_sitter::Language>, _> =
       unsafe { lib.get(fn_sym.as_bytes()) };
@@ -56,7 +56,7 @@ impl Languages {
     let mut langs = HashMap::new();
 
     // iterate over all known languages in the configuration
-    for (lang_name, lang_config) in &config.languages.language {
+    for lang_name in config.languages.language.keys() {
       println!(
         "loading configuration for {lang_name}",
         lang_name = lang_name.blue()
@@ -87,7 +87,7 @@ impl Languages {
             err: err.to_string(),
           })?;
 
-          let hl_names: Vec<_> = lang_config.highlight.groups.iter().cloned().collect();
+          let hl_names: Vec<_> = config.highlight.groups.iter().cloned().collect();
           hl_config.configure(&hl_names);
 
           let lang = Language {

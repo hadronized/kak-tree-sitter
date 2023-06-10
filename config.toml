@@ -3,12 +3,104 @@
 # It is highly recommended for users to copy that file and edit it manually if they need to add support for languages
 # not present yet. Also, please consider opening a PR to https://github.com/phaazon/kak-tree-sitter.
 
+# Top-level highlight capture group declarations. If your grammars uses a capture group that is not defined here, you
+# have to add it to the list.
+highlight.groups = [
+  "attribute",
+  "comment",
+  "comment.block",
+  "comment.line",
+  "constant",
+  "constant.builtin",
+  "constant.builtin.boolean",
+  "constant.character",
+  "constant.character.escape",
+  "constant.numeric",
+  "constant.numeric.float",
+  "constant.numeric.integer",
+  "constructor",
+  "embedded",
+  "error",
+  "function",
+  "function.builtin",
+  "function.macro",
+  "function.method",
+  "function.special",
+  "hint",
+  "include",
+  "info",
+  "keyword",
+  "keyword.conditional",
+  "keyword.control",
+  "keyword.control.conditional",
+  "keyword.control.exception",
+  "keyword.control.import",
+  "keyword.control.repeat",
+  "keyword.control.return",
+  "keyword.directive",
+  "keyword.function",
+  "keyword.operator",
+  "keyword.special",
+  "keyword.storage",
+  "keyword.storage.modifier",
+  "keyword.storage.modifier.mut",
+  "keyword.storage.modifier.ref",
+  "keyword.storage.type",
+  "label",
+  "load",
+  "markup.bold",
+  "markup.heading.1",
+  "markup.heading.2",
+  "markup.heading.3",
+  "markup.heading.4",
+  "markup.heading.5",
+  "markup.heading.6",
+  "markup.heading.marker",
+  "markup.italic",
+  "markup.link.label",
+  "markup.link.text",
+  "markup.link.url",
+  "markup.list.checked",
+  "markup.list.numbered",
+  "markup.list.unchecked",
+  "markup.list.unnumbered",
+  "markup.quote" ,
+  "markup.raw.block",
+  "markup.raw.inline",
+  "markup.strikethrough",
+  "namespace",
+  "operator",
+  "punctuation",
+  "punctuation.bracket",
+  "punctuation.delimiter",
+  "punctuation.special",
+  "special",
+  "string",
+  "string.escape",
+  "string.regexp",
+  "string.special",
+  "string.symbol",
+  "tag",
+  "tag.error",
+  "text",
+  "type",
+  "type.builtin",
+  "type.enum.variant",
+  "variable",
+  "variable.builtin",
+  "variable.other.member",
+  "variable.other.member",
+  "variable.parameter",
+  "warning",
+]
+
 # astro
 # TODO
 
 # awk
 [language.awk.grammar]
 url = "https://github.com/Beaglefoot/tree-sitter-awk"
+pin = "8eaa762d05cc67c0e2cc53a0a71750b3c16733c2"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -19,26 +111,13 @@ link_flags = ["-O3"]
 
 [language.awk.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/awk"
-
-[language.awk.highlight]
-groups = [
-  "comment",
-  "constant.numeric",
-  "function",
-  "include",
-  "keyword",
-  "load",
-  "namespace",
-  "operator",
-  "string",
-  "string.regexp",
-  "variable"
-]
 
 # bash
 [language.bash.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-bash"
+pin = "ee2a8f9906b53a785b784ee816c0016c2b6866d2"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -49,20 +128,8 @@ link_flags = ["-O3"]
 
 [language.bash.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/bash"
-
-[language.bash.highlight]
-groups = [
-  "comment",
-  "constant",
-  "constant.numeric.integer",
-  "embedded",
-  "function",
-  "keyword",
-  "operator",
-  "string",
-  "variable.other.member"
-]
 
 # bass
 # TODO
@@ -79,6 +146,7 @@ groups = [
 # c
 [language.c.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-c"
+pin = "0906255f8de1d319b8ec682ac8c43e7d2524b4fa"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -89,44 +157,13 @@ link_flags = ["-O3"]
 
 [language.c.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/c"
-
-[language.c.highlight]
-groups = [
-  "attribute",
-  "comment",
-  "constant",
-  "constant.builtin.boolean",
-  "constant.character",
-  "constant.character.escape",
-  "constant.numeric",
-  "function",
-  "function.special",
-  "keyword",
-  "keyword.control",
-  "keyword.control.conditional",
-  "keyword.control.repeat",
-  "keyword.control.return",
-  "keyword.directive",
-  "keyword.storage.modifier",
-  "keyword.storage.type",
-  "label",
-  "operator",
-  "punctuation",
-  "punctuation.bracket",
-  "punctuation.delimiter",
-  "string",
-  "type",
-  "type.builtin",
-  "type.enum.variant",
-  "variable",
-  "variable.other.member",
-  "variable.parameter"
-]
 
 # cabal
 [language.cabal.grammar]
 url = "https://gitlab.com/magus/tree-sitter-cabal"
+pin = "7d5fa6887ae05a0b06d046f1e754c197c8ad869b"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -137,14 +174,8 @@ link_flags = ["-O3"]
 
 [language.cabal.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/cabal"
-
-[language.cabal.highlight]
-groups = [
-  "comment",
-  "keyword",
-  "type"
-]
 
 # cairo
 # TODO
@@ -161,6 +192,7 @@ groups = [
 # comment
 [language.comment.grammar]
 url = "https://github.com/stsewd/tree-sitter-comment"
+pin = "94c99a66bb5051d8321b5900aee92b76450c50ce"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -171,22 +203,8 @@ link_flags = ["-O3"]
 
 [language.comment.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/comment"
-
-[language.comment.highlight]
-groups = [
-  "constant",
-  "constant.numeric",
-  "error",
-  "hint",
-  "info",
-  "punctuation.bracket",
-  "punctuation.delimiter",
-  "tag",
-  "ui.text",
-  "user",
-  "warning"
-]
 
 # common-lisp
 # TODO
@@ -197,6 +215,7 @@ groups = [
 # cpp
 [language.cpp.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-cpp"
+pin = "4c917d560572dc2b3704b041715b2729fa199963"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
@@ -207,27 +226,8 @@ link_flags = ["-O3", "-lstdc++"]
 
 [language.cpp.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/cpp"
-
-[language.cpp.highlight]
-groups = [
-  "constant.builtin",
-  "function",
-  "function.special",
-  "keyword",
-  "keyword.control.exception",
-  "keyword.operator",
-  "keyword.storage.modifier",
-  "keyword.storage.type",
-  "namespace",
-  "operator",
-  "punctuation.bracket",
-  "string",
-  "type",
-  "type.builtin",
-  "type.enum.variant",
-  "variable.builtin"
-]
 
 # crystal
 # TODO
@@ -364,6 +364,7 @@ groups = [
 # html
 [language.html.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-html"
+pin = "86c253e675e7fdd1c0482efe0706f24bafbc3a7d"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "../scanner.cc", "-I", "..", "-lc++"]
@@ -374,19 +375,8 @@ link_flags = ["-O3"]
 
 [language.html.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/html"
-
-[language.html.highlight]
-groups = [
-  "tag",
-  "tag.error",
-  "constant",
-  "attribute",
-  "comment",
-  "string",
-  "punctuation.bracket",
-  "punctuation.delimiter"
-]
 
 # hurl
 # TODO
@@ -400,6 +390,7 @@ groups = [
 # java
 [language.java.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-java"
+pin = "c194ee5e6ede5f26cf4799feead4a8f165dcf14d"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -410,27 +401,8 @@ link_flags = ["-O3"]
 
 [language.java.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/java"
-
-[language.java.highlight]
-groups = [
-  "attribute",
-  "comment",
-  "constant",
-  "constant.builtin",
-  "constant.character",
-  "constant.numeric.float",
-  "constant.numeric.integer",
-  "function.builtin",
-  "function.method",
-  "keyword",
-  "operator",
-  "string",
-  "type",
-  "type.builtin",
-  "variable",
-  "variable.builtin"
-]
 
 # javascript
 # TODO
@@ -489,6 +461,7 @@ groups = [
 # markdown
 [language.markdown.grammar]
 url = "https://github.com/MDeiml/tree-sitter-markdown"
+pin = "231f3163cd27d48f91a4517cfdf72d167a9ef164"
 path = "tree-sitter-markdown/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -499,58 +472,25 @@ link_flags = ["-O3"]
 
 [language.markdown.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/markdown"
 
-[language.markdown.highlight]
-groups = [
-  "label",
-  "markup.heading.1",
-  "markup.heading.2",
-  "markup.heading.3",
-  "markup.heading.4",
-  "markup.heading.5",
-  "markup.heading.6",
-  "markup.heading.marker",
-  "markup.list.checked",
-  "markup.list.numbered",
-  "markup.list.unchecked",
-  "markup.list.unnumbered",
-  "markup.link.url",
-  "markup.quote",
-  "markup.raw.block",
-  "punctuation.bracket",
-  "punctuation.special",
-  "string.escape"
-]
-
 # markdown.inline
-[language.markdown_inline.grammar]
+[language."markdown.inline".grammar]
 url = "https://github.com/MDeiml/tree-sitter-markdown"
+pin = "231f3163cd27d48f91a4517cfdf72d167a9ef164"
 path = "tree-sitter-markdown-inline/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
 compile_flags = ["-O3"]
 link = "cc"
-link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown_inline.so"]
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown.inline.so"]
 link_flags = ["-O3"]
 
-[language.markdown_inline.queries]
+[language."markdown.inline".queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/markdown.inline"
-
-[language.markdown_inline.highlight]
-groups = [
-  "constant.character.escape",
-  "markup.bold",
-  "markup.italic",
-  "markup.link.label",
-  "markup.link.text",
-  "markup.link.url",
-  "markup.raw.inline",
-  "markup.strikethrough",
-  "punctuation.bracket",
-  "punctuation.special",
-]
 
 # matlab
 # TODO
@@ -669,6 +609,7 @@ groups = [
 # rust
 [language.rust.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-rust"
+pin = "0a70e15da977489d954c219af9b50b8a722630ee"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -679,51 +620,8 @@ link_flags = ["-O3"]
 
 [language.rust.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/rust"
-
-[language.rust.highlight]
-groups = [
-  "attribute",
-  "comment",
-  "constant",
-  "constant.builtin.boolean",
-  "constant.character",
-  "constant.character.escape",
-  "constant.numeric.float",
-  "constant.numeric.integer",
-  "constructor",
-  "function",
-  "function.macro",
-  "function.method",
-  "keyword",
-  "keyword.control",
-  "keyword.control.conditional",
-  "keyword.control.import",
-  "keyword.control.repeat",
-  "keyword.control.return",
-  "keyword.function",
-  "keyword.operator",
-  "keyword.special",
-  "keyword.storage",
-  "keyword.storage.modifier",
-  "keyword.storage.modifier.mut",
-  "keyword.storage.modifier.ref",
-  "keyword.storage.type",
-  "label",
-  "namespace",
-  "operator",
-  "punctuation.bracket",
-  "punctuation.delimiter",
-  "special",
-  "string",
-  "type",
-  "type.builtin",
-  "type.enum.variant",
-  "variable",
-  "variable.builtin",
-  "variable.other.member",
-  "variable.parameter",
-]
 
 # sage
 # TODO
@@ -734,6 +632,7 @@ groups = [
 # scheme
 [language.scheme.grammar]
 url = "https://github.com/6cdh/tree-sitter-scheme"
+pin = "0c763bd5f85b18e354bc338d17cf1daa23b478b1"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -744,30 +643,8 @@ link_flags = ["-O3"]
 
 [language.scheme.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/scheme"
-
-[language.scheme.highlight]
-groups = [
-  "comment.block",
-  "comment.line",
-  "constant.builtin.boolean",
-  "constant.character",
-  "constant.character.escape",
-  "constant.numeric",
-  "function",
-  "function.builtin",
-  "keyword",
-  "keyword.conditional",
-  "keyword.directive",
-  "namespace",
-  "operator",
-  "punctuation.bracket",
-  "string",
-  "string.symbol",
-  "variable",
-  "variable.builtin",
-  "variable.parameter"
-]
 
 # scss
 # TODO
@@ -814,6 +691,7 @@ groups = [
 # toml
 [language.toml.grammar]
 url = "https://github.com/ikatyang/tree-sitter-toml"
+pin = "8bd2056818b21860e3d756b5a58c4f6e05fb744e"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -824,21 +702,8 @@ link_flags = ["-O3"]
 
 [language.toml.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/toml"
-
-[language.toml.highlight]
-groups = [
-  "comment",
-  "constant.builtin.boolean",
-  "constant.numeric.float",
-  "constant.numeric.integer",
-  "operator",
-  "punctuation.bracket",
-  "punctuation.delimiter",
-  "string",
-  "string.special",
-  "variable.other.member"
-]
 
 # tsq
 # TODO
@@ -897,6 +762,7 @@ groups = [
 # yaml
 [language.yaml.grammar]
 url = "https://github.com/ikatyang/tree-sitter-yaml"
+pin = "0e36bed171768908f331ff7dff9d956bae016efb"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
@@ -907,25 +773,8 @@ link_flags = ["-O3", "-lstdc++"]
 
 [language.yaml.queries]
 url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/yaml"
-
-[language.yaml.highlight]
-groups = [
-  "comment",
-  "constant.builtin",
-  "constant.builtin.boolean",
-  "constant.character.escape",
-  "constant.numeric.float",
-  "constant.numeric.integer",
-  "error",
-  "keyword",
-  "punctuation.bracket",
-  "punctuation.delimiter",
-  "punctuation.special",
-  "string",
-  "type",
-  "variable.other.member"
-]
 
 # yuck
 # TODO

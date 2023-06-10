@@ -41,11 +41,8 @@ pub enum AppError {
   #[error("error while waiting for process {process} to end: {err}")]
   ErrorWhileWaitingForProcess { process: String, err: io::Error },
 
-  #[error("error while fetching grammar for language {lang}: {err}")]
-  GrammarFetchError { lang: String, err: io::Error },
-
-  #[error("error while fetching queries for language {lang}: {err}")]
-  QueriesFetchError { lang: String, err: io::Error },
+  #[error("error while fetching resource for language {lang}: {err}")]
+  FetchError { lang: String, err: io::Error },
 
   #[error("error while compiling grammar for language {lang}: {err}")]
   CompileError { lang: String, err: io::Error },
@@ -136,7 +133,12 @@ fn start() -> Result<(), AppError> {
     // if cli.queries is passed, fetch the queries; otherwise, reuse the grammar path
     if let Some(ref url) = lang_config.queries.url {
       info(format!("fetching queries for language {lang}"));
-      fetch_queries(&queries_fetch_path, url, &lang)?;
+      fetch_via_git(
+        url,
+        lang_config.queries.pin.as_deref(),
+        &queries_fetch_path,
+        &lang,
+      )?;
     }
   }
 
@@ -175,13 +177,13 @@ fn start() -> Result<(), AppError> {
   Ok(())
 }
 
-fn fetch_grammar(
-  lang_config: &LanguageConfig,
+/// Fetch an URL via git, and support pinning.
+fn fetch_via_git(
+  url: &str,
+  pin: Option<&str>,
   fetch_path: &Path,
   lang: &str,
 ) -> Result<(), AppError> {
-  let url = lang_config.grammar.url.replace("{lang}", lang);
-
   // cleanup / remove the {runtime_dir}/{lang} directory, if exists
   if let Ok(true) = fetch_path.try_exists() {
     fs::remove_dir_all(fetch_path).map_err(|err| AppError::CannotRemoveDir {
@@ -190,28 +192,71 @@ fn fetch_grammar(
     })?;
   }
 
-  Command::new("git")
-    .args([
+  let git_clone_args = if pin.is_some() {
+    vec![
       "clone",
-      url.as_str(),
+      url,
+      "-n",
+      fetch_path
+        .as_os_str()
+        .to_str()
+        .ok_or_else(|| AppError::BadPath)?,
+    ]
+  } else {
+    vec![
+      "clone",
+      url,
       "--depth",
       "1",
       fetch_path
         .as_os_str()
         .to_str()
         .ok_or_else(|| AppError::BadPath)?,
-    ])
+    ]
+  };
+  Command::new("git")
+    .args(git_clone_args)
     .spawn()
-    .map_err(|err| AppError::GrammarFetchError {
+    .map_err(|err| AppError::FetchError {
       lang: lang.to_owned(),
       err,
     })?
     .wait()
     .map(|_| ())
     .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-      process: "git".to_owned(),
+      process: "git clone".to_owned(),
       err,
-    })
+    })?;
+
+  if let Some(pin) = pin {
+    Command::new("git")
+      .args(["reset", "--hard", pin])
+      .current_dir(fetch_path)
+      .spawn()
+      .map_err(|err| AppError::FetchError {
+        lang: lang.to_owned(),
+        err,
+      })?
+      .wait()
+      .map(|_| ())
+      .map_err(|err| AppError::ErrorWhileWaitingForProcess {
+        process: "git reset".to_owned(),
+        err,
+      })?;
+  }
+
+  Ok(())
+}
+
+fn fetch_grammar(
+  lang_config: &LanguageConfig,
+  fetch_path: &Path,
+  lang: &str,
+) -> Result<(), AppError> {
+  let url = lang_config.grammar.url.replace("{lang}", lang);
+  let pin = lang_config.grammar.pin.as_ref();
+
+  fetch_via_git(&url, pin.map(|pin| pin.as_str()), fetch_path, lang)
 }
 
 /// Compile and link the grammar.
@@ -282,36 +327,6 @@ fn install_grammar(lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
   })?;
 
   Ok(())
-}
-
-fn fetch_queries(fetch_path: &Path, url: &str, lang: &str) -> Result<(), AppError> {
-  // cleanup / remove the {runtime_dir}/{lang} directory, if exists
-  if let Ok(true) = fetch_path.try_exists() {
-    fs::remove_dir_all(fetch_path).map_err(|err| AppError::CannotRemoveDir {
-      dir: fetch_path.to_owned(),
-      err,
-    })?;
-  }
-
-  Command::new("git")
-    .args([
-      "clone",
-      url,
-      "--depth",
-      "1",
-      fetch_path.as_os_str().to_str().ok_or(AppError::BadPath)?,
-    ])
-    .spawn()
-    .map_err(|err| AppError::QueriesFetchError {
-      lang: lang.to_owned(),
-      err,
-    })?
-    .wait()
-    .map(|_| ())
-    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-      process: "git".to_owned(),
-      err,
-    })
 }
 
 fn install_queries(query_dir: &Path, lang: &str) -> Result<(), AppError> {
