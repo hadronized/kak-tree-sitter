@@ -124,14 +124,14 @@ path = "runtime/queries/awk"
 # bash
 [language.bash.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-bash"
-pin = "ee2a8f9906b53a785b784ee816c0016c2b6866d2"
+pin = "275effdfc0edce774acf7d481f9ea195c6c403cd"
 path = "src"
 compile = "cc"
-compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
 compile_flags = ["-O3"]
 link = "cc"
-link_args = ["-shared", "-fpic", "parser.o", "-o", "bash.so"]
-link_flags = ["-O3"]
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "bash.so"]
+link_flags = ["-O3", "-lstdc++"]
 
 [language.bash.queries]
 url = "https://github.com/helix-editor/helix"
