@@ -17,6 +17,10 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 - Efficient parsing via `tree-sitter`, with partial parsing, etc.
 - Shared between Kakoune sessions.
 
+## Roadmap
+
+See [the milestones](https://github.com/phaazon/kak-tree-sitter/milestones).
+
 ## Install
 
 Currently, the only installation channel, which is not ideal, is via `cargo`:
@@ -38,7 +42,6 @@ See the [wiki](https://github.com/phaazon/kak-tree-sitter/wiki).
 ## Design
 
 - [Overall design](./doc/design.md)
-- [Kakoune faces](./doc/faces.md)
 
 ## Alternatives
 
