@@ -17,7 +17,7 @@ The configuration file already contains a wide variety of examples. Just clone t
 **An important guideline here**: [Helix](https://helix-editor.com/) is a well appreciated editor and their queries are
 pretty excellent. You are highly suggested to reuse their work and point the `url` of the configuration you add to
 their repository. For `queries`, the `url` is most likely to always be `https://github.com/helix-editor/helix`, and the
-`path` something like `runtime/queries/<lang>`. Please use fill in the `pin` option for both `queries` and `grammar`.
+`path` something like `runtime/queries/<lang>`. Please fill in the `pin` option for both `queries` and `grammar`.
 
 For the grammar to use, you are advised to look in
 [this Helix’ languages.toml](https://github.com/helix-editor/helix/blob/master/languages.toml) file. It even has the
