@@ -53,9 +53,8 @@ impl Response {
           .join(" ");
 
         format!(
-          "{range_specs} {timestamp} {ranges_str};{highlighter_decl}",
+          "{range_specs} {timestamp} {ranges_str}",
           range_specs = "set buffer kak_tree_sitter_highlighter_ranges",
-          highlighter_decl = "add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kak_tree_sitter_highlighter_ranges"
         )
       }
     };

@@ -36,6 +36,10 @@ define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-
     remove-highlighter "window/%opt{filetype}"
   }
 
+  # Add the tree-sitter highlighter
+  set-option buffer kak_tree_sitter_highlighter_ranges
+  add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kak_tree_sitter_highlighter_ranges
+
   # initial highlighting of the buffer
   kak-tree-sitter-highlight-buffer
 
