@@ -149,7 +149,21 @@ path = "runtime/queries/bash"
 # TODO
 
 # bibtex
-# TODO
+[language.bibtex.grammar]
+url = "https://github.com/latex-lsp/tree-sitter-bibtex"
+pin = "ccfd77db0ed799b6c22c214fe9d2937f47bc8b34"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "bibtex.so"]
+link_flags = ["-O3"]
+
+[language.bibtex.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/bibtex"
 
 # bicep
 # TODO
