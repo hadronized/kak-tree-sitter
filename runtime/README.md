@@ -6,7 +6,7 @@ The queries are not shipped with `kak-tree-sitter`. Instead, you have to manuall
 2. Use `ktsctl` and the `config.toml` file to install the queries by fetching them (`git clone`).
 
 For the second option, the default [config.toml](/config.toml) is already configured to point to well-working grammars
-and queries. You should copy it as `$XDG_CONFIG_HOME/kak-tree-sitter/config.toml` and it it manually.
+and queries. You should copy it as `$XDG_CONFIG_HOME/kak-tree-sitter/config.toml`.
 
 ## Special case for locally modified queries
 
