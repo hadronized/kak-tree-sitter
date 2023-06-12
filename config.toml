@@ -15,6 +15,7 @@ highlight.groups = [
   "constant.builtin.boolean",
   "constant.character",
   "constant.character.escape",
+  "constant.macro",
   "constant.numeric",
   "constant.numeric.float",
   "constant.numeric.integer",
@@ -389,7 +390,21 @@ path = "runtime/queries/git-commit"
 # TODO
 
 # haskell
-# TODO
+[language.haskell.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-haskell"
+pin = "98fc7f59049aeb713ab9b72a8ff25dcaaef81087"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "haskell.so"]
+link_flags = ["-O3"]
+
+[language.haskell.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/haskell"
 
 # hcl
 # TODO
