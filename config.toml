@@ -37,6 +37,7 @@ highlight.groups = [
   "keyword.conditional",
   "keyword.control",
   "keyword.control.conditional",
+  "keyword.control.except",
   "keyword.control.exception",
   "keyword.control.import",
   "keyword.control.repeat",
@@ -609,7 +610,21 @@ path = "runtime/queries/markdown.inline"
 # TODO
 
 # python
-# TODO
+[language.python.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-python"
+pin = "de221eccf9a221f5b85474a553474a69b4b5784d"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "python.so"]
+link_flags = ["-O3", "-lstdc++"]
+
+[language.python.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/python"
 
 # qml
 # TODO
