@@ -3,6 +3,7 @@ use std::{
   io::Write,
   os::unix::net::UnixStream,
   path::PathBuf,
+  process::Command,
   sync::mpsc,
 };
 
@@ -46,23 +47,35 @@ impl Daemon {
   }
 
   pub fn bootstrap(config: Config, daemonize: bool) -> Result<(), OhNo> {
-    // ensure we have a directory to write in
+    // find a runtime directory to write in
     let daemon_dir = Self::daemon_dir()?;
-    fs::create_dir_all(&daemon_dir).map_err(|err| OhNo::CannotCreateDir {
-      dir: daemon_dir.clone(),
-      err,
-    })?;
     eprintln!("running in {}", daemon_dir.display());
 
     // PID file
     let pid_file = daemon_dir.join("pid");
 
-    // check whether the PID file is already there; if so, it means the daemon is already running, so we will just
-    // stop right away
-    if let Ok(true) = pid_file.try_exists() {
-      eprintln!("kak-tree-sitter already running; exiting");
-      return Ok(());
+    // check whether a pid file exists and can be read
+    if let Ok(pid) = std::fs::read_to_string(&pid_file) {
+      // if the contained pid corresponds to a running process, stop right away
+      // otherwise, remove the files left by the previous instance and continue
+      if Command::new("ps")
+        .args(["-p", &pid])
+        .output()
+        .is_ok_and(|o| o.status.success())
+      {
+        eprintln!("kak-tree-sitter already running; exiting");
+        return Ok(());
+      } else {
+        eprintln!("cleaning up previous instance");
+        let _ = std::fs::remove_dir_all(&daemon_dir);
+      }
     }
+
+    // ensure that the runtime directory exists
+    fs::create_dir_all(&daemon_dir).map_err(|err| OhNo::CannotCreateDir {
+      dir: daemon_dir.clone(),
+      err,
+    })?;
 
     if daemonize {
       // create stdout / stderr files
