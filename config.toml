@@ -15,6 +15,7 @@ highlight.groups = [
   "constant.builtin.boolean",
   "constant.character",
   "constant.character.escape",
+  "constant.macro",
   "constant.numeric",
   "constant.numeric.float",
   "constant.numeric.integer",
@@ -37,6 +38,7 @@ highlight.groups = [
   "keyword.conditional",
   "keyword.control",
   "keyword.control.conditional",
+  "keyword.control.except",
   "keyword.control.exception",
   "keyword.control.import",
   "keyword.control.repeat",
@@ -148,7 +150,21 @@ path = "runtime/queries/bash"
 # TODO
 
 # bibtex
-# TODO
+[language.bibtex.grammar]
+url = "https://github.com/latex-lsp/tree-sitter-bibtex"
+pin = "ccfd77db0ed799b6c22c214fe9d2937f47bc8b34"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "bibtex.so"]
+link_flags = ["-O3"]
+
+[language.bibtex.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/bibtex"
 
 # bicep
 # TODO
@@ -374,7 +390,21 @@ path = "runtime/queries/git-commit"
 # TODO
 
 # haskell
-# TODO
+[language.haskell.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-haskell"
+pin = "98fc7f59049aeb713ab9b72a8ff25dcaaef81087"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "haskell.so"]
+link_flags = ["-O3"]
+
+[language.haskell.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/haskell"
 
 # hcl
 # TODO
@@ -609,7 +639,21 @@ path = "runtime/queries/markdown.inline"
 # TODO
 
 # python
-# TODO
+[language.python.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-python"
+pin = "de221eccf9a221f5b85474a553474a69b4b5784d"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "python.so"]
+link_flags = ["-O3", "-lstdc++"]
+
+[language.python.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/python"
 
 # qml
 # TODO
