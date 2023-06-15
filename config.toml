@@ -248,7 +248,21 @@ path = "runtime/queries/cpp"
 # TODO
 
 # css
-# TODO
+[language.css.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-css"
+pin = "769203d0f9abe1a9a691ac2b9fe4bb4397a73c51"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "css.so"]
+link_flags = ["-O3"]
+
+[language.css.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/css"
 
 # cue
 # TODO
