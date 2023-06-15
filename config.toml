@@ -465,7 +465,21 @@ path = "runtime/queries/java"
 # TODO
 
 # json
-# TODO
+[language.json.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-json"
+pin = "73076754005a460947cafe8e03a8cf5fa4fa2938"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "json.so"]
+link_flags = ["-O3"]
+
+[language.json.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/json"
 
 # jsonnet
 # TODO
