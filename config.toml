@@ -549,7 +549,21 @@ path = "runtime/queries/latex"
 # TODO
 
 # make
-# TODO
+[language.make.grammar]
+url = "https://github.com/alemuller/tree-sitter-make"
+pin = "a4b9187417d6be349ee5fd4b6e77b4172c6827dd"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "make.so"]
+link_flags = ["-O3"]
+
+[language.make.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/make"
 
 # markdoc
 # TODO
