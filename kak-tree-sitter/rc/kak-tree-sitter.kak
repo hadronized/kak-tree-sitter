@@ -68,6 +68,9 @@ hook -group kak-tree-sitter global WinCreate .* %{
 # Make kak-tree-sitter know the session has ended whenever we end it.
 hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-end-session
 
+# Server command FIFO path.
+declare-option str kak_tree_sitter_cmd_fifo
+
 # Highlight ranges used when highlighting buffers.
 declare-option range-specs kak_tree_sitter_highlighter_ranges
 

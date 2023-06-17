@@ -1,9 +1,9 @@
 use std::{
+  ffi::CString,
   fs::{self, File},
   io::Write,
-  os::unix::net::UnixStream,
-  path::PathBuf,
-  process::Command,
+  os::unix::{net::UnixStream, prelude::OsStrExt},
+  path::{Path, PathBuf},
   sync::mpsc,
 };
 
@@ -29,6 +29,12 @@ impl Daemon {
   fn new(config: Config, daemon_dir: PathBuf) -> Result<Self, OhNo> {
     let unix_listener = UnixListener::bind(daemon_dir.join("socket"))
       .map_err(|err| OhNo::CannotStartServer { err })?;
+    let cmd_fifo_path = Self::command_fifo_path()?;
+
+    // create the FIFO file, if it doesn’t already exists
+    if let Ok(false) = cmd_fifo_path.try_exists() {
+      Self::create_cmd_fifo(&cmd_fifo_path)?;
+    }
 
     Ok(Self {
       config,
@@ -44,6 +50,10 @@ impl Daemon {
         std::env::var("TMPDIR").map(PathBuf::from).ok())
       .ok_or_else(|| OhNo::NoRuntimeDir)?;
     Ok(dir.join("kak-tree-sitter"))
+  }
+
+  pub fn command_fifo_path() -> Result<PathBuf, OhNo> {
+    Ok(Self::daemon_dir()?.join("commands"))
   }
 
   pub fn bootstrap(config: Config, daemonize: bool) -> Result<(), OhNo> {
@@ -115,6 +125,25 @@ impl Daemon {
     })
   }
 
+  /// Create the command FIFO, which is used by Kakoune sessions to send requests.
+  ///
+  /// This FIFO is shared with all sessions.
+  fn create_cmd_fifo(cmd_fifo_path: &Path) -> Result<(), OhNo> {
+    let path = cmd_fifo_path.as_os_str().as_bytes();
+    let c_path = CString::new(path).map_err(|err| OhNo::CannotCreateCommandFifo {
+      err: err.to_string(),
+    })?;
+
+    let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o777) };
+    if c_err != 0 {
+      return Err(OhNo::CannotCreateCommandFifo {
+        err: "cannot create FIFO file".to_owned(),
+      });
+    }
+
+    Ok(())
+  }
+
   /// Wait for incoming client and enqueue their requests.
   async fn run(self) -> Result<(), OhNo> {
     let mut req_handler = Handler::new(&self.config)?;
@@ -147,9 +176,11 @@ impl Daemon {
       }
     });
 
+    let cmd_fifo_path = Daemon::command_fifo_path()?;
     loop {
       select! {
         _ = shutdown_rx.recv() => break,
+
         Ok((mut client, _)) = self.unix_listener.accept() => {
           println!("client connected: {client:?}");
 
@@ -160,6 +191,24 @@ impl Daemon {
           let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).map_err(|err| OhNo::InvalidRequest { err: err.to_string() })?;
 
           req_sx.send(req).map_err(|err| OhNo::CannotSendRequest { err: err.to_string() })?;
+        },
+
+        Ok(commands) = tokio::fs::read_to_string(&cmd_fifo_path) => {
+          let split_cmds = commands.split(';').filter(|s| !s.is_empty());
+
+          for cmd in split_cmds {
+            let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(cmd).map_err(|err| OhNo::InvalidRequest { err: err.to_string() });
+
+            match req {
+              Ok(req) => {
+                req_sx.send(req).map_err(|err| OhNo::CannotSendRequest { err: err.to_string() })?;
+              }
+
+              Err(err) => {
+                  eprintln!("{}", format!("{err}").red());
+              }
+            }
+          }
         }
       }
     }
