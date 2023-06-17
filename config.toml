@@ -248,7 +248,21 @@ path = "runtime/queries/cpp"
 # TODO
 
 # css
-# TODO
+[language.css.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-css"
+pin = "769203d0f9abe1a9a691ac2b9fe4bb4397a73c51"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "css.so"]
+link_flags = ["-O3"]
+
+[language.css.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/css"
 
 # cue
 # TODO
@@ -465,7 +479,21 @@ path = "runtime/queries/java"
 # TODO
 
 # json
-# TODO
+[language.json.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-json"
+pin = "73076754005a460947cafe8e03a8cf5fa4fa2938"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "json.so"]
+link_flags = ["-O3"]
+
+[language.json.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/json"
 
 # jsonnet
 # TODO
@@ -521,7 +549,21 @@ path = "runtime/queries/latex"
 # TODO
 
 # make
-# TODO
+[language.make.grammar]
+url = "https://github.com/alemuller/tree-sitter-make"
+pin = "a4b9187417d6be349ee5fd4b6e77b4172c6827dd"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "make.so"]
+link_flags = ["-O3"]
+
+[language.make.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/make"
 
 # markdoc
 # TODO
@@ -839,7 +881,21 @@ path = "runtime/queries/toml"
 # TODO
 
 # xml
-# TODO
+[language.xml.grammar]
+url = "https://github.com/RenjiSann/tree-sitter-xml"
+pin = "48a7c2b6fb9d515577e115e6788937e837815651"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "xml.so"]
+link_flags = ["-O3"]
+
+[language.xml.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/xml"
 
 # yaml
 [language.yaml.grammar]
