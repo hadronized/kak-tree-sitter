@@ -59,9 +59,7 @@ define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the curren
 hook -group kak-tree-sitter global WinCreate .* %{
   hook -group kak-tree-sitter buffer -once WinDisplay .* %{
     # Check whether this filetype is supported
-    nop %sh{
-      kak-tree-sitter -s "$kak_session" -c "$kak_client" -r "{\"type\":\"try_enable_highlight\",\"lang\":\"$kak_opt_filetype\"}"
-    }
+    echo -to-file %opt{kak_tree_sitter_cmd_fifo} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""try_enable_highlight"", ""lang"": ""%opt{filetype}""}};"
   }
 }
 
