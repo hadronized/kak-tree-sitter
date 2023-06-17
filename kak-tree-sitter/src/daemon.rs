@@ -187,6 +187,7 @@ impl Daemon {
           // read the request and parse it
           let mut req_str = String::new();
           client.read_to_string(&mut req_str).await.map_err(|err| OhNo::InvalidRequest { err: err.to_string() })?;
+          println!("UNIX socket request: {req_str}");
 
           let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(&req_str).map_err(|err| OhNo::InvalidRequest { err: err.to_string() })?;
 
