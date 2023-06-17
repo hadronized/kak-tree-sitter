@@ -197,6 +197,7 @@ impl Daemon {
           let split_cmds = commands.split(';').filter(|s| !s.is_empty());
 
           for cmd in split_cmds {
+            println!("FIFO request: {cmd}");
             let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(cmd).map_err(|err| OhNo::InvalidRequest { err: err.to_string() });
 
             match req {
