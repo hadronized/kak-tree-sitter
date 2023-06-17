@@ -39,6 +39,13 @@ fn start() -> Result<(), OhNo> {
   if cli.kakoune {
     // inject the rc/ and daemon-based settings
     println!("{}", rc::rc_commands());
+
+    // inject the command FIFO path, required for Kakoune sessions to communicate with
+    // the server
+    println!(
+      "set-option global kak_tree_sitter_cmd_fifo {}",
+      Daemon::command_fifo_path()?.display()
+    );
   }
 
   if let (Some(session), Some(request)) = (cli.session, cli.request) {
