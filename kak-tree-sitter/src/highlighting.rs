@@ -181,14 +181,14 @@ where
   C: Iterator<Item = (usize, char)>,
 {
   fn new(mut chars: C) -> Self {
-    chars.next();
+    let change_line = matches!(chars.next(), Some((_, '\n')));
 
     Self {
       chars,
       byte_idx: 0,
       line: 1,
       col: 1,
-      change_line: false,
+      change_line,
     }
   }
 
