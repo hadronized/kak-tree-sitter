@@ -14,7 +14,7 @@ rust-version = "1.65.0"
 
 [dependencies]
 clap = { version = "4.3.11", features = ["derive"] }
-colored = "2.0.2"
+colored = "2.0.4"
 dirs = "5.0.1"
 kak-tree-sitter-config = { version = "0.2.0", path = "../kak-tree-sitter-config" }
 thiserror = "1.0.41"
