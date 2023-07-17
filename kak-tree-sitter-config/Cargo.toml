@@ -14,6 +14,6 @@ rust-version = "1.65.0"
 
 [dependencies]
 dirs = "5.0.1"
-serde = { version = "1.0.168", features = ["derive"] }
+serde = { version = "1.0.171", features = ["derive"] }
 thiserror = "1.0.43"
 toml = "0.7.6"
