@@ -5,9 +5,7 @@
 #
 # This is typically sent when a session is about to die; see KakEnd for further details.
 define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
-  nop %sh{
-    kak-tree-sitter -s $kak_session -r '{"type":"session_end"}'
-  }
+	echo -to-file %opt{kak_tree_sitter_cmd_fifo} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""shutdown""}};"
 }
 
 # Stop the kak-tree-sitter daemon.
@@ -20,9 +18,7 @@ define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
 
   remove-hooks global kak-tree-sitter
 
-  nop %sh{
-    kak-tree-sitter -s $kak_session -r '{"type":"shutdown"}'
-  }
+	echo -to-file %opt{kak_tree_sitter_cmd_fifo} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""shutdown""}};"
 }
 
 # Enabling highlighting for the current buffer.
