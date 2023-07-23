@@ -19,8 +19,17 @@ pub enum OhNo {
   #[error("cannot start daemon: {err}")]
   CannotStartDaemon { err: String },
 
-  #[error("cannot start async runtime: {err}")]
-  CannotStartAsyncRuntime { err: io::Error },
+  #[error("cannot start poll: {err}")]
+  CannotStartPoll { err: io::Error },
+
+  #[error("error while waiting for events: {err}")]
+  PollEventsError { err: io::Error },
+
+  #[error("IO error: {err}")]
+  IOError {
+    #[from]
+    err: io::Error,
+  },
 
   #[error("cannot create command FIFO: {err}")]
   CannotCreateCommandFifo { err: String },
@@ -30,6 +39,9 @@ pub enum OhNo {
 
   #[error("cannot load grammar for language {lang}: {err}")]
   CannotLoadGrammar { lang: String, err: String },
+
+  #[error("UNIX connection error: {err}")]
+  UnixConnectionError { err: io::Error },
 
   #[error("invalid request: {err}")]
   InvalidRequest { err: String },
@@ -42,9 +54,6 @@ pub enum OhNo {
 
   #[error("cannot send request: {err}")]
   CannotSendRequest { err: String },
-
-  #[error("error while shutting down: {err}")]
-  ShutdownFailure { err: String },
 
   #[error("highlight error: {err}")]
   HighlightError { err: String },
