@@ -46,9 +46,6 @@ pub enum OhNo {
   #[error("invalid request: {err}")]
   InvalidRequest { err: String },
 
-  #[error("cannot read buffer from filesystem: {err}")]
-  CannotReadBuffer { err: io::Error },
-
   #[error("cannot connect to server; is it running?: {err}")]
   CannotConnectToServer { err: io::Error },
 

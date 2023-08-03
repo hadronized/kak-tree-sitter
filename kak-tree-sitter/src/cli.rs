@@ -3,7 +3,7 @@ use clap::Parser;
 #[derive(Debug, Parser)]
 #[clap(about = "A client/server interface between Kakoune and tree-sitter.")]
 pub struct Cli {
-  /// Whether we start from Kakoune and then we should inject the rc/.
+  /// Whether we start from Kakoune and then we should issue an initial request for setup.
   #[clap(short, long)]
   pub kakoune: bool,
 

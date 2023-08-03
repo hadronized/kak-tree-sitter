@@ -25,7 +25,7 @@ use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token};
 use crate::{
   error::OhNo,
   handler::Handler,
-  request::{KakTreeSitterOrigin, KakouneOrigin, Request, UnidentifiedRequest},
+  request::{KakTreeSitterOrigin, Request, UnidentifiedRequest},
   response::Response,
   session::KakSession,
 };
@@ -108,14 +108,13 @@ impl Server {
     self.server_state.start()
   }
 
-  pub fn send_request(req: Request<KakouneOrigin>) -> Result<(), OhNo> {
-    // reinterpret the request to mark it as from kak-tree-sitter
-    let kts_req = req.reinterpret()?;
-
+  pub fn send_request(req: UnidentifiedRequest) -> Result<(), OhNo> {
     // serialize the request
-    let serialized = serde_json::to_string(&kts_req).map_err(|err| OhNo::CannotSendRequest {
+    let serialized = serde_json::to_string(&req).map_err(|err| OhNo::CannotSendRequest {
       err: err.to_string(),
     })?;
+
+    eprintln!("sending unidentified request {req:?}");
 
     // connect and send the request to the daemon
     UnixStream::connect(ServerState::runtime_dir()?.join("socket"))
@@ -178,13 +177,22 @@ impl ServerState {
   pub fn new(config: &Config) -> Result<Self, OhNo> {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
-    let unix_listener = UnixListener::bind(ServerState::socket_dir()?)
+    let mut unix_listener = UnixListener::bind(ServerState::socket_dir()?)
       .map_err(|err| OhNo::CannotStartServer { err })?;
     let shutdown = Arc::new(AtomicBool::new(false));
     let cmd_fifos = HashMap::default();
     let next_token = Self::CMD_FIFO_FIRST_TOKEN;
     let free_tokens = Vec::default();
     let req_handler = Handler::new(config)?;
+
+    poll
+      .registry()
+      .register(
+        &mut unix_listener,
+        Self::UNIX_LISTENER_TOKEN,
+        Interest::READABLE,
+      )
+      .map_err(|err| OhNo::CannotStartPoll { err })?;
 
     Ok(ServerState {
       resources,
@@ -217,6 +225,7 @@ impl ServerState {
 
     let mut events = Events::with_capacity(1024);
     'outer: loop {
+      eprintln!("waiting for poll");
       if let Err(err) = self.poll.poll(&mut events, None) {
         if err.kind() == io::ErrorKind::WouldBlock {
           // spurious events
@@ -279,7 +288,9 @@ impl ServerState {
     match req {
       UnidentifiedRequest::NewSession { name } => {
         let cmd_fifo_path = self.add_session_fifo(name.clone())?;
-        let resp = Response::InitialResponse { cmd_fifo_path };
+        let resp = Response::InitialResponse {
+          fifo_cmd_path: cmd_fifo_path,
+        };
         KakSession::new(name, None).send_response(&resp)?;
       }
 

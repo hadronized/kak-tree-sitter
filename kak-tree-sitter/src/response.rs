@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use itertools::Itertools;
 
-use crate::highlighting::KakHighlightRange;
+use crate::{highlighting::KakHighlightRange, rc};
 
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]
@@ -16,9 +16,7 @@ pub enum Response {
   StatusChanged { status: String },
 
   /// Initial response when a session starts.
-  ///
-  ///
-  InitialResponse { cmd_fifo_path: PathBuf },
+  InitialResponse { fifo_cmd_path: PathBuf },
 
   /// Whether a filetype is supported.
   FiletypeSupported { supported: bool },
@@ -45,12 +43,11 @@ impl Response {
 
       Response::StatusChanged { status, .. } => format!("info %{{{}}}", status),
 
-      Response::InitialResponse {
-        cmd_fifo_path: fifo_cmd_path,
-      } => {
+      Response::InitialResponse { fifo_cmd_path } => {
         format!(
-          "declare-option str kts_fifo_cmd_path {}",
-          fifo_cmd_path.display()
+          "{rc}\nset-option global kts_fifo_cmd_path {fifo_cmd_path}",
+          rc = rc::rc_commands(),
+          fifo_cmd_path = fifo_cmd_path.display()
         )
       }
 

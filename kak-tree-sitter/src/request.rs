@@ -1,11 +1,10 @@
 //! Requests that can be sent to the server from Kakoune.
 
+use std::fmt::Debug;
 use std::path::PathBuf;
-use std::{fmt::Debug, fs};
 
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-use crate::error::OhNo;
 use crate::session::KakSession;
 
 /// Unidentified request (i.e. not linked to a given session).
@@ -18,6 +17,18 @@ pub enum UnidentifiedRequest {
   SessionExit { name: String },
 }
 
+impl UnidentifiedRequest {
+  /// Add a session name to a [`UnidentifiedRequest`], replacing it if one was already provided.
+  pub fn with_session(self, name: impl Into<String>) -> Self {
+    let name = name.into();
+
+    match self {
+      UnidentifiedRequest::NewSession { .. } => UnidentifiedRequest::NewSession { name },
+      UnidentifiedRequest::SessionExit { .. } => UnidentifiedRequest::SessionExit { name },
+    }
+  }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Request<Origin>
 where
@@ -25,42 +36,6 @@ where
 {
   pub session: KakSession,
   pub payload: RequestPayload<Origin>,
-}
-
-impl<Origin> Request<Origin>
-where
-  Origin: RequestOrigin,
-{
-  pub fn new(session: KakSession, payload: RequestPayload<Origin>) -> Self {
-    Self { session, payload }
-  }
-}
-
-impl Request<KakouneOrigin> {
-  /// Reinterpret the request to change its origin to kak-tree-sitter.
-  pub fn reinterpret(self) -> Result<Request<KakTreeSitterOrigin>, OhNo> {
-    let payload = match self.payload {
-      RequestPayload::SessionEnd => RequestPayload::SessionEnd,
-      RequestPayload::Shutdown => RequestPayload::Shutdown,
-      RequestPayload::TryEnableHighlight { lang } => RequestPayload::TryEnableHighlight { lang },
-      RequestPayload::Highlight {
-        buffer,
-        lang,
-        timestamp,
-        payload,
-      } => {
-        let source = fs::read_to_string(payload).map_err(|err| OhNo::CannotReadBuffer { err })?;
-        RequestPayload::Highlight {
-          buffer,
-          lang,
-          timestamp,
-          payload: source,
-        }
-      }
-    };
-
-    Ok(Request::new(self.session, payload))
-  }
 }
 
 /// Origin of a request.
