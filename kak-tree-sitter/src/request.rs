@@ -8,6 +8,16 @@ use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use crate::error::OhNo;
 use crate::session::KakSession;
 
+/// Unidentified request (i.e. not linked to a given session).
+#[derive(Debug, Deserialize, Serialize)]
+pub enum UnidentifiedRequest {
+  /// Inform KTS that a new session exists and that we should be sending back the Kakoune commands to get KTS features.
+  NewSession { name: String },
+
+  /// Inform KTS that a session has exited.
+  SessionExit { name: String },
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct Request<Origin>
 where

@@ -12,7 +12,7 @@ use crate::{
 
 use std::collections::HashSet;
 
-/// Type responsible in handling requests.
+/// Type responsible for handling requests.
 ///
 /// This type is stateful, as requests might have side-effect (i.e. tree-sitter parsing generates trees/highlighters
 /// that can be reused, for instance).

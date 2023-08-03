@@ -1,5 +1,7 @@
 //! Response sent from the daemon to Kakoune, typically via the socket interface (kak -p, etc.).
 
+use std::path::PathBuf;
+
 use itertools::Itertools;
 
 use crate::highlighting::KakHighlightRange;
@@ -12,6 +14,11 @@ pub enum Response {
 
   /// Status change.
   StatusChanged { status: String },
+
+  /// Initial response when a session starts.
+  ///
+  ///
+  InitialResponse { cmd_fifo_path: PathBuf },
 
   /// Whether a filetype is supported.
   FiletypeSupported { supported: bool },
@@ -37,6 +44,15 @@ impl Response {
       Response::Shutdown => return None,
 
       Response::StatusChanged { status, .. } => format!("info %{{{}}}", status),
+
+      Response::InitialResponse {
+        cmd_fifo_path: fifo_cmd_path,
+      } => {
+        format!(
+          "declare-option str kts_fifo_cmd_path {}",
+          fifo_cmd_path.display()
+        )
+      }
 
       Response::FiletypeSupported { supported } => {
         if *supported {
