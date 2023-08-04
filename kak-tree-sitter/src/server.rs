@@ -12,10 +12,6 @@ use std::{
   },
   path::PathBuf,
   process::Command,
-  sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
-  },
 };
 
 use colored::Colorize;
@@ -154,7 +150,7 @@ pub struct ServerState {
   unix_listener: UnixListener,
 
   // whether we should shutdown
-  shutdown: Arc<AtomicBool>,
+  shutdown: bool,
 
   // active command FIFOs; one per session
   cmd_fifos: HashMap<Token, SessionFifo>,
@@ -170,16 +166,15 @@ pub struct ServerState {
 }
 
 impl ServerState {
-  const WAKE_TOKEN: Token = Token(0);
-  const UNIX_LISTENER_TOKEN: Token = Token(1);
-  const CMD_FIFO_FIRST_TOKEN: Token = Token(2);
+  const UNIX_LISTENER_TOKEN: Token = Token(0);
+  const CMD_FIFO_FIRST_TOKEN: Token = Token(1);
 
   pub fn new(config: &Config) -> Result<Self, OhNo> {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
     let mut unix_listener = UnixListener::bind(ServerState::socket_dir()?)
       .map_err(|err| OhNo::CannotStartServer { err })?;
-    let shutdown = Arc::new(AtomicBool::new(false));
+    let shutdown = false;
     let cmd_fifos = HashMap::default();
     let next_token = Self::CMD_FIFO_FIRST_TOKEN;
     let free_tokens = Vec::default();
@@ -224,8 +219,11 @@ impl ServerState {
     eprintln!("starting server");
 
     let mut events = Events::with_capacity(1024);
-    'outer: loop {
-      eprintln!("waiting for poll");
+    loop {
+      if self.shutdown {
+        break;
+      }
+
       if let Err(err) = self.poll.poll(&mut events, None) {
         if err.kind() == io::ErrorKind::WouldBlock {
           // spurious events
@@ -236,15 +234,7 @@ impl ServerState {
       }
 
       for event in &events {
-        eprintln!("polled event: {event:?}",);
-
         match event.token() {
-          Self::WAKE_TOKEN if event.is_readable() => {
-            if self.shutdown.load(Ordering::Relaxed) {
-              break 'outer;
-            }
-          }
-
           Self::UNIX_LISTENER_TOKEN if event.is_readable() => self.accept_unix_request()?,
 
           tkn if event.is_readable() => self.accept_cmd_fifo_req(tkn)?,
@@ -295,6 +285,10 @@ impl ServerState {
       }
 
       UnidentifiedRequest::SessionExit { name } => self.recycle_session_fifo(name)?,
+
+      UnidentifiedRequest::Shutdown => {
+        self.shutdown = true;
+      }
     }
 
     Ok(())
@@ -348,6 +342,10 @@ impl ServerState {
       // TODO: remove the FIFO file? do we care?
       self.free_tokens.push(token);
       self.cmd_fifos.remove(&token);
+    }
+
+    if self.cmd_fifos.is_empty() {
+      self.shutdown = true;
     }
 
     Ok(())

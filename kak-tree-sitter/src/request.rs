@@ -9,12 +9,16 @@ use crate::session::KakSession;
 
 /// Unidentified request (i.e. not linked to a given session).
 #[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
 pub enum UnidentifiedRequest {
   /// Inform KTS that a new session exists and that we should be sending back the Kakoune commands to get KTS features.
   NewSession { name: String },
 
   /// Inform KTS that a session has exited.
   SessionExit { name: String },
+
+  /// Ask KTS to shutdown.
+  Shutdown,
 }
 
 impl UnidentifiedRequest {
@@ -25,6 +29,7 @@ impl UnidentifiedRequest {
     match self {
       UnidentifiedRequest::NewSession { .. } => UnidentifiedRequest::NewSession { name },
       UnidentifiedRequest::SessionExit { .. } => UnidentifiedRequest::SessionExit { name },
+      _ => self,
     }
   }
 }

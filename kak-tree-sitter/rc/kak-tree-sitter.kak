@@ -38,8 +38,8 @@ declare-option str kts_surface0 'rgb:363a4f'
 # Mark the session as non-active.
 #
 # This is typically sent when a session is about to die; see KakEnd for further details.
-define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
-	echo -to-file %opt{kts_fifo_cmd_path} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""shutdown""}};"
+define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session as ended' %sh{
+  kak-tree-sitter -r { "type": "session_exit", "name": "%val{session}" }
 }
 
 # Stop the kak-tree-sitter daemon.
@@ -51,7 +51,9 @@ define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
   }
 
   remove-hooks global kak-tree-sitter
-  echo -to-file %opt{kts_fifo_cmd_path} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""shutdown""}};"
+  %sh{
+    kak-tree-sitter -r { "type": "shutdown" }
+  }
 }
 
 # Enabling highlighting for the current buffer.
