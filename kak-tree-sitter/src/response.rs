@@ -13,7 +13,7 @@ pub enum Response {
   StatusChanged { status: String },
 
   /// Initial response when a session starts.
-  Init { fifo_cmd_path: PathBuf },
+  Init { cmd_fifo_path: PathBuf },
 
   /// Whether a filetype is supported.
   FiletypeSupported { supported: bool },
@@ -38,11 +38,11 @@ impl Response {
     let kak_cmd = match self {
       Response::StatusChanged { status, .. } => format!("info %{{{}}}", status),
 
-      Response::Init { fifo_cmd_path } => {
+      Response::Init { cmd_fifo_path } => {
         format!(
-          "{rc}\nset-option global kts_fifo_cmd_path {fifo_cmd_path}",
+          "{rc}\nset-option global kts_cmd_fifo_path {cmd_fifo_path}",
           rc = rc::rc_commands(),
-          fifo_cmd_path = fifo_cmd_path.display()
+          cmd_fifo_path = cmd_fifo_path.display()
         )
       }
 

@@ -278,9 +278,7 @@ impl ServerState {
     match req {
       UnidentifiedRequest::NewSession { name } => {
         let cmd_fifo_path = self.add_session_fifo(name.clone())?;
-        let resp = Response::Init {
-          fifo_cmd_path: cmd_fifo_path,
-        };
+        let resp = Response::Init { cmd_fifo_path };
         KakSession::new(name, None).send_response(&resp)?;
       }
 

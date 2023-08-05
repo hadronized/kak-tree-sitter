@@ -4,7 +4,7 @@
 # Options used by KTS at runtime.
 
 # FIFO command path; this is used by Kakoune to write commands to be executed by KTS for the current session.
-declare-option str kts_fifo_cmd_path
+declare-option str kts_cmd_fifo_path
 
 # Highlight ranges used when highlighting buffers.
 declare-option range-specs kts_highlighter_ranges
@@ -90,7 +90,7 @@ define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the curren
 hook -group kak-tree-sitter global WinCreate .* %{
   hook -group kak-tree-sitter buffer -once WinDisplay .* %{
     # Check whether this filetype is supported
-    echo -to-file %opt{kts_fifo_cmd_path} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""try_enable_highlight"", ""lang"": ""%opt{filetype}""}};"
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""try_enable_highlight"", ""lang"": ""%opt{filetype}""}};"
   }
 }
 
