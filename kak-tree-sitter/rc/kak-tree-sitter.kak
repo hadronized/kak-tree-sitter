@@ -38,21 +38,23 @@ declare-option str kts_surface0 'rgb:363a4f'
 # Mark the session as non-active.
 #
 # This is typically sent when a session is about to die; see KakEnd for further details.
-define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session as ended' %sh{
-  kak-tree-sitter -r { "type": "session_exit", "name": "%val{session}" }
+define-command kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
+  nop %sh{
+    kak-tree-sitter -r "{ \"type\": \"session_exit\", \"name\": \"$kak_session\" }"
+  }
 }
 
 # Stop the kak-tree-sitter daemon.
 #
-# To restart the daemon, the daemon must explicitly be recreated with %sh{kak-tree-sitter -d -s $kak_session}.
+# To restart the daemon, the daemon must explicitly be restarted with a %sh{} block.
 define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
   evaluate-commands -no-hooks -buffer * %{
     remove-hooks buffer kak-tree-sitter
   }
 
   remove-hooks global kak-tree-sitter
-  %sh{
-    kak-tree-sitter -r { "type": "shutdown" }
+  nop %sh{
+    kak-tree-sitter -r '{ "type": "shutdown" }'
   }
 }
 
@@ -80,17 +82,15 @@ define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-
 
 # Send a single request to highlight the current buffer.
 define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
-  nop %sh{
-    echo "evaluate-commands -no-hooks -verbatim write $kak_response_fifo" > $kak_command_fifo
-    kak-tree-sitter -s $kak_session -c $kak_client -r "{\"type\":\"highlight\",\"buffer\":\"$kak_bufname\",\"lang\":\"$kak_opt_filetype\",\"timestamp\":$kak_timestamp,\"payload\":\"$kak_response_fifo\"}"
-  }
+  echo -to-file %opt{kts_cmd_fifo_path} -- "{ \"type\": \"highlight\", \"buffer\": \"%val{bufname}\", \"lang\": \"%opt{filetype}\", \"timestamp\": \"%val{timestamp}\" "}"
+  write %opt{kts_cmd_fifo_path}
 }
 
 # Enable automatic tree-sitter highlights.
 hook -group kak-tree-sitter global WinCreate .* %{
   hook -group kak-tree-sitter buffer -once WinDisplay .* %{
     # Check whether this filetype is supported
-    echo -to-file %opt{kts_cmd_fifo_path} -- "{""session"": {""session_name"": ""%val{session}"", ""client_name"": ""%val{client}""}, ""payload"": {""type"": ""try_enable_highlight"", ""lang"": ""%opt{filetype}""}};"
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{\"session\": {\"session_name\": \"%val{session}\", \"client_name\": \"%val{client}\"}, \"payload\": {\"type\": \"try_enable_highlight\", \"lang\": \"%opt{filetype}\"}};"
   }
 }
 

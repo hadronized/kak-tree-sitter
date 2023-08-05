@@ -53,11 +53,12 @@ pub enum RequestPayload {
   TryEnableHighlight { lang: String },
 
   /// Ask to highlight the given buffer.
+  ///
+  /// The content of the buffer is streamed right after in the same command FIFO file the request was sent in.
   Highlight {
     buffer: String,
     lang: String,
     timestamp: u64,
-    payload: String,
   },
 }
 
@@ -71,10 +72,8 @@ mod tests {
       buffer: "/tmp/a.rs".to_owned(),
       lang: "rust".to_owned(),
       timestamp: 0,
-      payload: "foo".to_owned(),
     };
-    let expected =
-      r#"{"type":"highlight","buffer":"/tmp/a.rs","lang":"rust","timestamp":0,"payload":"foo"}"#;
+    let expected = r#"{"type":"highlight","buffer":"/tmp/a.rs","lang":"rust","timestamp":0}"#;
     let serialized = serde_json::to_string(&req);
 
     assert_eq!(serialized.unwrap(), expected);

@@ -395,7 +395,7 @@ impl ServerState {
         });
 
         match req {
-          Ok(req) => match self.req_handler.handle_request(req) {
+          Ok(req) => match self.req_handler.handle_request(&mut session_fifo.fifo, req) {
             Ok(resp) => {
               if let Some((mut session, resp)) = resp {
                 if let Err(err) = session.send_response(&resp) {

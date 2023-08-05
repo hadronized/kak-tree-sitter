@@ -1,3 +1,5 @@
+use std::{fs::File, io::Read};
+
 use colored::Colorize;
 use kak_tree_sitter_config::Config;
 
@@ -34,7 +36,11 @@ impl Handler {
   }
 
   /// Handle the request and return an optional response to send back to Kakoune.
-  pub fn handle_request(&mut self, req: Request) -> Result<Option<(KakSession, Response)>, OhNo> {
+  pub fn handle_request(
+    &mut self,
+    fifo_src: &mut File,
+    req: Request,
+  ) -> Result<Option<(KakSession, Response)>, OhNo> {
     match req.payload {
       RequestPayload::TryEnableHighlight { lang } => {
         let supported = self.langs.get(&lang).is_some();
@@ -53,9 +59,13 @@ impl Handler {
         buffer,
         lang,
         timestamp,
-        payload,
       } => {
         let buffer_id = BufferId::new(&req.session.session_name, buffer);
+
+        // read the buffer content from the command FIFO; this is the law
+        let mut payload = String::new();
+        fifo_src.read_to_string(&mut payload)?;
+
         Ok(Some((
           req.session,
           self.handle_highlight_req(buffer_id, lang, timestamp, &payload)?,

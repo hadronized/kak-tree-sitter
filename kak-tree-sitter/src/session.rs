@@ -21,10 +21,11 @@ impl KakSession {
   pub fn send_response(&mut self, resp: &Response) -> Result<(), OhNo> {
     let resp = resp.to_kak_cmd(self.client_name.as_deref());
 
-    eprintln!("sending response to Kakoune {resp:?}");
-
     match resp {
-      Some(resp) if !resp.is_empty() => self.send_response_raw(resp),
+      Some(resp) => {
+        eprintln!("sending response to Kakoune {resp:?}");
+        self.send_response_raw(resp)
+      }
 
       _ => Ok(()),
     }

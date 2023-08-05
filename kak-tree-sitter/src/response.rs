@@ -69,7 +69,7 @@ impl Response {
 
     // empty command means no response
     if kak_cmd.is_empty() {
-      return Some(kak_cmd);
+      return None;
     }
 
     // check if we need to build a command prefix
