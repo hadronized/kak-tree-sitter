@@ -1,9 +1,8 @@
 //! Requests that can be sent to the server from Kakoune.
 
 use std::fmt::Debug;
-use std::path::PathBuf;
 
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 
 use crate::session::KakSession;
 
@@ -35,36 +34,9 @@ impl UnidentifiedRequest {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct Request<Origin>
-where
-  Origin: RequestOrigin,
-{
+pub struct Request {
   pub session: KakSession,
-  pub payload: RequestPayload<Origin>,
-}
-
-/// Origin of a request.
-///
-/// Used to reinterpret request payloads.
-pub trait RequestOrigin {
-  /// Payload type for the [`Request::Highlight`] variant.
-  type HighlightPayload: Debug + DeserializeOwned + Serialize;
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum KakouneOrigin {}
-
-impl RequestOrigin for KakouneOrigin {
-  /// This is a FIFO to read from.
-  type HighlightPayload = PathBuf;
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub enum KakTreeSitterOrigin {}
-
-impl RequestOrigin for KakTreeSitterOrigin {
-  /// This is buffer content.
-  type HighlightPayload = String;
+  pub payload: RequestPayload,
 }
 
 /// Request payload.
@@ -72,18 +44,7 @@ impl RequestOrigin for KakTreeSitterOrigin {
 /// Request payload are parameterized with the « origin » at which requests are expected.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum RequestPayload<Origin>
-where
-  Origin: RequestOrigin,
-{
-  /// A session just ended.
-  ///
-  /// This request is useful to track which sessions are still alive, and eventually make the daemon quit by itself.
-  SessionEnd,
-
-  /// Ask the server/daemon to close and clean up.
-  Shutdown,
-
+pub enum RequestPayload {
   /// Try enabling highlighting for a given filetype.
   ///
   /// This request starts a “highlighting session.” The response will not replay with « supports highlighting » or
@@ -96,40 +57,25 @@ where
     buffer: String,
     lang: String,
     timestamp: u64,
-    payload: Origin::HighlightPayload,
+    payload: String,
   },
 }
 
 #[cfg(test)]
 mod tests {
-  use std::path::PathBuf;
-
-  use crate::request::{KakTreeSitterOrigin, KakouneOrigin};
-
   use super::RequestPayload;
 
   #[test]
   fn serialization() {
-    let kak_req = RequestPayload::<KakouneOrigin>::Highlight {
+    let req = RequestPayload::Highlight {
       buffer: "/tmp/a.rs".to_owned(),
       lang: "rust".to_owned(),
       timestamp: 0,
-      payload: PathBuf::from("/tmp/a.fifo"),
-    };
-    let expected = r#"{"type":"highlight","buffer":"/tmp/a.rs","lang":"rust","timestamp":0,"payload":"/tmp/a.fifo"}"#;
-    let serialized = serde_json::to_string(&kak_req);
-
-    assert_eq!(serialized.unwrap(), expected);
-
-    let kts_req = RequestPayload::<KakTreeSitterOrigin>::Highlight {
-      buffer: "/tmp/a.rs".to_owned(),
-      lang: "rust".to_owned(),
-      timestamp: 0,
-      payload: "lol".to_owned(),
+      payload: "foo".to_owned(),
     };
     let expected =
-      r#"{"type":"highlight","buffer":"/tmp/a.rs","lang":"rust","timestamp":0,"payload":"lol"}"#;
-    let serialized = serde_json::to_string(&kts_req);
+      r#"{"type":"highlight","buffer":"/tmp/a.rs","lang":"rust","timestamp":0,"payload":"foo"}"#;
+    let serialized = serde_json::to_string(&req);
 
     assert_eq!(serialized.unwrap(), expected);
   }

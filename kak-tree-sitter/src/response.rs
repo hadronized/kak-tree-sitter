@@ -9,14 +9,11 @@ use crate::{highlighting::KakHighlightRange, rc};
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Response {
-  /// Shutdown response.
-  Shutdown,
-
   /// Status change.
   StatusChanged { status: String },
 
   /// Initial response when a session starts.
-  InitialResponse { fifo_cmd_path: PathBuf },
+  Init { fifo_cmd_path: PathBuf },
 
   /// Whether a filetype is supported.
   FiletypeSupported { supported: bool },
@@ -39,11 +36,9 @@ impl Response {
 
   pub fn to_kak_cmd<'a>(&self, client_name: impl Into<Option<&'a str>>) -> Option<String> {
     let kak_cmd = match self {
-      Response::Shutdown => return None,
-
       Response::StatusChanged { status, .. } => format!("info %{{{}}}", status),
 
-      Response::InitialResponse { fifo_cmd_path } => {
+      Response::Init { fifo_cmd_path } => {
         format!(
           "{rc}\nset-option global kts_fifo_cmd_path {fifo_cmd_path}",
           rc = rc::rc_commands(),

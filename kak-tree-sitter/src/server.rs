@@ -21,7 +21,7 @@ use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token};
 use crate::{
   error::OhNo,
   handler::Handler,
-  request::{KakTreeSitterOrigin, Request, UnidentifiedRequest},
+  request::{Request, UnidentifiedRequest},
   response::Response,
   session::KakSession,
 };
@@ -278,7 +278,7 @@ impl ServerState {
     match req {
       UnidentifiedRequest::NewSession { name } => {
         let cmd_fifo_path = self.add_session_fifo(name.clone())?;
-        let resp = Response::InitialResponse {
+        let resp = Response::Init {
           fifo_cmd_path: cmd_fifo_path,
         };
         KakSession::new(name, None).send_response(&resp)?;
@@ -392,10 +392,8 @@ impl ServerState {
 
       for cmd in split_cmds {
         println!("FIFO request: {cmd}");
-        let req = serde_json::from_str::<Request<KakTreeSitterOrigin>>(cmd).map_err(|err| {
-          OhNo::InvalidRequest {
-            err: err.to_string(),
-          }
+        let req = serde_json::from_str::<Request>(cmd).map_err(|err| OhNo::InvalidRequest {
+          err: err.to_string(),
         });
 
         match req {
