@@ -38,7 +38,7 @@ declare-option str kts_surface0 'rgb:363a4f'
 # Mark the session as non-active.
 #
 # This is typically sent when a session is about to die; see KakEnd for further details.
-define-command kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
+define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
   nop %sh{
     kak-tree-sitter -r "{ \"type\": \"session_exit\", \"name\": \"$kak_session\" }"
   }
@@ -53,12 +53,13 @@ define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
   }
 
   remove-hooks global kak-tree-sitter
+
   nop %sh{
     kak-tree-sitter -r '{ "type": "shutdown" }'
   }
 }
 
-# Enabling highlighting for the current buffer.
+# Enable highlighting for the current buffer.
 # 
 # This command does a couple of things, among removing the « default » highlighting (Kakoune based) of the buffer and
 # installing some hooks to automatically highlight the buffer.
@@ -70,26 +71,30 @@ define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-
   }
 
   # Add the tree-sitter highlighter
-  set-option buffer kak_tree_sitter_highlighter_ranges
+  set-option buffer kts_highlighter_ranges
   add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kts_highlighter_ranges
 
-  # initial highlighting of the buffer
+  # Initial highlighting of the buffer
   kak-tree-sitter-highlight-buffer
 
+  # Main hooks when enabling highlighting
   hook -group kak-tree-sitter buffer InsertIdle .* kak-tree-sitter-highlight-buffer
   hook -group kak-tree-sitter buffer NormalIdle .* kak-tree-sitter-highlight-buffer
 }
 
 # Send a single request to highlight the current buffer.
+#
+# This will first send the command to highlight the buffer to KTS and then will write the content of the buffer through
+# the same FIFO.
 define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
   echo -to-file %opt{kts_cmd_fifo_path} -- "{ \"type\": \"highlight\", \"buffer\": \"%val{bufname}\", \"lang\": \"%opt{filetype}\", \"timestamp\": \"%val{timestamp}\" "}"
   write %opt{kts_cmd_fifo_path}
 }
 
-# Enable automatic tree-sitter highlights.
+# Enable automatic tree-sitter highlights if possible.
 hook -group kak-tree-sitter global WinCreate .* %{
   hook -group kak-tree-sitter buffer -once WinDisplay .* %{
-    # Check whether this filetype is supported
+    # Try enable highlighting for the current file type.
     echo -to-file %opt{kts_cmd_fifo_path} -- "{\"session\": {\"session_name\": \"%val{session}\", \"client_name\": \"%val{client}\"}, \"payload\": {\"type\": \"try_enable_highlight\", \"lang\": \"%opt{filetype}\"}};"
   }
 }
