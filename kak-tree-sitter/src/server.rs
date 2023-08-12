@@ -336,7 +336,7 @@ impl ServerState {
       self
         .poll
         .registry()
-        .deregister(&mut SourceFd(&session_fifo.fifo.as_raw_fd()))?;
+        .deregister(&mut SourceFd(&session_fifo.cmd_fifo.as_raw_fd()))?;
       // TODO: remove the FIFO file? do we care?
       self.free_tokens.push(token);
       self.cmd_fifos.remove(&token);
@@ -384,7 +384,7 @@ impl ServerState {
   fn accept_cmd_fifo_req(&mut self, token: Token) -> Result<(), OhNo> {
     if let Some(session_fifo) = self.cmd_fifos.get_mut(&token) {
       let mut commands = String::new();
-      session_fifo.fifo.read_to_string(&mut commands)?;
+      session_fifo.cmd_fifo.read_to_string(&mut commands)?;
 
       let split_cmds = commands.split(';').filter(|s| !s.is_empty());
       let mut session = KakSession::new(&session_fifo.session_name);
@@ -399,7 +399,7 @@ impl ServerState {
           Ok(req) => {
             match self
               .req_handler
-              .handle_request(&session, &mut session_fifo.fifo, &req)
+              .handle_request(&session, &mut session_fifo.cmd_fifo, &req)
             {
               Ok(resp) => {
                 let client = req.client_name();
@@ -429,11 +429,14 @@ impl ServerState {
 #[derive(Debug)]
 struct SessionFifo {
   session_name: String,
-  fifo: File,
+  cmd_fifo: File,
 }
 
 impl SessionFifo {
-  fn new(session_name: String, fifo: File) -> Self {
-    Self { session_name, fifo }
+  fn new(session_name: String, cmd_fifo: File) -> Self {
+    Self {
+      session_name,
+      cmd_fifo,
+    }
   }
 }
