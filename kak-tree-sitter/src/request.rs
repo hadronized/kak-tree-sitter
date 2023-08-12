@@ -4,8 +4,6 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use crate::session::KakSession;
-
 /// Unidentified request (i.e. not linked to a given session).
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -33,24 +31,18 @@ impl UnidentifiedRequest {
   }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Request {
-  pub session: KakSession,
-  pub payload: RequestPayload,
-}
-
 /// Request payload.
 ///
 /// Request payload are parameterized with the « origin » at which requests are expected.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum RequestPayload {
+pub enum Request {
   /// Try enabling highlighting for a given filetype.
   ///
   /// This request starts a “highlighting session.” The response will not replay with « supports highlighting » or
   /// « does not support highlighting », but instead will insert the Kakoune commands to ask for highlights only if the
   /// filetype is supported.
-  TryEnableHighlight { lang: String },
+  TryEnableHighlight { lang: String, client: String },
 
   /// Ask to highlight the given buffer.
   ///
@@ -62,13 +54,23 @@ pub enum RequestPayload {
   },
 }
 
+impl Request {
+  pub fn client_name(&self) -> Option<&str> {
+    if let Request::TryEnableHighlight { client, .. } = self {
+      Some(client.as_str())
+    } else {
+      None
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
-  use super::RequestPayload;
+  use super::Request;
 
   #[test]
   fn serialization() {
-    let req = RequestPayload::Highlight {
+    let req = Request::Highlight {
       buffer: "/tmp/a.rs".to_owned(),
       lang: "rust".to_owned(),
       timestamp: 0,

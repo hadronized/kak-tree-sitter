@@ -7,7 +7,7 @@ use crate::{
   error::OhNo,
   highlighting::{BufferId, Highlighters},
   languages::Languages,
-  request::{Request, RequestPayload},
+  request::Request,
   response::Response,
   session::KakSession,
 };
@@ -38,38 +38,39 @@ impl Handler {
   /// Handle the request and return an optional response to send back to Kakoune.
   pub fn handle_request(
     &mut self,
+    session: &KakSession,
     fifo_src: &mut File,
-    req: Request,
-  ) -> Result<Option<(KakSession, Response)>, OhNo> {
-    match req.payload {
-      RequestPayload::TryEnableHighlight { lang } => {
-        let supported = self.langs.get(&lang).is_some();
+    req: &Request,
+  ) -> Result<Response, OhNo> {
+    match req {
+      Request::TryEnableHighlight { lang, .. } => {
+        eprintln!("try enable highlight for session {session:?}");
+
+        let supported = self.langs.get(lang).is_some();
 
         if !supported {
           eprintln!("{}", format!("language {lang} is not supported").red());
         }
 
-        Ok(Some((
-          req.session,
-          Response::FiletypeSupported { supported },
-        )))
+        Ok(Response::FiletypeSupported { supported })
       }
 
-      RequestPayload::Highlight {
+      Request::Highlight {
         buffer,
         lang,
         timestamp,
       } => {
-        let buffer_id = BufferId::new(&req.session.session_name, buffer);
+        eprintln!(
+          "highlight for session {session:?}, buffer {buffer}, lang {lang}, timestamp {timestamp}"
+        );
+
+        let buffer_id = BufferId::new(&session.session_name, buffer);
 
         // read the buffer content from the command FIFO; this is the law
         let mut payload = String::new();
         fifo_src.read_to_string(&mut payload)?;
 
-        Ok(Some((
-          req.session,
-          self.handle_highlight_req(buffer_id, lang, timestamp, &payload)?,
-        )))
+        Ok(self.handle_highlight_req(buffer_id, lang, *timestamp, &payload)?)
       }
     }
   }
@@ -77,11 +78,11 @@ impl Handler {
   fn handle_highlight_req(
     &mut self,
     buffer_id: BufferId,
-    lang_name: String,
+    lang_name: &str,
     timestamp: u64,
     source: &str,
   ) -> Result<Response, OhNo> {
-    if let Some(lang) = self.langs.get(&lang_name) {
+    if let Some(lang) = self.langs.get(lang_name) {
       self
         .highlighters
         .highlight(lang, &self.langs, buffer_id, timestamp, source)

@@ -34,9 +34,11 @@ impl Response {
     }
   }
 
-  pub fn to_kak_cmd<'a>(&self, client_name: impl Into<Option<&'a str>>) -> Option<String> {
+  pub fn to_kak_cmd(&self, client: Option<&str>) -> Option<String> {
     let kak_cmd = match self {
-      Response::StatusChanged { status, .. } => format!("info %{{{}}}", status),
+      Response::StatusChanged { status, .. } => {
+        format!("echo -debug %{{{status}}}; info %{{{status}}}",)
+      }
 
       Response::Init { cmd_fifo_path } => {
         format!(
@@ -50,7 +52,7 @@ impl Response {
         if *supported {
           "kak-tree-sitter-highlight-enable".to_owned()
         } else {
-          "".to_owned()
+          String::new()
         }
       }
 
@@ -72,13 +74,12 @@ impl Response {
       return None;
     }
 
-    // check if we need to build a command prefix
-    let cmd_prefix = if let Some(client_name) = client_name.into() {
-      format!("-client {client_name} ")
+    let prefix = if let Some(client) = client {
+      format!("-client {client} ")
     } else {
       String::new()
     };
 
-    Some(format!("eval -no-hooks {cmd_prefix}%{{{kak_cmd}}}"))
+    Some(format!("eval -no-hooks {prefix}%{{{kak_cmd}}}"))
   }
 }

@@ -279,7 +279,7 @@ impl ServerState {
       UnidentifiedRequest::NewSession { name } => {
         let cmd_fifo_path = self.add_session_fifo(name.clone())?;
         let resp = Response::Init { cmd_fifo_path };
-        KakSession::new(name, None).send_response(&resp)?;
+        KakSession::new(name).send_response(None, &resp)?;
       }
 
       UnidentifiedRequest::SessionExit { name } => self.recycle_session_fifo(name)?,
@@ -387,6 +387,7 @@ impl ServerState {
       session_fifo.fifo.read_to_string(&mut commands)?;
 
       let split_cmds = commands.split(';').filter(|s| !s.is_empty());
+      let mut session = KakSession::new(&session_fifo.session_name);
 
       for cmd in split_cmds {
         println!("FIFO request: {cmd}");
@@ -395,18 +396,23 @@ impl ServerState {
         });
 
         match req {
-          Ok(req) => match self.req_handler.handle_request(&mut session_fifo.fifo, req) {
-            Ok(resp) => {
-              if let Some((mut session, resp)) = resp {
-                if let Err(err) = session.send_response(&resp) {
+          Ok(req) => {
+            match self
+              .req_handler
+              .handle_request(&session, &mut session_fifo.fifo, &req)
+            {
+              Ok(resp) => {
+                let client = req.client_name();
+
+                if let Err(err) = session.send_response(client, &resp) {
                   eprintln!("failure while sending response: {}", format!("{err}").red());
                 }
               }
+              Err(err) => {
+                eprintln!("handling request failed: {}", format!("{err}").red());
+              }
             }
-            Err(err) => {
-              eprintln!("handling request failed: {}", format!("{err}").red());
-            }
-          },
+          }
 
           Err(err) => {
             eprintln!("malformed request: {}", format!("{err}").red());
