@@ -7,12 +7,16 @@ pub struct Cli {
   #[clap(short, long)]
   pub kakoune: bool,
 
+  /// Start the server, if not already started.
+  #[clap(short, long)]
+  pub server: bool,
+
   /// Try to daemonize, if not already done.
   #[clap(short, long)]
   pub daemonize: bool,
 
   /// Kakoune session to connect to.
-  #[clap(short, long)]
+  #[clap(long)]
   pub session: Option<String>,
 
   /// Kakoune client to connect with, if any.

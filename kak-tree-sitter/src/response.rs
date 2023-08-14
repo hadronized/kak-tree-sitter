@@ -13,7 +13,10 @@ pub enum Response {
   StatusChanged { status: String },
 
   /// Initial response when a session starts.
-  Init { cmd_fifo_path: PathBuf },
+  Init {
+    cmd_fifo_path: PathBuf,
+    buf_fifo_path: PathBuf,
+  },
 
   /// Whether a filetype is supported.
   FiletypeSupported { supported: bool },
@@ -40,13 +43,21 @@ impl Response {
         format!("echo -debug %{{{status}}}; info %{{{status}}}",)
       }
 
-      Response::Init { cmd_fifo_path } => {
-        format!(
-          "{rc}\nset-option global kts_cmd_fifo_path {cmd_fifo_path}",
-          rc = rc::rc_commands(),
-          cmd_fifo_path = cmd_fifo_path.display()
-        )
-      }
+      Response::Init {
+        cmd_fifo_path,
+        buf_fifo_path,
+      } => [
+        rc::rc_commands(),
+        &format!(
+          "set-option global kts_cmd_fifo_path {path}",
+          path = cmd_fifo_path.display()
+        ),
+        &format!(
+          "set-option global kts_buf_fifo_path {path}",
+          path = buf_fifo_path.display()
+        ),
+      ]
+      .join("\n"),
 
       Response::FiletypeSupported { supported } => {
         if *supported {
@@ -64,7 +75,7 @@ impl Response {
 
         format!(
           "{range_specs} {timestamp} {ranges_str}",
-          range_specs = "set buffer kak_tree_sitter_highlighter_ranges",
+          range_specs = "set buffer kts_highlighter_ranges",
         )
       }
     };

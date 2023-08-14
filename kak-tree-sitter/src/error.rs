@@ -31,8 +31,8 @@ pub enum OhNo {
     err: io::Error,
   },
 
-  #[error("cannot create command FIFO: {err}")]
-  CannotCreateCommandFifo { err: String },
+  #[error("cannot create FIFO: {err}")]
+  CannotCreateFifo { err: String },
 
   #[error("cannot start server: {err}")]
   CannotStartServer { err: io::Error },

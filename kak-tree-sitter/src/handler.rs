@@ -1,4 +1,4 @@
-use std::{fs::File, io::Read};
+use std::fs;
 
 use colored::Colorize;
 use kak_tree_sitter_config::Config;
@@ -9,6 +9,7 @@ use crate::{
   languages::Languages,
   request::Request,
   response::Response,
+  server::SessionFifo,
   session::KakSession,
 };
 
@@ -39,7 +40,7 @@ impl Handler {
   pub fn handle_request(
     &mut self,
     session: &KakSession,
-    fifo_src: &mut File,
+    session_fifo: &mut SessionFifo,
     req: &Request,
   ) -> Result<Response, OhNo> {
     match req {
@@ -59,6 +60,7 @@ impl Handler {
         buffer,
         lang,
         timestamp,
+        ..
       } => {
         eprintln!(
           "highlight for session {session:?}, buffer {buffer}, lang {lang}, timestamp {timestamp}"
@@ -67,8 +69,7 @@ impl Handler {
         let buffer_id = BufferId::new(&session.session_name, buffer);
 
         // read the buffer content from the command FIFO; this is the law
-        let mut payload = String::new();
-        fifo_src.read_to_string(&mut payload)?;
+        let payload = fs::read_to_string(session_fifo.buffer_fifo_path())?;
 
         Ok(self.handle_highlight_req(buffer_id, lang, *timestamp, &payload)?)
       }

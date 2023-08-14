@@ -10,7 +10,7 @@ use std::{
       prelude::{OpenOptionsExt, OsStrExt},
     },
   },
-  path::PathBuf,
+  path::{Path, PathBuf},
   process::Command,
 };
 
@@ -277,8 +277,11 @@ impl ServerState {
   fn treat_unidentified_request(&mut self, req: UnidentifiedRequest) -> Result<(), OhNo> {
     match req {
       UnidentifiedRequest::NewSession { name } => {
-        let cmd_fifo_path = self.add_session_fifo(name.clone())?;
-        let resp = Response::Init { cmd_fifo_path };
+        let (cmd_fifo_path, buf_fifo_path) = self.add_session_fifo(name.clone())?;
+        let resp = Response::Init {
+          cmd_fifo_path,
+          buf_fifo_path,
+        };
         KakSession::new(name).send_response(None, &resp)?;
       }
 
@@ -293,27 +296,33 @@ impl ServerState {
   }
 
   /// Take into account a new session by creating a command FIFO for it and associating it with a token.
-  fn add_session_fifo(&mut self, session_name: impl Into<String>) -> Result<PathBuf, OhNo> {
+  fn add_session_fifo(
+    &mut self,
+    session_name: impl Into<String>,
+  ) -> Result<(PathBuf, PathBuf), OhNo> {
     let session_name = session_name.into();
 
-    let (cmd_fifo_path, cmd_fifo) = self.create_session_cmd_fifo(&session_name)?;
-    let token = self.create_session_fifo_token();
+    let cmd_fifo_path = self.create_session_fifo(Path::new("commands"), &session_name)?;
+    let cmd_fifo = self.open_nonblocking_fifo(&cmd_fifo_path)?;
+    let cmd_token = self.create_session_fifo_token();
+    let buffer_fifo_path = self.create_session_fifo(Path::new("buffers"), &session_name)?;
 
     self
       .poll
       .registry()
       .register(
         &mut SourceFd(&cmd_fifo.as_raw_fd()),
-        token,
+        cmd_token,
         Interest::READABLE,
       )
       .map_err(|err| OhNo::PollEventsError { err })?;
 
-    self
-      .cmd_fifos
-      .insert(token, SessionFifo::new(session_name, cmd_fifo));
+    self.cmd_fifos.insert(
+      cmd_token,
+      SessionFifo::new(session_name, cmd_fifo, buffer_fifo_path.clone()),
+    );
 
-    Ok(cmd_fifo_path)
+    Ok((cmd_fifo_path, buffer_fifo_path))
   }
 
   /// Get a new token for a new session.
@@ -349,9 +358,9 @@ impl ServerState {
     Ok(())
   }
 
-  /// Create a command FIFO for a given session, associating it with a token to be registered in a poll.
-  fn create_session_cmd_fifo(&self, session_name: &str) -> Result<(PathBuf, File), OhNo> {
-    let cmds_dir = self.resources.runtime_dir.join("commands");
+  /// Create a FIFO for a given session.
+  fn create_session_fifo(&self, prefix: &Path, session_name: &str) -> Result<PathBuf, OhNo> {
+    let cmds_dir = self.resources.runtime_dir.join(prefix);
     let cmd_fifo_path = cmds_dir.join(session_name);
 
     // if the file doesn’t already exist, create it
@@ -360,24 +369,28 @@ impl ServerState {
       fs::create_dir_all(cmds_dir)?;
 
       let path = cmd_fifo_path.as_os_str().as_bytes();
-      let c_path = CString::new(path).map_err(|err| OhNo::CannotCreateCommandFifo {
+      let c_path = CString::new(path).map_err(|err| OhNo::CannotCreateFifo {
         err: err.to_string(),
       })?;
 
       let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o777) };
       if c_err != 0 {
-        return Err(OhNo::CannotCreateCommandFifo {
+        return Err(OhNo::CannotCreateFifo {
           err: format!("cannot create FIFO file for session {session_name}"),
         });
       }
     }
 
-    let cmd_fifo = OpenOptions::new()
+    Ok(cmd_fifo_path)
+  }
+
+  /// Open a FIFO and obtain a non-blocking [`File`].
+  fn open_nonblocking_fifo(&self, path: &Path) -> Result<File, OhNo> {
+    let fifo = OpenOptions::new()
       .read(true)
       .custom_flags(libc::O_NONBLOCK)
-      .open(&cmd_fifo_path)?;
-
-    Ok((cmd_fifo_path, cmd_fifo))
+      .open(path)?;
+    Ok(fifo)
   }
 
   /// Accept a command request on a FIFO identified by a token.
@@ -399,7 +412,7 @@ impl ServerState {
           Ok(req) => {
             match self
               .req_handler
-              .handle_request(&session, &mut session_fifo.cmd_fifo, &req)
+              .handle_request(&session, session_fifo, &req)
             {
               Ok(resp) => {
                 let client = req.client_name();
@@ -427,16 +440,22 @@ impl ServerState {
 
 /// FIFO associated with a session.
 #[derive(Debug)]
-struct SessionFifo {
+pub struct SessionFifo {
   session_name: String,
   cmd_fifo: File,
+  buffer_fifo_path: PathBuf,
 }
 
 impl SessionFifo {
-  fn new(session_name: String, cmd_fifo: File) -> Self {
+  fn new(session_name: String, cmd_fifo: File, buffer_fifo_path: PathBuf) -> Self {
     Self {
       session_name,
       cmd_fifo,
+      buffer_fifo_path,
     }
+  }
+
+  pub fn buffer_fifo_path(&self) -> &Path {
+    &self.buffer_fifo_path
   }
 }

@@ -48,6 +48,7 @@ pub enum Request {
   ///
   /// The content of the buffer is streamed right after in the same command FIFO file the request was sent in.
   Highlight {
+    client: String,
     buffer: String,
     lang: String,
     timestamp: u64,
@@ -56,10 +57,9 @@ pub enum Request {
 
 impl Request {
   pub fn client_name(&self) -> Option<&str> {
-    if let Request::TryEnableHighlight { client, .. } = self {
-      Some(client.as_str())
-    } else {
-      None
+    match self {
+      Request::TryEnableHighlight { client, .. } => Some(client.as_str()),
+      Request::Highlight { client, .. } => Some(client.as_str()),
     }
   }
 }
@@ -71,11 +71,13 @@ mod tests {
   #[test]
   fn serialization() {
     let req = Request::Highlight {
+      client: "client0".to_owned(),
       buffer: "/tmp/a.rs".to_owned(),
       lang: "rust".to_owned(),
       timestamp: 0,
     };
-    let expected = r#"{"type":"highlight","buffer":"/tmp/a.rs","lang":"rust","timestamp":0}"#;
+    let expected =
+      r#"{"type":"highlight","client":"client0","buffer":"/tmp/a.rs","lang":"rust","timestamp":0}"#;
     let serialized = serde_json::to_string(&req);
 
     assert_eq!(serialized.unwrap(), expected);

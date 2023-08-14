@@ -37,7 +37,9 @@ fn start() -> Result<(), OhNo> {
 
   // server logic; basically a no-op if the server is already started, and should quickly return if cli.daemonize is
   // set
-  Server::bootstrap(&config, cli.daemonize)?;
+  if cli.server {
+    Server::bootstrap(&config, cli.daemonize)?;
+  }
 
   if cli.kakoune {
     // when starting from Kakoune, we manually issue a first request to setup the Kakoune session

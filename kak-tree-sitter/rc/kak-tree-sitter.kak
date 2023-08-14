@@ -6,6 +6,10 @@
 # FIFO command path; this is used by Kakoune to write commands to be executed by KTS for the current session.
 declare-option str kts_cmd_fifo_path
 
+# FIFO buffer path; this is used by Kakoune to write the content of buffers to be highlighted / analyzed by KTS for the
+# current session. 
+declare-option str kts_buf_fifo_path
+
 # Highlight ranges used when highlighting buffers.
 declare-option range-specs kts_highlighter_ranges
 
@@ -40,7 +44,7 @@ declare-option str kts_surface0 'rgb:363a4f'
 # This is typically sent when a session is about to die; see KakEnd for further details.
 define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
   nop %sh{
-    kak-tree-sitter -r "{ ""type"": ""session_exit"", ""name"": ""$kak_session"" }"
+    kak-tree-sitter -r "{ \"type\": \"session_exit\", \"name\": \"$kak_session\" }"
   }
 }
 
@@ -59,6 +63,17 @@ define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
   }
 }
 
+# Send a single request to highlight the current buffer.
+#
+# This will first send the command to highlight the buffer to KTS and then will write the content of the buffer through
+# the same FIFO.
+define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
+  echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{filetype}"", ""timestamp"": %val{timestamp} }"
+
+  # FIXME: I think this should be done/asked by KTS when ready? Not sure 
+  write %opt{kts_buf_fifo_path}
+}
+
 # Enable highlighting for the current buffer.
 # 
 # This command does a couple of things, among removing the « default » highlighting (Kakoune based) of the buffer and
@@ -71,7 +86,6 @@ define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-
   }
 
   # Add the tree-sitter highlighter
-  set-option buffer kts_highlighter_ranges
   add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kts_highlighter_ranges
 
   # Initial highlighting of the buffer
@@ -80,15 +94,6 @@ define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-
   # Main hooks when enabling highlighting
   hook -group kak-tree-sitter buffer InsertIdle .* kak-tree-sitter-highlight-buffer
   hook -group kak-tree-sitter buffer NormalIdle .* kak-tree-sitter-highlight-buffer
-}
-
-# Send a single request to highlight the current buffer.
-#
-# This will first send the command to highlight the buffer to KTS and then will write the content of the buffer through
-# the same FIFO.
-define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
-  echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{filetype}"", ""timestamp"": %val{timestamp} }"
-  write %opt{kts_cmd_fifo_path}
 }
 
 # Enable automatic tree-sitter highlights if possible.
