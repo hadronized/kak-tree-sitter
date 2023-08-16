@@ -68,10 +68,10 @@ define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
 # This will first send the command to highlight the buffer to KTS and then will write the content of the buffer through
 # the same FIFO.
 define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
-  echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{filetype}"", ""timestamp"": %val{timestamp} }"
-
-  # FIXME: I think this should be done/asked by KTS when ready? Not sure 
-  write %opt{kts_buf_fifo_path}
+  evaluate-commands -no-hooks %{
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{filetype}"", ""timestamp"": %val{timestamp} }"
+    write %opt{kts_buf_fifo_path}
+  }
 }
 
 # Enable highlighting for the current buffer.
