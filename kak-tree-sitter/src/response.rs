@@ -1,17 +1,22 @@
 //! Response sent from the daemon to Kakoune, typically via the socket interface (kak -p, etc.).
 
+use std::path::PathBuf;
+
 use itertools::Itertools;
 
-use crate::highlighting::KakHighlightRange;
+use crate::{highlighting::KakHighlightRange, rc};
 
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]
 pub enum Response {
-  /// Shutdown response.
-  Shutdown,
-
   /// Status change.
   StatusChanged { status: String },
+
+  /// Initial response when a session starts.
+  Init {
+    cmd_fifo_path: PathBuf,
+    buf_fifo_path: PathBuf,
+  },
 
   /// Whether a filetype is supported.
   FiletypeSupported { supported: bool },
@@ -32,17 +37,33 @@ impl Response {
     }
   }
 
-  pub fn to_kak_cmd<'a>(&self, client_name: impl Into<Option<&'a str>>) -> Option<String> {
+  pub fn to_kak_cmd(&self, client: Option<&str>) -> Option<String> {
     let kak_cmd = match self {
-      Response::Shutdown => return None,
+      Response::StatusChanged { status, .. } => {
+        format!("echo -debug %{{{status}}}; info %{{{status}}}",)
+      }
 
-      Response::StatusChanged { status, .. } => format!("info %{{{}}}", status),
+      Response::Init {
+        cmd_fifo_path,
+        buf_fifo_path,
+      } => [
+        rc::rc_commands(),
+        &format!(
+          "set-option global kts_cmd_fifo_path {path}",
+          path = cmd_fifo_path.display()
+        ),
+        &format!(
+          "set-option global kts_buf_fifo_path {path}",
+          path = buf_fifo_path.display()
+        ),
+      ]
+      .join("\n"),
 
       Response::FiletypeSupported { supported } => {
         if *supported {
           "kak-tree-sitter-highlight-enable".to_owned()
         } else {
-          "".to_owned()
+          String::new()
         }
       }
 
@@ -54,23 +75,22 @@ impl Response {
 
         format!(
           "{range_specs} {timestamp} {ranges_str}",
-          range_specs = "set buffer kak_tree_sitter_highlighter_ranges",
+          range_specs = "set buffer kts_highlighter_ranges",
         )
       }
     };
 
     // empty command means no response
     if kak_cmd.is_empty() {
-      return Some(kak_cmd);
+      return None;
     }
 
-    // check if we need to build a command prefix
-    let cmd_prefix = if let Some(client_name) = client_name.into() {
-      format!("-client {client_name} ")
+    let prefix = if let Some(client) = client {
+      format!("-client {client} ")
     } else {
       String::new()
     };
 
-    Some(format!("eval -no-hooks {cmd_prefix}%{{{kak_cmd}}}"))
+    Some(format!("eval -no-hooks {prefix}%{{{kak_cmd}}}"))
   }
 }

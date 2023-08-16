@@ -1,5 +1,4 @@
 mod cli;
-mod daemon;
 mod error;
 mod handler;
 mod highlighting;
@@ -8,16 +7,16 @@ mod queries;
 mod rc;
 mod request;
 mod response;
+mod server;
 mod session;
 
 use clap::Parser;
 use cli::Cli;
 use colored::Colorize;
-use daemon::Daemon;
 use error::OhNo;
 use kak_tree_sitter_config::Config;
-use request::Request;
-use session::KakSession;
+use request::UnidentifiedRequest;
+use server::Server;
 
 fn main() {
   if let Err(err) = start() {
@@ -36,23 +35,37 @@ fn start() -> Result<(), OhNo> {
     }
   };
 
+  // server logic; basically a no-op if the server is already started, and should quickly return if cli.daemonize is
+  // set
+  if cli.server {
+    Server::bootstrap(&config, cli.daemonize)?;
+  }
+
   if cli.kakoune {
-    // inject the rc/ and daemon-based settings
-    println!("{}", rc::rc_commands());
-  }
-
-  if let (Some(session), Some(request)) = (cli.session, cli.request) {
-    // client logic
-    let kak_sess = KakSession::new(session, cli.client);
-
-    // parse the request payload and embed it in a request
-    let payload = serde_json::from_str(&request).map_err(|err| OhNo::InvalidRequest {
-      err: err.to_string(),
+    // when starting from Kakoune, we manually issue a first request to setup the Kakoune session
+    if let Some(name) = cli.session {
+      let req = UnidentifiedRequest::NewSession { name };
+      Server::send_request(req)?;
+    } else {
+      return Err(OhNo::InvalidRequest {
+        err: "missing session name; start with --session -s <session-name>".to_owned(),
+      });
+    }
+  } else if let Some(request) = cli.request {
+    // otherwise, regular client
+    let req = serde_json::from_str::<UnidentifiedRequest>(&request).map_err(|err| {
+      OhNo::InvalidRequest {
+        err: err.to_string(),
+      }
     })?;
-    let req = Request::new(kak_sess, payload);
-    Daemon::send_request(req)
-  } else {
-    // server logic
-    Daemon::bootstrap(config, cli.daemonize)
+    let req = if let Some(session) = cli.session {
+      req.with_session(session)
+    } else {
+      req
+    };
+
+    Server::send_request(req)?;
   }
+
+  Ok(())
 }
