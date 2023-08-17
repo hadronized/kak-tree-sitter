@@ -35,10 +35,10 @@ fn start() -> Result<(), OhNo> {
     }
   };
 
-  // server logic; basically a no-op if the server is already started, and should quickly return if cli.daemonize is
-  // set
+  // server logic implies short-circuiting the rest; hence why we have to pass it &cli to check some stuff once the
+  // server is started, like whether we started from Kakoune / the session name / etc.
   if cli.server {
-    Server::bootstrap(&config, cli.daemonize)?;
+    return Server::bootstrap(&config, &cli);
   }
 
   if cli.kakoune {
