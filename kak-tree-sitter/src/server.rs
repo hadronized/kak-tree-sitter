@@ -264,9 +264,7 @@ impl ServerState {
       for event in &events {
         match event.token() {
           Self::UNIX_LISTENER_TOKEN if event.is_readable() => self.accept_unix_request()?,
-
           tkn if event.is_readable() => self.accept_cmd_fifo_req(tkn)?,
-
           _ => (),
         }
       }
