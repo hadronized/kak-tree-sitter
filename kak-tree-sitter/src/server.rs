@@ -19,6 +19,7 @@ use kak_tree_sitter_config::Config;
 use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token};
 
 use crate::{
+  cli::Cli,
   error::OhNo,
   handler::Handler,
   request::{Request, UnidentifiedRequest},
@@ -36,7 +37,8 @@ impl Server {
     Ok(Self { server_state })
   }
 
-  pub fn bootstrap(config: &Config, daemonize: bool) -> Result<(), OhNo> {
+  /// Return whether we run as a server.
+  pub fn bootstrap(config: &Config, cli: &Cli) -> Result<(), OhNo> {
     // find a runtime directory to write in
     let runtime_dir = ServerState::runtime_dir()?;
     eprintln!("running in {}", runtime_dir.display());
@@ -46,14 +48,26 @@ impl Server {
 
     // check whether a pid file exists and can be read
     if let Ok(pid) = std::fs::read_to_string(&pid_file) {
+      let pid = pid.trim();
+      eprintln!("checking whether PID {pid} is still up…");
+
       // if the contained pid corresponds to a running process, stop right away
       // otherwise, remove the files left by the previous instance and continue
       if Command::new("ps")
-        .args(["-p", &pid])
+        .args(["-p", pid])
         .output()
         .is_ok_and(|o| o.status.success())
       {
-        eprintln!("kak-tree-sitter already running; exiting");
+        eprintln!("kak-tree-sitter already running; not starting a new server");
+
+        if let Some(ref session) = cli.session {
+          let initial_req = UnidentifiedRequest::NewSession {
+            name: session.clone(),
+          };
+
+          Self::send_request(initial_req)?;
+        }
+
         return Ok(());
       } else {
         eprintln!("cleaning up previous instance");
@@ -67,7 +81,7 @@ impl Server {
       err,
     })?;
 
-    if daemonize {
+    if cli.daemonize {
       // create stdout / stderr files
       let stdout_path = runtime_dir.join("stdout.txt");
       let stderr_path = runtime_dir.join("stderr.txt");
@@ -97,10 +111,24 @@ impl Server {
       })?;
     }
 
-    Server::new(config)?.start()
+    Server::new(config)?.start(cli)?;
+
+    Ok(())
   }
 
-  fn start(mut self) -> Result<(), OhNo> {
+  fn start(mut self, cli: &Cli) -> Result<(), OhNo> {
+    // check whether we were started from Kakoune with a session name; if so, take the session into account and
+    // initialize it
+    if cli.kakoune {
+      if let Some(ref session) = cli.session {
+        let initial_req = UnidentifiedRequest::NewSession {
+          name: session.clone(),
+        };
+
+        self.server_state.treat_unidentified_request(initial_req)?;
+      }
+    }
+
     self.server_state.start()
   }
 
