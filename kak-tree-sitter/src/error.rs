@@ -1,11 +1,18 @@
 use std::{io, path::PathBuf};
 
+use log::SetLoggerError;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum OhNo {
   #[error("no runtime directory")]
   NoRuntimeDir,
+
+  #[error("cannot initialize logging: {err}")]
+  LoggerInit {
+    #[from]
+    err: SetLoggerError,
+  },
 
   #[error("cannot create directory {dir}: {err}")]
   CannotCreateDir { dir: PathBuf, err: io::Error },

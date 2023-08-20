@@ -20,10 +20,7 @@ impl KakSession {
     let resp = resp.to_kak_cmd(client);
 
     match resp {
-      Some(resp) => {
-        eprintln!("sending response to Kakoune {resp:?}");
-        self.send_response_raw(&resp)
-      }
+      Some(resp) => self.send_response_raw(&resp),
 
       _ => Ok(()),
     }

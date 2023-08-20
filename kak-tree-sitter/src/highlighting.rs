@@ -139,7 +139,7 @@ impl KakHighlightRange {
 
         HighlightEvent::HighlightStart(Highlight(idx)) => {
           if idx >= hl_names.len() {
-            eprintln!(
+            log::error!(
               "unrecognized highlight group index: {idx} (len: {len}), groups = {hl_names:?}",
               len = hl_names.len()
             );

@@ -45,12 +45,12 @@ impl Handler {
   ) -> Result<Response, OhNo> {
     match req {
       Request::TryEnableHighlight { lang, .. } => {
-        eprintln!("try enable highlight for session {session:?}");
+        log::info!("try enable highlight for language {lang}, session {session:?}");
 
         let supported = self.langs.get(lang).is_some();
 
         if !supported {
-          eprintln!("{}", format!("language {lang} is not supported").red());
+          log::warn!("{}", format!("language {lang} is not supported").red());
         }
 
         Ok(Response::FiletypeSupported { supported })
@@ -62,7 +62,7 @@ impl Handler {
         timestamp,
         ..
       } => {
-        eprintln!(
+        log::debug!(
           "highlight for session {session:?}, buffer {buffer}, lang {lang}, timestamp {timestamp}"
         );
 
