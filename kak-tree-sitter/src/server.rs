@@ -164,7 +164,11 @@ impl ServerResources {
 
 impl Drop for ServerResources {
   fn drop(&mut self) {
-    let _ = std::fs::remove_dir_all(&self.runtime_dir);
+    // NOTE (#84): I’m not entirely sure what we should delete, because if KTS crashes for whatever reason, we will want
+    // to keep access to the logs…
+
+    // for now, we just remove the pid file so that we don’t cleanup next time we start
+    let _ = std::fs::remove_dir_all(self.runtime_dir.join("pid"));
   }
 }
 
@@ -244,7 +248,7 @@ impl ServerState {
 
   /// Start the server state and wait for events to be dispatched.
   pub fn start(&mut self) -> Result<(), OhNo> {
-    eprintln!("starting server");
+    log::info!("starting server");
 
     let mut events = Events::with_capacity(1024);
     loop {
@@ -280,7 +284,7 @@ impl ServerState {
       .accept()
       .map_err(|err| OhNo::UnixConnectionError { err })?;
 
-    println!("client connected: {client:?}");
+    log::info!("client connected: {client:?}");
 
     // read the request and parse it
     let mut req_str = String::new();
@@ -289,7 +293,7 @@ impl ServerState {
       .map_err(|err| OhNo::InvalidRequest {
         err: err.to_string(),
       })?;
-    println!("UNIX socket request: {req_str}");
+    log::info!("UNIX socket request: {req_str}");
 
     let req = serde_json::from_str::<UnidentifiedRequest>(&req_str).map_err(|err| {
       OhNo::InvalidRequest {
@@ -429,7 +433,7 @@ impl ServerState {
       let mut session = KakSession::new(&session_fifo.session_name);
 
       for cmd in split_cmds {
-        println!("FIFO request: {cmd}");
+        log::info!("FIFO request: {cmd}");
         let req = serde_json::from_str::<Request>(cmd).map_err(|err| OhNo::InvalidRequest {
           err: err.to_string(),
         });
@@ -444,17 +448,17 @@ impl ServerState {
                 let client = req.client_name();
 
                 if let Err(err) = session.send_response(client, &resp) {
-                  eprintln!("failure while sending response: {}", format!("{err}").red());
+                  log::error!("failure while sending response: {}", format!("{err}").red());
                 }
               }
               Err(err) => {
-                eprintln!("handling request failed: {}", format!("{err}").red());
+                log::error!("handling request failed: {}", format!("{err}").red());
               }
             }
           }
 
           Err(err) => {
-            eprintln!("malformed request: {}", format!("{err}").red());
+            log::error!("malformed request: {}", format!("{err}").red());
           }
         }
       }

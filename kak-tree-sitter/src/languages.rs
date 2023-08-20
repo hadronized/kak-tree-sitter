@@ -4,7 +4,6 @@
 
 use std::{collections::HashMap, path::Path};
 
-use colored::Colorize;
 use kak_tree_sitter_config::Config;
 use libloading::Symbol;
 use tree_sitter_highlight::HighlightConfiguration;
@@ -57,24 +56,21 @@ impl Languages {
 
     // iterate over all known languages in the configuration
     for lang_name in config.languages.language.keys() {
-      println!(
-        "loading configuration for {lang_name}",
-        lang_name = lang_name.blue()
-      );
+      log::info!("loading configuration for {lang_name}",);
 
       if let Some(grammar_path) = config.languages.get_grammar_path(lang_name) {
-        println!("  grammar path: {}", grammar_path.display());
+        log::info!("  grammar path: {}", grammar_path.display());
 
         let (ts_lib, ts_lang) = match Self::load_grammar(lang_name, &grammar_path) {
           Ok(x) => x,
           Err(err) => {
-            eprintln!("{}", err.to_string().red());
+            log::warn!("{err}");
             continue;
           }
         };
 
         if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {
-          println!("  queries directory: {}", queries_dir.display());
+          log::info!("  queries directory: {}", queries_dir.display());
 
           let queries = Queries::load_from_dir(queries_dir);
           let mut hl_config = HighlightConfiguration::new(
