@@ -13,7 +13,7 @@ edition = "2021"
 rust-version = "1.65.0"
 
 [dependencies]
-clap = { version = "4.3.19", features = ["derive"] }
+clap = { version = "4.3.23", features = ["derive"] }
 colored = "2.0.4"
 daemonize = "0.5.0"
 dirs = "5.0.0"
