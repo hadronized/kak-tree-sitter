@@ -32,8 +32,8 @@ pub struct Server {
 }
 
 impl Server {
-  fn new(config: &Config) -> Result<Self, OhNo> {
-    let server_state = ServerState::new(config)?;
+  fn new(config: &Config, is_standalone: bool) -> Result<Self, OhNo> {
+    let server_state = ServerState::new(config, is_standalone)?;
     Ok(Self { server_state })
   }
 
@@ -111,7 +111,7 @@ impl Server {
       })?;
     }
 
-    Server::new(config)?.start(cli)?;
+    Server::new(config, !cli.kakoune)?.start(cli)?;
 
     Ok(())
   }
@@ -175,6 +175,9 @@ impl Drop for ServerResources {
 pub struct ServerState {
   resources: ServerResources,
 
+  // whether we were started as a standalone server
+  is_standalone: bool,
+
   // readable poll
   poll: Poll,
 
@@ -201,7 +204,7 @@ impl ServerState {
   const UNIX_LISTENER_TOKEN: Token = Token(0);
   const CMD_FIFO_FIRST_TOKEN: Token = Token(1);
 
-  pub fn new(config: &Config) -> Result<Self, OhNo> {
+  pub fn new(config: &Config, is_standalone: bool) -> Result<Self, OhNo> {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
     let mut unix_listener = UnixListener::bind(ServerState::socket_dir()?)
@@ -222,6 +225,7 @@ impl ServerState {
       .map_err(|err| OhNo::CannotStartPoll { err })?;
 
     Ok(ServerState {
+      is_standalone,
       resources,
       poll,
       unix_listener,
@@ -260,6 +264,7 @@ impl ServerState {
       if let Err(err) = self.poll.poll(&mut events, None) {
         if err.kind() == io::ErrorKind::WouldBlock {
           // spurious events
+          log::warn!("spurious event: {err}");
           continue;
         } else {
           return Err(OhNo::PollEventsError { err });
@@ -267,6 +272,11 @@ impl ServerState {
       }
 
       for event in &events {
+        if event.is_error() {
+          log::warn!("errored poll event: {event:?}, ignoring");
+          continue;
+        }
+
         match event.token() {
           Self::UNIX_LISTENER_TOKEN if event.is_readable() => self.accept_unix_request()?,
           tkn if event.is_readable() => self.accept_cmd_fifo_req(tkn)?,
@@ -382,7 +392,8 @@ impl ServerState {
       self.cmd_fifos.remove(&token);
     }
 
-    if self.cmd_fifos.is_empty() {
+    // only shutdown if were started with an initial session (non standalone)
+    if !self.is_standalone && self.cmd_fifos.is_empty() {
       self.shutdown = true;
     }
 
@@ -404,7 +415,7 @@ impl ServerState {
         err: err.to_string(),
       })?;
 
-      let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o777) };
+      let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o644) };
       if c_err != 0 {
         return Err(OhNo::CannotCreateFifo {
           err: format!("cannot create FIFO file for session {session_name}"),
