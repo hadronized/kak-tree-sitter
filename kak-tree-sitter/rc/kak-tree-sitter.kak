@@ -13,6 +13,11 @@ declare-option str kts_buf_fifo_path
 # Highlight ranges used when highlighting buffers.
 declare-option range-specs kts_highlighter_ranges
 
+# Tree-sitter language to use to highlight buffers’ content.
+#
+# This option will expand its content.
+declare-option str kts_lang
+
 # Faces definition; defaults to catppuccin_macchiato (TODO: will be deleted when theme support lands)
 declare-option str kts_rosewater 'rgb:f4dbd6'
 declare-option str kts_flamingo 'rgb:f0c6c6'
@@ -69,7 +74,7 @@ define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
 # the same FIFO.
 define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
   evaluate-commands -no-hooks %{
-    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{filetype}"", ""timestamp"": %val{timestamp} }"
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp} }"
     write %opt{kts_buf_fifo_path}
   }
 }
@@ -96,11 +101,18 @@ define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-
   hook -group kak-tree-sitter buffer NormalIdle .* kak-tree-sitter-highlight-buffer
 }
 
-# Enable automatic tree-sitter highlights if possible.
+# Set %opt{kts_lang} for the current buffer.
+#
+# The default implementation forwards %opt{filetype}.
+define-command -hidden kak-tree-sitter-set-lang %{
+  set-option buffer kts_lang %opt{filetype}
+}
+
 hook -group kak-tree-sitter global WinCreate .* %{
   hook -group kak-tree-sitter buffer -once WinDisplay .* %{
-    # Try enable highlighting for the current file type.
-    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{filetype}"", ""client"": ""%val{client}"" }"
+    # Enable automatic tree-sitter highlights if possible.
+    kak-tree-sitter-set-lang
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{kts_lang}"", ""client"": ""%val{client}"" }"
   }
 }
 
