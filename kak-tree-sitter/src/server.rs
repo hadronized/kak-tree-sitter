@@ -20,7 +20,7 @@ use std::{
 
 use colored::Colorize;
 use kak_tree_sitter_config::Config;
-use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token};
+use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 
 use crate::{
   cli::Cli,
@@ -205,12 +205,14 @@ pub struct ServerState {
 }
 
 impl ServerState {
-  const UNIX_LISTENER_TOKEN: Token = Token(0);
-  const CMD_FIFO_FIRST_TOKEN: Token = Token(1);
+  const WAKER_TOKEN: Token = Token(0);
+  const UNIX_LISTENER_TOKEN: Token = Token(1);
+  const CMD_FIFO_FIRST_TOKEN: Token = Token(2);
 
   pub fn new(config: &Config, is_standalone: bool) -> Result<Self, OhNo> {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
+    let waker = Arc::new(Waker::new(poll.registry(), Self::WAKER_TOKEN)?);
     let mut unix_listener = UnixListener::bind(ServerState::socket_dir()?)
       .map_err(|err| OhNo::CannotStartServer { err })?;
     let shutdown = Arc::new(AtomicBool::new(false));
@@ -225,6 +227,7 @@ impl ServerState {
       ctrlc::set_handler(move || {
         log::warn!("received SIGINT");
         shutdown.store(true, Ordering::Relaxed);
+        waker.wake().unwrap();
       })?;
     }
 
@@ -275,12 +278,17 @@ impl ServerState {
 
       log::debug!("waiting on poll…");
       if let Err(err) = self.poll.poll(&mut events, None) {
-        if err.kind() == io::ErrorKind::WouldBlock {
-          // spurious events
-          log::warn!("spurious event: {err}");
-          continue;
-        } else {
-          return Err(OhNo::PollEventsError { err });
+        match err.kind() {
+          io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted => {
+            // spurious events
+            log::warn!("mio spurious event: {err}");
+            continue;
+          }
+
+          _ => {
+            log::error!("mio poll error: {err}");
+            return Err(OhNo::PollEventsError { err });
+          }
         }
       }
 
@@ -291,6 +299,11 @@ impl ServerState {
         }
 
         match event.token() {
+          Self::WAKER_TOKEN => {
+            log::debug!("waking up mio poll before shutting down");
+            break;
+          }
+
           Self::UNIX_LISTENER_TOKEN if event.is_readable() => self.accept_unix_request()?,
           tkn if event.is_readable() => self.accept_cmd_fifo_req(tkn)?,
           _ => (),
