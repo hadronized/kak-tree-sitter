@@ -32,6 +32,12 @@ pub enum OhNo {
   #[error("error while waiting for events: {err}")]
   PollEventsError { err: io::Error },
 
+  #[error("cannot set SIGINT handler: {err}")]
+  SigIntHandlerError {
+    #[from]
+    err: ctrlc::Error,
+  },
+
   #[error("IO error: {err}")]
   IOError {
     #[from]

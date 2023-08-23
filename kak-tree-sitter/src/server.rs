@@ -12,6 +12,10 @@ use std::{
   },
   path::{Path, PathBuf},
   process::Command,
+  sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc,
+  },
 };
 
 use colored::Colorize;
@@ -185,7 +189,7 @@ pub struct ServerState {
   unix_listener: UnixListener,
 
   // whether we should shutdown
-  shutdown: bool,
+  shutdown: Arc<AtomicBool>,
 
   // active command FIFOs; one per session
   cmd_fifos: HashMap<Token, SessionFifo>,
@@ -209,11 +213,20 @@ impl ServerState {
     let poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
     let mut unix_listener = UnixListener::bind(ServerState::socket_dir()?)
       .map_err(|err| OhNo::CannotStartServer { err })?;
-    let shutdown = false;
+    let shutdown = Arc::new(AtomicBool::new(false));
     let cmd_fifos = HashMap::default();
     let next_token = Self::CMD_FIFO_FIRST_TOKEN;
     let free_tokens = Vec::default();
     let req_handler = Handler::new(config)?;
+
+    // SIGINT handler; we just ask to shutdown the server
+    {
+      let shutdown = shutdown.clone();
+      ctrlc::set_handler(move || {
+        log::warn!("received SIGINT");
+        shutdown.store(true, Ordering::Relaxed);
+      })?;
+    }
 
     poll
       .registry()
@@ -256,7 +269,7 @@ impl ServerState {
 
     let mut events = Events::with_capacity(1024);
     loop {
-      if self.shutdown {
+      if self.shutdown.load(Ordering::Relaxed) {
         break;
       }
 
@@ -284,6 +297,8 @@ impl ServerState {
         }
       }
     }
+
+    log::info!("shutting down");
 
     Ok(())
   }
@@ -329,7 +344,7 @@ impl ServerState {
       UnidentifiedRequest::SessionExit { name } => self.recycle_session_fifo(name)?,
 
       UnidentifiedRequest::Shutdown => {
-        self.shutdown = true;
+        self.shutdown.store(true, Ordering::Relaxed);
       }
     }
 
@@ -394,7 +409,7 @@ impl ServerState {
 
     // only shutdown if were started with an initial session (non standalone)
     if !self.is_standalone && self.cmd_fifos.is_empty() {
-      self.shutdown = true;
+      self.shutdown.store(true, Ordering::Relaxed);
     }
 
     Ok(())
