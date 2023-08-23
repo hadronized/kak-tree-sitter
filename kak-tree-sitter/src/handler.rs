@@ -68,8 +68,10 @@ impl Handler {
 
         let buffer_id = BufferId::new(&session.session_name, buffer);
 
-        // read the buffer content from the command FIFO; this is the law
+        // read the buffer content from the buffer FIFO; this is the law
+        log::debug!("waiting for buffer FIFO…");
         let payload = fs::read_to_string(session_fifo.buffer_fifo_path())?;
+        log::debug!("buffer FIFO read");
 
         Ok(self.handle_highlight_req(buffer_id, lang, *timestamp, &payload)?)
       }

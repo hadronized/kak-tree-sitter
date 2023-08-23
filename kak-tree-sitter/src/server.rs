@@ -256,6 +256,7 @@ impl ServerState {
         break;
       }
 
+      log::debug!("waiting on poll…");
       if let Err(err) = self.poll.poll(&mut events, None) {
         if err.kind() == io::ErrorKind::WouldBlock {
           // spurious events
@@ -426,8 +427,10 @@ impl ServerState {
   /// Accept a command request on a FIFO identified by a token.
   fn accept_cmd_fifo_req(&mut self, token: Token) -> Result<(), OhNo> {
     if let Some(session_fifo) = self.cmd_fifos.get_mut(&token) {
+      log::debug!("waiting for command FIFO…");
       let mut commands = String::new();
       session_fifo.cmd_fifo.read_to_string(&mut commands)?;
+      log::debug!("command FIFO read");
 
       let split_cmds = commands.split(';').filter(|s| !s.is_empty());
       let mut session = KakSession::new(&session_fifo.session_name);
