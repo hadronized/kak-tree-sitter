@@ -278,17 +278,11 @@ impl ServerState {
 
       log::debug!("waiting on poll…");
       if let Err(err) = self.poll.poll(&mut events, None) {
-        match err.kind() {
-          io::ErrorKind::WouldBlock | io::ErrorKind::Interrupted => {
-            // spurious events
-            log::warn!("mio spurious event: {err}");
-            continue;
-          }
+        // spurious events
+        log::error!("mio spurious event: {err}");
 
-          _ => {
-            log::error!("mio poll error: {err}");
-            return Err(OhNo::PollEventsError { err });
-          }
+        if err.kind() == io::ErrorKind::WouldBlock {
+          continue;
         }
       }
 
@@ -297,6 +291,8 @@ impl ServerState {
           log::warn!("errored poll event: {event:?}, ignoring");
           continue;
         }
+
+        log::trace!("mio event: {event:#?}");
 
         match event.token() {
           Self::WAKER_TOKEN => {
