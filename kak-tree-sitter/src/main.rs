@@ -3,6 +3,7 @@ mod error;
 mod handler;
 mod highlighting;
 mod languages;
+mod logging;
 mod queries;
 mod rc;
 mod request;
@@ -15,6 +16,7 @@ use cli::Cli;
 use colored::Colorize;
 use error::OhNo;
 use kak_tree_sitter_config::Config;
+use logging::Verbosity;
 use request::UnidentifiedRequest;
 use server::Server;
 
@@ -39,7 +41,10 @@ fn start() -> Result<(), OhNo> {
   // server is started, like whether we started from Kakoune / the session name / etc.
   if cli.server {
     // server code has logging enabled, so we need to enable it first
-    simple_logger::init()?;
+    if let Some(level) = Verbosity::from_count(cli.verbose).to_level() {
+      simple_logger::init_with_level(level)?;
+    }
+
     return Server::bootstrap(&config, &cli);
   }
 
