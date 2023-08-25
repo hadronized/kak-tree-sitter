@@ -278,20 +278,14 @@ impl ServerState {
 
       log::debug!("waiting on poll…");
       if let Err(err) = self.poll.poll(&mut events, None) {
-        // spurious events
-        log::error!("mio spurious event: {err}");
-
-        if err.kind() == io::ErrorKind::WouldBlock {
-          continue;
+        if err.kind() == io::ErrorKind::Interrupted {
+          log::warn!("mio interrupted");
+        } else {
+          return Err(OhNo::from(err));
         }
       }
 
       for event in &events {
-        if event.is_error() {
-          log::warn!("errored poll event: {event:?}, ignoring");
-          continue;
-        }
-
         log::trace!("mio event: {event:#?}");
 
         match event.token() {
@@ -464,7 +458,19 @@ impl ServerState {
     if let Some(session_fifo) = self.cmd_fifos.get_mut(&token) {
       log::debug!("waiting for command FIFO…");
       let mut commands = String::new();
-      session_fifo.cmd_fifo.read_to_string(&mut commands)?;
+
+      loop {
+        match session_fifo.cmd_fifo.read_to_string(&mut commands) {
+          Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+            log::error!("command FIFO is not ready");
+            continue;
+          }
+          x => x?,
+        };
+
+        break;
+      }
+
       log::debug!("command FIFO read");
 
       let split_cmds = commands.split(';').filter(|s| !s.is_empty());

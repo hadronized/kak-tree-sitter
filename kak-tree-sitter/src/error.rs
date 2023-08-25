@@ -38,7 +38,7 @@ pub enum OhNo {
     err: ctrlc::Error,
   },
 
-  #[error("IO error: {err}")]
+  #[error("IO error: {err:#?}")]
   IOError {
     #[from]
     err: io::Error,
