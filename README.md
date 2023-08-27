@@ -23,21 +23,11 @@ See [the milestones](https://github.com/phaazon/kak-tree-sitter/milestones).
 
 ## Install
 
-Currently, the only installation channel, which is not ideal, is via `cargo`:
-
-```sh
-cargo install kak-tree-sitter
-```
-
-Optionally, you can install the CLI controller:
-
-```sh
-cargo install ktsctl
-```
+See the wiki section about [how to instal](https://github.com/phaazon/kak-tree-sitter/wiki/Install).
 
 ## Usage
 
-See the [wiki](https://github.com/phaazon/kak-tree-sitter/wiki).
+See the wiki part about [the usage](https://github.com/phaazon/kak-tree-sitter/wiki/Usage).
 
 ## Design
 
