@@ -291,7 +291,7 @@ checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 
 [[package]]
 name = "kak-tree-sitter"
-version = "0.4.0-next"
+version = "0.4.1"
 dependencies = [
  "clap",
  "colored",
