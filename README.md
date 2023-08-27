@@ -23,7 +23,7 @@ See [the milestones](https://github.com/phaazon/kak-tree-sitter/milestones).
 
 ## Install
 
-See the wiki section about [how to instal](https://github.com/phaazon/kak-tree-sitter/wiki/Install).
+See the wiki section about [how to install](https://github.com/phaazon/kak-tree-sitter/wiki/Install).
 
 ## Usage
 
