@@ -1,6 +1,12 @@
 use clap::Parser;
 
 #[derive(Debug, Parser)]
+#[clap(
+  author = "Dimitri Sabadie <dimitri.sabadie@gmail.com>",
+  name = "ktsctl",
+  version,
+  about = "CLI controler of kak-tree-sitter"
+)]
 pub struct Cli {
   /// Fetch resources.
   #[clap(short, long)]

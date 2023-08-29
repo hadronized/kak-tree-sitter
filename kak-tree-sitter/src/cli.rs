@@ -1,7 +1,12 @@
 use clap::Parser;
 
 #[derive(Debug, Parser)]
-#[clap(about = "A client/server interface between Kakoune and tree-sitter.")]
+#[clap(
+  author = "Dimitri Sabadie <dimitri.sabadie@gmail.com>",
+  name = "kak-tree-sitter",
+  version,
+  about = "A client/server interface between Kakoune and tree-sitter."
+)]
 pub struct Cli {
   /// Whether we start from Kakoune and then we should issue an initial request for setup.
   #[clap(short, long)]
