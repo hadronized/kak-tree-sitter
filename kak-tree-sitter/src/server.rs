@@ -457,12 +457,13 @@ impl ServerState {
   fn accept_cmd_fifo_req(&mut self, token: Token) -> Result<(), OhNo> {
     if let Some(session_fifo) = self.cmd_fifos.get_mut(&token) {
       log::debug!("waiting for command FIFO…");
-      let mut commands = String::new();
+      let mut cmd = String::new();
 
       loop {
-        match session_fifo.cmd_fifo.read_to_string(&mut commands) {
+        match session_fifo.cmd_fifo.read_to_string(&mut cmd) {
           Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
             log::error!("command FIFO is not ready");
+            cmd.clear();
             continue;
           }
           x => x?,
@@ -473,37 +474,34 @@ impl ServerState {
 
       log::debug!("command FIFO read");
 
-      let split_cmds = commands.split(';').filter(|s| !s.is_empty());
       let mut session = KakSession::new(&session_fifo.session_name);
 
-      for cmd in split_cmds {
-        log::info!("FIFO request: {cmd}");
-        let req = serde_json::from_str::<Request>(cmd).map_err(|err| OhNo::InvalidRequest {
-          err: err.to_string(),
-        });
+      log::info!("FIFO request: {cmd}");
+      let req = serde_json::from_str::<Request>(&cmd).map_err(|err| OhNo::InvalidRequest {
+        err: err.to_string(),
+      });
 
-        match req {
-          Ok(req) => {
-            match self
-              .req_handler
-              .handle_request(&session, session_fifo, &req)
-            {
-              Ok(resp) => {
-                let client = req.client_name();
+      match req {
+        Ok(req) => {
+          match self
+            .req_handler
+            .handle_request(&session, session_fifo, &req)
+          {
+            Ok(resp) => {
+              let client = req.client_name();
 
-                if let Err(err) = session.send_response(client, &resp) {
-                  log::error!("failure while sending response: {}", format!("{err}").red());
-                }
-              }
-              Err(err) => {
-                log::error!("handling request failed: {}", format!("{err}").red());
+              if let Err(err) = session.send_response(client, &resp) {
+                log::error!("failure while sending response: {}", format!("{err}").red());
               }
             }
+            Err(err) => {
+              log::error!("handling request failed: {}", format!("{err}").red());
+            }
           }
+        }
 
-          Err(err) => {
-            log::error!("malformed request: {}", format!("{err}").red());
-          }
+        Err(err) => {
+          log::error!("malformed request: {}", format!("{err}").red());
         }
       }
     }
