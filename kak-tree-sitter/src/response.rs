@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use itertools::Itertools;
 
-use crate::{highlighting::KakHighlightRange, rc};
+use crate::highlighting::KakHighlightRange;
 
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]
@@ -47,15 +47,15 @@ impl Response {
         cmd_fifo_path,
         buf_fifo_path,
       } => [
-        rc::rc_commands(),
-        &format!(
+        format!(
           "set-option global kts_cmd_fifo_path {path};",
           path = cmd_fifo_path.display()
         ),
-        &format!(
+        format!(
           "set-option global kts_buf_fifo_path {path};",
           path = buf_fifo_path.display()
         ),
+        "kak-tree-sitter-req-enable;".to_owned(),
       ]
       .join("\n"),
 
@@ -86,7 +86,7 @@ impl Response {
     }
 
     let prefix = if let Some(client) = client {
-      format!("-client {client} ")
+      format!("-try-client {client} ")
     } else {
       String::new()
     };

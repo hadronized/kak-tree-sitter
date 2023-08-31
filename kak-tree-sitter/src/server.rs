@@ -63,15 +63,6 @@ impl Server {
         .is_ok_and(|o| o.status.success())
       {
         eprintln!("kak-tree-sitter already running; not starting a new server");
-
-        if let Some(ref session) = cli.session {
-          let initial_req = UnidentifiedRequest::NewSession {
-            name: session.clone(),
-          };
-
-          Self::send_request(initial_req)?;
-        }
-
         return Ok(());
       } else {
         eprintln!("cleaning up previous instance");
@@ -115,24 +106,12 @@ impl Server {
       })?;
     }
 
-    Server::new(config, !cli.kakoune)?.start(cli)?;
+    Server::new(config, !cli.kakoune)?.start()?;
 
     Ok(())
   }
 
-  fn start(mut self, cli: &Cli) -> Result<(), OhNo> {
-    // check whether we were started from Kakoune with a session name; if so, take the session into account and
-    // initialize it
-    if cli.kakoune {
-      if let Some(ref session) = cli.session {
-        let initial_req = UnidentifiedRequest::NewSession {
-          name: session.clone(),
-        };
-
-        self.server_state.treat_unidentified_request(initial_req)?;
-      }
-    }
-
+  fn start(mut self) -> Result<(), OhNo> {
     self.server_state.start()
   }
 
@@ -294,8 +273,18 @@ impl ServerState {
             break;
           }
 
-          Self::UNIX_LISTENER_TOKEN if event.is_readable() => self.accept_unix_request()?,
-          tkn if event.is_readable() => self.accept_cmd_fifo_req(tkn)?,
+          Self::UNIX_LISTENER_TOKEN if event.is_readable() => {
+            if let Err(err) = self.accept_unix_request() {
+              log::error!("{err}");
+            }
+          }
+
+          tkn if event.is_readable() => {
+            if let Err(err) = self.accept_cmd_fifo_req(tkn) {
+              log::error!("{err}");
+            }
+          }
+
           _ => (),
         }
       }
@@ -320,12 +309,14 @@ impl ServerState {
     client
       .read_to_string(&mut req_str)
       .map_err(|err| OhNo::InvalidRequest {
+        req: req_str.clone(),
         err: err.to_string(),
       })?;
     log::info!("UNIX socket request: {req_str}");
 
     let req = serde_json::from_str::<UnidentifiedRequest>(&req_str).map_err(|err| {
       OhNo::InvalidRequest {
+        req: req_str,
         err: err.to_string(),
       }
     })?;
@@ -335,13 +326,13 @@ impl ServerState {
 
   fn treat_unidentified_request(&mut self, req: UnidentifiedRequest) -> Result<(), OhNo> {
     match req {
-      UnidentifiedRequest::NewSession { name } => {
+      UnidentifiedRequest::NewSession { name, client } => {
         let (cmd_fifo_path, buf_fifo_path) = self.add_session_fifo(name.clone())?;
         let resp = Response::Init {
           cmd_fifo_path,
           buf_fifo_path,
         };
-        KakSession::new(name).send_response(None, &resp)?;
+        KakSession::new(name).send_response(Some(&client), &resp)?;
       }
 
       UnidentifiedRequest::SessionExit { name } => self.recycle_session_fifo(name)?,
@@ -395,10 +386,13 @@ impl ServerState {
 
   /// Recycle a session.
   fn recycle_session_fifo(&mut self, session_name: impl AsRef<str>) -> Result<(), OhNo> {
+    let session_name = session_name.as_ref();
+
+    log::info!("recycling session {session_name}");
     if let Some((token, session_fifo)) = self
       .cmd_fifos
       .iter()
-      .find(|(_, session_fifo)| session_fifo.session_name == session_name.as_ref())
+      .find(|(_, session_fifo)| session_fifo.session_name == session_name)
     {
       let token = *token;
       self
@@ -412,6 +406,7 @@ impl ServerState {
 
     // only shutdown if were started with an initial session (non standalone)
     if !self.is_standalone && self.cmd_fifos.is_empty() {
+      log::info!("{session_name} was the last session alive; stopping the server…");
       self.shutdown.store(true, Ordering::Relaxed);
     }
 
@@ -478,6 +473,7 @@ impl ServerState {
 
       log::info!("FIFO request: {cmd}");
       let req = serde_json::from_str::<Request>(&cmd).map_err(|err| OhNo::InvalidRequest {
+        req: cmd,
         err: err.to_string(),
       });
 
