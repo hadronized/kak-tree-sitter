@@ -4,11 +4,11 @@
 # Options used by KTS at runtime.
 
 # FIFO command path; this is used by Kakoune to write commands to be executed by KTS for the current session.
-declare-option str kts_cmd_fifo_path
+declare-option str kts_cmd_fifo_path /dev/null
 
 # FIFO buffer path; this is used by Kakoune to write the content of buffers to be highlighted / analyzed by KTS for the
 # current session. 
-declare-option str kts_buf_fifo_path
+declare-option str kts_buf_fifo_path /dev/null
 
 # Highlight ranges used when highlighting buffers.
 declare-option range-specs kts_highlighter_ranges
@@ -114,12 +114,27 @@ define-command kak-tree-sitter-req-enable -docstring 'Send request to enable tre
   echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{kts_lang}"", ""client"": ""%val{client}"" }"
 }
 
+# Initiate request.
+#
+# This is used to ask the server to tell us where to write commands and other various data.
+define-command -hidden kak-tree-sitter-req-init %{
+  nop %sh{
+    kak-tree-sitter -r "{ \"type\": \"new_session\", \"name\": \"$kak_session\", \"client\": \"$kak_client\" }"
+  }
+}
+
+# Enable tree-sitter once we open a new window.
 hook -group kak-tree-sitter global WinCreate .* %{
   hook -group kak-tree-sitter buffer -once WinDisplay .* kak-tree-sitter-req-enable
 }
 
 # Make kak-tree-sitter know the session has ended whenever we end it.
 hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-req-end-session
+
+# Wait to have a client and then ask the server to initiate.
+hook -group kak-tree-sitter global -once ClientCreate .* %{
+  kak-tree-sitter-req-init 
+}
 
 #set-face global ts_unknown                     red+ub
 set-face global ts_attribute                    "%opt{kts_teal}"

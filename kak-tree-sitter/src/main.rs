@@ -37,6 +37,11 @@ fn start() -> Result<(), OhNo> {
     }
   };
 
+  // inject static.kak if we are starting from Kakoune
+  if cli.kakoune {
+    println!("{}", rc::static_kak());
+  }
+
   // server logic implies short-circuiting the rest; hence why we have to pass it &cli to check some stuff once the
   // server is started, like whether we started from Kakoune / the session name / etc.
   if cli.server {
@@ -48,20 +53,11 @@ fn start() -> Result<(), OhNo> {
     return Server::bootstrap(&config, &cli);
   }
 
-  if cli.kakoune {
-    // when starting from Kakoune, we manually issue a first request to setup the Kakoune session
-    if let Some(name) = cli.session {
-      let req = UnidentifiedRequest::NewSession { name };
-      Server::send_request(req)?;
-    } else {
-      return Err(OhNo::InvalidRequest {
-        err: "missing session name; start with --session -s <session-name>".to_owned(),
-      });
-    }
-  } else if let Some(request) = cli.request {
+  if let Some(request) = cli.request {
     // otherwise, regular client
     let req = serde_json::from_str::<UnidentifiedRequest>(&request).map_err(|err| {
       OhNo::InvalidRequest {
+        req: request,
         err: err.to_string(),
       }
     })?;
@@ -71,8 +67,8 @@ fn start() -> Result<(), OhNo> {
       req
     };
 
-    Server::send_request(req)?;
+    return Server::send_request(req);
   }
 
-  Ok(())
+  Err(OhNo::NothingToDo)
 }

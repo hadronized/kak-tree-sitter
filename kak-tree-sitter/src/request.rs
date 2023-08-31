@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum UnidentifiedRequest {
   /// Inform KTS that a new session exists and that we should be sending back the Kakoune commands to get KTS features.
-  NewSession { name: String },
+  NewSession { name: String, client: String },
 
   /// Inform KTS that a session has exited.
   SessionExit { name: String },
@@ -24,8 +24,12 @@ impl UnidentifiedRequest {
     let name = name.into();
 
     match self {
-      UnidentifiedRequest::NewSession { .. } => UnidentifiedRequest::NewSession { name },
+      UnidentifiedRequest::NewSession { client, .. } => {
+        UnidentifiedRequest::NewSession { name, client }
+      }
+
       UnidentifiedRequest::SessionExit { .. } => UnidentifiedRequest::SessionExit { name },
+
       _ => self,
     }
   }

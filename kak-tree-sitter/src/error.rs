@@ -5,6 +5,9 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum OhNo {
+  #[error("nothing to do; please either use --server or --request")]
+  NothingToDo,
+
   #[error("no runtime directory")]
   NoRuntimeDir,
 
@@ -56,8 +59,8 @@ pub enum OhNo {
   #[error("UNIX connection error: {err}")]
   UnixConnectionError { err: io::Error },
 
-  #[error("invalid request: {err}")]
-  InvalidRequest { err: String },
+  #[error("invalid request {req}: {err}")]
+  InvalidRequest { req: String, err: String },
 
   #[error("cannot connect to server; is it running?: {err}")]
   CannotConnectToServer { err: io::Error },
