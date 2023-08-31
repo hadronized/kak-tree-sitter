@@ -47,7 +47,7 @@ declare-option str kts_surface0 'rgb:363a4f'
 # Mark the session as non-active.
 #
 # This is typically sent when a session is about to die; see KakEnd for further details.
-define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session as ended' %{
+define-command -hidden kak-tree-sitter-req-end-session -docstring 'Mark the session as ended' %{
   nop %sh{
     kak-tree-sitter -r "{ \"type\": \"session_exit\", \"name\": \"$kak_session\" }"
   }
@@ -56,7 +56,7 @@ define-command -hidden kak-tree-sitter-end-session -docstring 'Mark the session 
 # Stop the kak-tree-sitter daemon.
 #
 # To restart the daemon, the daemon must explicitly be restarted with a %sh{} block.
-define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
+define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' %{
   evaluate-commands -no-hooks -buffer * %{
     remove-hooks buffer kak-tree-sitter
   }
@@ -72,7 +72,7 @@ define-command kak-tree-sitter-stop -docstring 'Ask the daemon to shutdown' %{
 #
 # This will first send the command to highlight the buffer to KTS and then will write the content of the buffer through
 # the same FIFO.
-define-command kak-tree-sitter-highlight-buffer -docstring 'Highlight the current buffer' %{
+define-command kak-tree-sitter-req-highlight-buffer -docstring 'Highlight the current buffer' %{
   evaluate-commands -no-hooks %{
     echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp} }"
     write %opt{kts_buf_fifo_path}
@@ -94,11 +94,11 @@ define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-
   add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kts_highlighter_ranges
 
   # Initial highlighting of the buffer
-  kak-tree-sitter-highlight-buffer
+  kak-tree-sitter-req-highlight-buffer
 
   # Main hooks when enabling highlighting
-  hook -group kak-tree-sitter buffer InsertIdle .* kak-tree-sitter-highlight-buffer
-  hook -group kak-tree-sitter buffer NormalIdle .* kak-tree-sitter-highlight-buffer
+  hook -group kak-tree-sitter buffer InsertIdle .* kak-tree-sitter-req-highlight-buffer
+  hook -group kak-tree-sitter buffer NormalIdle .* kak-tree-sitter-req-highlight-buffer
 }
 
 # Set %opt{kts_lang} for the current buffer.
@@ -108,16 +108,18 @@ define-command -hidden kak-tree-sitter-set-lang %{
   set-option buffer kts_lang %opt{filetype}
 }
 
+# Send a request to KTS to enable kak-tree-sitter.
+define-command kak-tree-sitter-req-enable -docstring 'Send request to enable tree-sitter support' %{
+  kak-tree-sitter-set-lang
+  echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{kts_lang}"", ""client"": ""%val{client}"" }"
+}
+
 hook -group kak-tree-sitter global WinCreate .* %{
-  hook -group kak-tree-sitter buffer -once WinDisplay .* %{
-    # Enable automatic tree-sitter highlights if possible.
-    kak-tree-sitter-set-lang
-    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{kts_lang}"", ""client"": ""%val{client}"" }"
-  }
+  hook -group kak-tree-sitter buffer -once WinDisplay .* kak-tree-sitter-req-enable
 }
 
 # Make kak-tree-sitter know the session has ended whenever we end it.
-hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-end-session
+hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-req-end-session
 
 #set-face global ts_unknown                     red+ub
 set-face global ts_attribute                    "%opt{kts_teal}"
