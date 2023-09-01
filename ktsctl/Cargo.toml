@@ -1,6 +1,6 @@
 [package]
 name = "ktsctl"
-version = "0.3.1"
+version = "0.3.1-dev"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "CLI controler of kak-tree-sitter"
@@ -16,5 +16,5 @@ rust-version = "1.65.0"
 clap = { version = "4.4.0", features = ["derive"] }
 colored = "2.0.4"
 dirs = "5.0.1"
-kak-tree-sitter-config = { version = "0.3.0", path = "../kak-tree-sitter-config" }
+kak-tree-sitter-config = { version = "0.3.0-dev", path = "../kak-tree-sitter-config" }
 thiserror = "1.0.47"
