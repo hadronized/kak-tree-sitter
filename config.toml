@@ -586,7 +586,7 @@ path = "runtime/queries/make"
 # markdown
 [language.markdown.grammar]
 url = "https://github.com/MDeiml/tree-sitter-markdown"
-pin = "231f3163cd27d48f91a4517cfdf72d167a9ef164"
+pin = "aaf76797aa8ecd9a5e78e0ec3681941de6c945ee"
 path = "tree-sitter-markdown/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -603,7 +603,7 @@ path = "runtime/queries/markdown"
 # markdown.inline
 [language."markdown.inline".grammar]
 url = "https://github.com/MDeiml/tree-sitter-markdown"
-pin = "231f3163cd27d48f91a4517cfdf72d167a9ef164"
+pin = "aaf76797aa8ecd9a5e78e0ec3681941de6c945ee"
 path = "tree-sitter-markdown-inline/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -614,7 +614,7 @@ link_flags = ["-O3"]
 
 [language."markdown.inline".queries]
 url = "https://github.com/helix-editor/helix"
-pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+pin = "56ccaedffbb8011e36012278e2a4861a8d435a60"
 path = "runtime/queries/markdown.inline"
 
 # matlab
