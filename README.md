@@ -3,6 +3,8 @@
 This is a binary server that interfaces [tree-sitter](https://tree-sitter.github.io/) with
 [kakoune](https://kakoune.org/).
 
+[![asciicast](https://asciinema.org/a/606062.svg)](https://asciinema.org/a/606062)
+
 - [Features](#features)
 - [Install](#install)
 - [Usage](#usage)
