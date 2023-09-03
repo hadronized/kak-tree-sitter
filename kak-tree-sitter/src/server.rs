@@ -454,18 +454,14 @@ impl ServerState {
       log::debug!("waiting for command FIFO…");
       let mut cmd = String::new();
 
-      loop {
-        match session_fifo.cmd_fifo.read_to_string(&mut cmd) {
-          Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-            log::error!("command FIFO is not ready");
-            cmd.clear();
-            continue;
-          }
-          x => x?,
-        };
+      match session_fifo.cmd_fifo.read_to_string(&mut cmd) {
+        Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+          log::error!("command FIFO is not ready");
+          return Ok(());
+        }
 
-        break;
-      }
+        x => x?,
+      };
 
       log::debug!("command FIFO read");
 
