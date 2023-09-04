@@ -137,7 +137,7 @@ hook -group kak-tree-sitter global -once ClientCreate .* %{
 }
 
 #set-face global ts_unknown                     red+ub
-set-face global ts_attribute                    "%opt{kts_teal}"
+set-face global ts_attribute                    "%opt{kts_blue}"
 set-face global ts_comment                      "%opt{kts_overlay1}+i"
 set-face global ts_comment_block                "ts_comment"
 set-face global ts_comment_line                 "ts_comment"
@@ -223,7 +223,7 @@ set-face global ts_string_special               "%opt{kts_blue}"
 set-face global ts_string_special_path          "%opt{kts_green}"
 set-face global ts_string_special_symbol        "%opt{kts_mauve}"
 set-face global ts_string_symbol                "%opt{kts_red}"
-set-face global ts_tag                          "%opt{kts_teal}"
+set-face global ts_tag                          "%opt{kts_mauve}"
 set-face global ts_tag_error                    "%opt{kts_red}"
 set-face global ts_text                         "%opt{kts_text}"
 set-face global ts_text_title                   "%opt{kts_mauve}"
