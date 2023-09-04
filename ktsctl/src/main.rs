@@ -105,7 +105,7 @@ fn start() -> Result<(), AppError> {
   // check the kak-tree-sitter data dir exists
   let kak_data_dir = kak_tree_sitter_data_dir()?;
   fs::create_dir_all(&kak_data_dir).map_err(|err| AppError::CannotCreateDir {
-    dir: kak_data_dir,
+    dir: kak_data_dir.clone(),
     err,
   })?;
 
@@ -124,6 +124,31 @@ fn start() -> Result<(), AppError> {
   } else {
     grammar_fetch_path.clone()
   };
+
+  if cli.has {
+    let grammars_path = kak_data_dir.join(format!("grammars/{lang}.so"));
+    let grammar = if let Ok(true) = grammars_path.try_exists() {
+      "".green()
+    } else {
+      "".red()
+    };
+
+    let queries_path = kak_data_dir.join(format!("queries/{lang}"));
+    let queries = if let Ok(true) = queries_path.try_exists() {
+      "".green()
+    } else {
+      "".red()
+    };
+
+    println!(
+      "{grammar} {lang} grammar {}",
+      grammars_path.display().to_string().black()
+    );
+    println!(
+      "{queries} {lang} queries {}",
+      queries_path.display().to_string().black()
+    );
+  }
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if cli.fetch {
