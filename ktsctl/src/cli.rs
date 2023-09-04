@@ -22,6 +22,10 @@ pub struct Cli {
   #[clap(short, long)]
   pub install: bool,
 
+  /// Check whether a given language is currently installed and supported.
+  #[clap(long)]
+  pub has: bool,
+
   /// Grammar to fetch.
   ///
   /// Grammars are currently fetched from https://github.com/tree-sitter/.
