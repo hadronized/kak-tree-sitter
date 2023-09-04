@@ -17,4 +17,4 @@ clap = { version = "4.4.0", features = ["derive"] }
 colored = "2.0.4"
 dirs = "5.0.1"
 kak-tree-sitter-config = { version = "0.3.0-dev", path = "../kak-tree-sitter-config" }
-thiserror = "1.0.47"
+thiserror = "1.0.48"
