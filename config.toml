@@ -824,6 +824,23 @@ path = "runtime/queries/scheme"
 # task
 # TODO
 
+# terraform
+[language.terraform.grammar]
+url = "https://github.com/MichaHoffmann/tree-sitter-hcl"
+pin = "b5539065432c08e4118eb3ee7c94902fdda85708"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "terraform.so"]
+link_flags = ["-O3"]
+
+[language.terraform.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "5ab669f1ac546924d96fdf7760d82e047ac4a8b6"
+path = "runtime/queries/hcl"
+
 # tfvars
 # TODO
 
