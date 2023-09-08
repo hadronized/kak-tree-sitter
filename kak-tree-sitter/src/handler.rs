@@ -1,5 +1,3 @@
-use std::fs;
-
 use colored::Colorize;
 use kak_tree_sitter_config::Config;
 
@@ -7,10 +5,7 @@ use crate::{
   error::OhNo,
   highlighting::{BufferId, Highlighters},
   languages::Languages,
-  request::Request,
   response::Response,
-  server::SessionFifo,
-  session::KakSession,
 };
 
 /// Type responsible for handling requests.
@@ -36,46 +31,38 @@ impl Handler {
     })
   }
 
-  /// Handle the request and return an optional response to send back to Kakoune.
-  pub fn handle_request(
+  pub fn handle_try_enable_highlight(
     &mut self,
-    session: &KakSession,
-    session_fifo: &mut SessionFifo,
-    req: &Request,
+    session_name: impl AsRef<str>,
+    lang: &str,
   ) -> Result<Response, OhNo> {
-    match req {
-      Request::TryEnableHighlight { lang, .. } => {
-        log::info!("try enable highlight for language {lang}, session {session:?}");
+    let session_name = session_name.as_ref();
 
-        let supported = self.langs.get(lang).is_some();
+    log::info!("try enable highlight for language {lang}, session {session_name}");
 
-        if !supported {
-          log::warn!("{}", format!("language {lang} is not supported").red());
-        }
+    let supported = self.langs.get(lang).is_some();
 
-        Ok(Response::FiletypeSupported { supported })
-      }
-
-      Request::Highlight {
-        buffer,
-        lang,
-        timestamp,
-        ..
-      } => {
-        log::debug!(
-          "highlight for session {session:?}, buffer {buffer}, lang {lang}, timestamp {timestamp}"
-        );
-
-        let buffer_id = BufferId::new(&session.session_name, buffer);
-
-        // read the buffer content from the buffer FIFO; this is the law
-        log::debug!("waiting for buffer FIFO…");
-        let payload = fs::read_to_string(session_fifo.buffer_fifo_path())?;
-        log::debug!("buffer FIFO read");
-
-        Ok(self.handle_highlight_req(buffer_id, lang, *timestamp, &payload)?)
-      }
+    if !supported {
+      log::warn!("{}", format!("language {lang} is not supported").red());
     }
+
+    Ok(Response::FiletypeSupported { supported })
+  }
+
+  pub fn handle_highlight(
+    &mut self,
+    session_name: &str,
+    buffer: &str,
+    lang_name: &str,
+    timestamp: u64,
+    buf: &str,
+  ) -> Result<Response, OhNo> {
+    log::debug!(
+      "highlight for session {session_name}, buffer {buffer}, lang {lang_name}, timestamp {timestamp}"
+    );
+
+    let buffer_id = BufferId::new(session_name, buffer);
+    self.handle_highlight_req(buffer_id, lang_name, timestamp, buf)
   }
 
   fn handle_highlight_req(
@@ -83,12 +70,12 @@ impl Handler {
     buffer_id: BufferId,
     lang_name: &str,
     timestamp: u64,
-    source: &str,
+    buf: &str,
   ) -> Result<Response, OhNo> {
     if let Some(lang) = self.langs.get(lang_name) {
       self
         .highlighters
-        .highlight(lang, &self.langs, buffer_id, timestamp, source)
+        .highlight(lang, &self.langs, buffer_id, timestamp, buf)
     } else {
       Ok(Response::status(format!(
         "unsupported language: {lang_name}"
