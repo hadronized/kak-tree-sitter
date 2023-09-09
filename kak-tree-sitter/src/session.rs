@@ -119,24 +119,32 @@ impl Session {
   }
 
   pub fn send_non_connected_response_raw(session: &str, resp: &str) -> Result<(), OhNo> {
-    let child = std::process::Command::new("kak")
+    let mut child = std::process::Command::new("kak")
       .args(["-p", session])
       .stdin(Stdio::piped())
       .spawn()
       .map_err(|err| OhNo::CannotSendRequest {
         err: err.to_string(),
       })?;
-    let mut child_stdin = child.stdin.ok_or_else(|| OhNo::CannotSendRequest {
-      err: "cannot pipe data to kak -p".to_owned(),
-    })?;
+    let child_stdin = child
+      .stdin
+      .as_mut()
+      .ok_or_else(|| OhNo::CannotSendRequest {
+        err: "cannot pipe data to kak -p".to_owned(),
+      })?;
+
     child_stdin
       .write_all(resp.as_bytes())
       .map_err(|err| OhNo::CannotSendRequest {
         err: err.to_string(),
       })?;
+
     child_stdin.flush().map_err(|err| OhNo::CannotSendRequest {
       err: err.to_string(),
-    })
+    })?;
+
+    child.wait()?;
+    Ok(())
   }
 }
 
