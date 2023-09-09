@@ -40,7 +40,7 @@ impl Response {
   pub fn to_kak_cmd(&self, client: Option<&str>) -> Option<String> {
     let kak_cmd = match self {
       Response::StatusChanged { status, .. } => {
-        format!("echo -debug %{{{status}}}; info %{{{status}}};",)
+        format!("info %{{{status}}}",)
       }
 
       Response::Init {
@@ -48,20 +48,20 @@ impl Response {
         buf_fifo_path,
       } => [
         format!(
-          "set-option global kts_cmd_fifo_path {path};",
+          "set-option global kts_cmd_fifo_path {path}",
           path = cmd_fifo_path.display()
         ),
         format!(
-          "set-option global kts_buf_fifo_path {path};",
+          "set-option global kts_buf_fifo_path {path}",
           path = buf_fifo_path.display()
         ),
-        "kak-tree-sitter-req-enable;".to_owned(),
+        "kak-tree-sitter-req-enable".to_owned(),
       ]
       .join("\n"),
 
       Response::FiletypeSupported { supported } => {
         if *supported {
-          "kak-tree-sitter-highlight-enable;".to_owned()
+          "kak-tree-sitter-highlight-enable".to_owned()
         } else {
           String::new()
         }
@@ -74,7 +74,7 @@ impl Response {
           .join(" ");
 
         format!(
-          "{range_specs} {timestamp} {ranges_str};",
+          "{range_specs} {timestamp} {ranges_str}",
           range_specs = "set buffer kts_highlighter_ranges",
         )
       }
@@ -91,6 +91,6 @@ impl Response {
       String::new()
     };
 
-    Some(format!("eval -no-hooks {prefix}%{{{kak_cmd}}};"))
+    Some(format!("eval -no-hooks {prefix}%{{{kak_cmd}}}"))
   }
 }

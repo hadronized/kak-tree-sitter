@@ -1,5 +1,4 @@
 use std::{
-  collections::HashMap,
   ffi::CString,
   fs::{self, File, OpenOptions},
   io::{self, Read, Write},
@@ -28,8 +27,15 @@ use crate::{
   handler::Handler,
   request::{Request, UnidentifiedRequest},
   response::Response,
-  session::KakSession,
+  session::{Fifo, Session, SessionState, SessionTracker},
 };
+
+/// Feedback provided after a request has finished. Mainly used to shutdown.
+#[derive(Debug)]
+pub enum Feedback {
+  Ok,
+  ShouldExit,
+}
 
 pub struct Server {
   server_state: ServerState,
@@ -155,6 +161,44 @@ impl Drop for ServerResources {
   }
 }
 
+/// Token distribution.
+#[derive(Debug)]
+struct TokenProvider {
+  // next available token
+  next_token: Token,
+
+  // available tokens (i.e. dead sessions’ tokens)
+  free_tokens: Vec<Token>,
+}
+
+impl Default for TokenProvider {
+  fn default() -> Self {
+    Self {
+      next_token: Self::CMD_FIFO_FIRST_TOKEN,
+      free_tokens: Vec::default(),
+    }
+  }
+}
+
+impl TokenProvider {
+  const WAKER_TOKEN: Token = Token(0);
+  const UNIX_LISTENER_TOKEN: Token = Token(1);
+  const CMD_FIFO_FIRST_TOKEN: Token = Token(2);
+
+  /// Get a new token for a new session.
+  fn create(&mut self) -> Token {
+    self.free_tokens.pop().unwrap_or_else(|| {
+      let token = self.next_token;
+      self.next_token = Token(token.0 + 1);
+      token
+    })
+  }
+
+  fn recycle(&mut self, token: Token) {
+    self.free_tokens.push(token);
+  }
+}
+
 pub struct ServerState {
   resources: ServerResources,
 
@@ -164,41 +208,32 @@ pub struct ServerState {
   // readable poll
   poll: Poll,
 
-  // UNIX socket listener
-  unix_listener: UnixListener,
+  // UNIX handler.
+  unix_handler: UnixHandler,
+
+  // FIFO handler.
+  fifo_handler: FifoHandler,
 
   // whether we should shutdown
   shutdown: Arc<AtomicBool>,
 
-  // active command FIFOs; one per session
-  cmd_fifos: HashMap<Token, SessionFifo>,
+  // active sessions
+  session_tracker: SessionTracker,
 
-  // next available token
-  next_token: Token,
-
-  // available tokens (i.e. dead sessions’ tokens)
-  free_tokens: Vec<Token>,
-
-  // request handler
-  req_handler: Handler,
+  // provider for FIFO tokens
+  token_provider: TokenProvider,
 }
 
 impl ServerState {
-  const WAKER_TOKEN: Token = Token(0);
-  const UNIX_LISTENER_TOKEN: Token = Token(1);
-  const CMD_FIFO_FIRST_TOKEN: Token = Token(2);
-
   pub fn new(config: &Config, is_standalone: bool) -> Result<Self, OhNo> {
     let resources = ServerResources::new(Self::runtime_dir()?);
-    let poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
-    let waker = Arc::new(Waker::new(poll.registry(), Self::WAKER_TOKEN)?);
-    let mut unix_listener = UnixListener::bind(ServerState::socket_dir()?)
-      .map_err(|err| OhNo::CannotStartServer { err })?;
+    let mut poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
+    let waker = Arc::new(Waker::new(poll.registry(), TokenProvider::WAKER_TOKEN)?);
+    let mut unix_handler = UnixHandler::new(ServerState::socket_path()?)?;
+    let fifo_handler = FifoHandler::new(config)?;
     let shutdown = Arc::new(AtomicBool::new(false));
-    let cmd_fifos = HashMap::default();
-    let next_token = Self::CMD_FIFO_FIRST_TOKEN;
-    let free_tokens = Vec::default();
-    let req_handler = Handler::new(config)?;
+    let session_tracker = SessionTracker::default();
+    let token_provider = TokenProvider::default();
 
     // SIGINT handler; we just ask to shutdown the server
     {
@@ -210,25 +245,17 @@ impl ServerState {
       })?;
     }
 
-    poll
-      .registry()
-      .register(
-        &mut unix_listener,
-        Self::UNIX_LISTENER_TOKEN,
-        Interest::READABLE,
-      )
-      .map_err(|err| OhNo::CannotStartPoll { err })?;
+    unix_handler.register_poll(&mut poll)?;
 
     Ok(ServerState {
       is_standalone,
       resources,
       poll,
-      unix_listener,
+      unix_handler,
+      fifo_handler,
       shutdown,
-      cmd_fifos,
-      next_token,
-      free_tokens,
-      req_handler,
+      session_tracker,
+      token_provider,
     })
   }
 
@@ -241,7 +268,7 @@ impl ServerState {
     Ok(dir.join("kak-tree-sitter"))
   }
 
-  pub fn socket_dir() -> Result<PathBuf, OhNo> {
+  pub fn socket_path() -> Result<PathBuf, OhNo> {
     Ok(Self::runtime_dir()?.join("socket"))
   }
 
@@ -268,22 +295,30 @@ impl ServerState {
         log::trace!("mio event: {event:#?}");
 
         match event.token() {
-          Self::WAKER_TOKEN => {
+          TokenProvider::WAKER_TOKEN => {
             log::debug!("waking up mio poll before shutting down");
             break;
           }
 
-          Self::UNIX_LISTENER_TOKEN if event.is_readable() => {
-            if let Err(err) = self.accept_unix_request() {
-              log::error!("{err}");
+          TokenProvider::UNIX_LISTENER_TOKEN if event.is_readable() => {
+            match self.unix_handler.accept(
+              self.is_standalone,
+              &self.resources,
+              &mut self.poll,
+              &mut self.token_provider,
+              &mut self.session_tracker,
+            ) {
+              Ok(Feedback::ShouldExit) => self.shutdown.store(true, Ordering::Relaxed),
+
+              Err(err) => {
+                log::error!("{err}");
+              }
+
+              _ => (),
             }
           }
 
-          tkn if event.is_readable() => {
-            if let Err(err) = self.accept_cmd_fifo_req(tkn) {
-              log::error!("{err}");
-            }
-          }
+          tkn if event.is_readable() => self.fifo_handler.accept(&mut self.session_tracker, tkn)?,
 
           _ => (),
         }
@@ -294,9 +329,41 @@ impl ServerState {
 
     Ok(())
   }
+}
 
-  /// Accept a new request on the UNIX socket.
-  fn accept_unix_request(&mut self) -> Result<(), OhNo> {
+#[derive(Debug)]
+struct UnixHandler {
+  unix_listener: UnixListener,
+}
+
+impl UnixHandler {
+  fn new(socket_path: impl AsRef<Path>) -> Result<Self, OhNo> {
+    let unix_listener =
+      UnixListener::bind(socket_path).map_err(|err| OhNo::CannotStartServer { err })?;
+
+    Ok(Self { unix_listener })
+  }
+
+  /// Register the Unix handler to a Poll.
+  fn register_poll(&mut self, poll: &mut Poll) -> Result<(), OhNo> {
+    poll
+      .registry()
+      .register(
+        &mut self.unix_listener,
+        TokenProvider::UNIX_LISTENER_TOKEN,
+        Interest::READABLE,
+      )
+      .map_err(|err| OhNo::CannotStartPoll { err })
+  }
+
+  fn accept(
+    &mut self,
+    is_standalone: bool,
+    resources: &ServerResources,
+    poll: &mut Poll,
+    token_provider: &mut TokenProvider,
+    session_tracker: &mut SessionTracker,
+  ) -> Result<Feedback, OhNo> {
     let (mut client, _) = self
       .unix_listener
       .accept()
@@ -321,126 +388,147 @@ impl ServerState {
       }
     })?;
 
-    self.treat_unidentified_request(req)
+    self.process_req(
+      is_standalone,
+      resources,
+      poll,
+      token_provider,
+      session_tracker,
+      req,
+    )
   }
 
-  fn treat_unidentified_request(&mut self, req: UnidentifiedRequest) -> Result<(), OhNo> {
+  fn process_req(
+    &mut self,
+    is_standalone: bool,
+    resources: &ServerResources,
+    poll: &mut Poll,
+    token_provider: &mut TokenProvider,
+    session_tracker: &mut SessionTracker,
+    req: UnidentifiedRequest,
+  ) -> Result<Feedback, OhNo> {
     match req {
       UnidentifiedRequest::NewSession { name, client } => {
-        let (cmd_fifo_path, buf_fifo_path) = self.add_session_fifo(name.clone())?;
+        let (cmd_fifo_path, buf_fifo_path) = self.track_session(
+          resources,
+          poll,
+          token_provider,
+          session_tracker,
+          name.clone(),
+        )?;
+
         let resp = Response::Init {
           cmd_fifo_path,
           buf_fifo_path,
         };
-        KakSession::new(name).send_response(Some(&client), &resp)?;
+        Session::send_non_connected_response(&name, Some(&client), &resp)?;
       }
 
-      UnidentifiedRequest::SessionExit { name } => self.recycle_session_fifo(name)?,
+      UnidentifiedRequest::SessionExit { name } => {
+        self.recycle_session(poll, session_tracker, token_provider, name)?;
 
-      UnidentifiedRequest::Shutdown => {
-        self.shutdown.store(true, Ordering::Relaxed);
+        // only shutdown if were started with an initial session (non standalone)
+        let feedback = if !is_standalone && session_tracker.is_empty() {
+          log::info!("last session exited; stopping the server…");
+          Feedback::ShouldExit
+        } else {
+          Feedback::Ok
+        };
+        return Ok(feedback);
       }
+
+      UnidentifiedRequest::Shutdown => return Ok(Feedback::ShouldExit),
     }
 
-    Ok(())
+    Ok(Feedback::Ok)
   }
 
-  /// Take into account a new session by creating a command FIFO for it and associating it with a token.
-  fn add_session_fifo(
+  fn track_session(
     &mut self,
+    resources: &ServerResources,
+    poll: &mut Poll,
+    token_provider: &mut TokenProvider,
+    session_tracker: &mut SessionTracker,
     session_name: impl Into<String>,
   ) -> Result<(PathBuf, PathBuf), OhNo> {
     let session_name = session_name.into();
 
-    let cmd_fifo_path = self.create_session_fifo(Path::new("commands"), &session_name)?;
-    let cmd_fifo = self.open_nonblocking_fifo(&cmd_fifo_path)?;
-    let cmd_token = self.create_session_fifo_token();
-    let buffer_fifo_path = self.create_session_fifo(Path::new("buffers"), &session_name)?;
+    let cmd_fifo_path = Self::create_fifo(resources, Path::new("commands"), &session_name)?;
+    let cmd_fifo_file = Self::open_nonblocking_fifo(&cmd_fifo_path)?;
+    let cmd_token = token_provider.create();
 
-    self
-      .poll
-      .registry()
+    let buf_fifo_path = Self::create_fifo(resources, Path::new("buffers"), &session_name)?;
+    let buf_fifo_file = Self::open_nonblocking_fifo(&buf_fifo_path)?;
+    let buf_token = token_provider.create();
+
+    let registry = poll.registry();
+    registry
       .register(
-        &mut SourceFd(&cmd_fifo.as_raw_fd()),
+        &mut SourceFd(&cmd_fifo_file.as_raw_fd()),
         cmd_token,
         Interest::READABLE,
       )
       .map_err(|err| OhNo::PollEventsError { err })?;
+    registry
+      .register(
+        &mut SourceFd(&buf_fifo_file.as_raw_fd()),
+        buf_token,
+        Interest::READABLE,
+      )
+      .map_err(|err| OhNo::PollEventsError { err })?;
 
-    self.cmd_fifos.insert(
-      cmd_token,
-      SessionFifo::new(session_name, cmd_fifo, buffer_fifo_path.clone()),
+    session_tracker.track(
+      session_name.clone(),
+      Session::new(session_name.clone(), cmd_token, buf_token),
+      Fifo::Cmd {
+        session_name: session_name.clone(),
+        file: cmd_fifo_file,
+        buffer: String::new(),
+      },
+      Fifo::Buf {
+        session_name,
+        file: buf_fifo_file,
+        buffer: String::new(),
+      },
     );
 
-    Ok((cmd_fifo_path, buffer_fifo_path))
+    Ok((cmd_fifo_path, buf_fifo_path))
   }
 
-  /// Get a new token for a new session.
-  fn create_session_fifo_token(&mut self) -> Token {
-    self.free_tokens.pop().unwrap_or_else(|| {
-      let token = self.next_token;
-      self.next_token = Token(self.next_token.0 + 1);
-      token
-    })
-  }
-
-  /// Recycle a session.
-  fn recycle_session_fifo(&mut self, session_name: impl AsRef<str>) -> Result<(), OhNo> {
-    let session_name = session_name.as_ref();
-
-    log::info!("recycling session {session_name}");
-    if let Some((token, session_fifo)) = self
-      .cmd_fifos
-      .iter()
-      .find(|(_, session_fifo)| session_fifo.session_name == session_name)
-    {
-      let token = *token;
-      self
-        .poll
-        .registry()
-        .deregister(&mut SourceFd(&session_fifo.cmd_fifo.as_raw_fd()))?;
-      // TODO: remove the FIFO file? do we care?
-      self.free_tokens.push(token);
-      self.cmd_fifos.remove(&token);
-    }
-
-    // only shutdown if were started with an initial session (non standalone)
-    if !self.is_standalone && self.cmd_fifos.is_empty() {
-      log::info!("{session_name} was the last session alive; stopping the server…");
-      self.shutdown.store(true, Ordering::Relaxed);
-    }
-
-    Ok(())
-  }
-
-  /// Create a FIFO for a given session.
-  fn create_session_fifo(&self, prefix: &Path, session_name: &str) -> Result<PathBuf, OhNo> {
-    let cmds_dir = self.resources.runtime_dir.join(prefix);
-    let cmd_fifo_path = cmds_dir.join(session_name);
+  fn create_fifo(
+    resources: &ServerResources,
+    prefix: &Path,
+    session_name: &str,
+  ) -> Result<PathBuf, OhNo> {
+    let dir = resources.runtime_dir.join(prefix);
+    let path = dir.join(session_name);
 
     // if the file doesn’t already exist, create it
-    if let Ok(false) = cmd_fifo_path.try_exists() {
-      // ensure the commands directory exists
-      fs::create_dir_all(cmds_dir)?;
+    if let Ok(false) = path.try_exists() {
+      // ensure the directory exists
+      fs::create_dir_all(dir)?;
 
-      let path = cmd_fifo_path.as_os_str().as_bytes();
-      let c_path = CString::new(path).map_err(|err| OhNo::CannotCreateFifo {
+      let path_bytes = path.as_os_str().as_bytes();
+      let c_path = CString::new(path_bytes).map_err(|err| OhNo::CannotCreateFifo {
         err: err.to_string(),
       })?;
 
       let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o644) };
       if c_err != 0 {
         return Err(OhNo::CannotCreateFifo {
-          err: format!("cannot create FIFO file for session {session_name}"),
+          err: format!(
+            "cannot create FIFO file for session {session_name} at path {path}",
+            path = path.display()
+          ),
         });
       }
     }
 
-    Ok(cmd_fifo_path)
+    Ok(path)
   }
 
   /// Open a FIFO and obtain a non-blocking [`File`].
-  fn open_nonblocking_fifo(&self, path: &Path) -> Result<File, OhNo> {
+  fn open_nonblocking_fifo(path: &Path) -> Result<File, OhNo> {
     let fifo = OpenOptions::new()
       .read(true)
       .custom_flags(libc::O_NONBLOCK)
@@ -448,78 +536,202 @@ impl ServerState {
     Ok(fifo)
   }
 
-  /// Accept a command request on a FIFO identified by a token.
-  fn accept_cmd_fifo_req(&mut self, token: Token) -> Result<(), OhNo> {
-    if let Some(session_fifo) = self.cmd_fifos.get_mut(&token) {
-      log::debug!("waiting for command FIFO…");
-      let mut cmd = String::new();
+  /// Recycle a session by removing the session from the session tracker and recycling the token in the token provider.
+  fn recycle_session(
+    &mut self,
+    poll: &mut Poll,
+    session_tracker: &mut SessionTracker,
+    token_provider: &mut TokenProvider,
+    session_name: impl AsRef<str>,
+  ) -> Result<(), OhNo> {
+    let session_name = session_name.as_ref();
 
-      match session_fifo.cmd_fifo.read_to_string(&mut cmd) {
-        Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-          log::error!("command FIFO is not ready");
-          return Ok(());
-        }
-
-        x => x?,
-      };
-
-      log::debug!("command FIFO read");
-
-      let mut session = KakSession::new(&session_fifo.session_name);
-
-      log::info!("FIFO request: {cmd}");
-      let req = serde_json::from_str::<Request>(&cmd).map_err(|err| OhNo::InvalidRequest {
-        req: cmd,
-        err: err.to_string(),
-      });
-
-      match req {
-        Ok(req) => {
-          match self
-            .req_handler
-            .handle_request(&session, session_fifo, &req)
-          {
-            Ok(resp) => {
-              let client = req.client_name();
-
-              if let Err(err) = session.send_response(client, &resp) {
-                log::error!("failure while sending response: {}", format!("{err}").red());
-              }
-            }
-            Err(err) => {
-              log::error!("handling request failed: {}", format!("{err}").red());
-            }
-          }
-        }
-
-        Err(err) => {
-          log::error!("malformed request: {}", format!("{err}").red());
-        }
+    log::info!("recycling session {session_name}");
+    if let Some((session, cmd_fifo, buf_fifo)) = session_tracker.untrack(session_name) {
+      if let Some(cmd_fifo) = cmd_fifo {
+        poll
+          .registry()
+          .deregister(&mut SourceFd(&cmd_fifo.file().as_raw_fd()))?;
       }
+
+      if let Some(buf_fifo) = buf_fifo {
+        poll
+          .registry()
+          .deregister(&mut SourceFd(&buf_fifo.file().as_raw_fd()))?;
+      }
+
+      token_provider.recycle(session.cmd_token());
+      token_provider.recycle(session.buf_token());
     }
 
     Ok(())
   }
 }
 
-/// FIFO associated with a session.
-#[derive(Debug)]
-pub struct SessionFifo {
-  session_name: String,
-  cmd_fifo: File,
-  buffer_fifo_path: PathBuf,
+struct FifoHandler {
+  handler: Handler,
 }
 
-impl SessionFifo {
-  fn new(session_name: String, cmd_fifo: File, buffer_fifo_path: PathBuf) -> Self {
-    Self {
-      session_name,
-      cmd_fifo,
-      buffer_fifo_path,
+impl FifoHandler {
+  fn new(config: &Config) -> Result<Self, OhNo> {
+    let handler = Handler::new(config)?;
+    Ok(Self { handler })
+  }
+
+  /// Dispatch FIFO reads.
+  pub fn accept(&mut self, session_tracker: &mut SessionTracker, token: Token) -> Result<(), OhNo> {
+    if let Some((session, fifo)) = session_tracker.by_token(token) {
+      match fifo {
+        Fifo::Cmd { file, buffer, .. } => self.accept_cmd(session, file, buffer)?,
+        Fifo::Buf { file, buffer, .. } => self.accept_buf(session, file, buffer)?,
+      }
+    }
+
+    Ok(())
+  }
+
+  fn accept_cmd(
+    &mut self,
+    session: &mut Session,
+    file: &mut File,
+    buffer: &mut String,
+  ) -> Result<(), OhNo> {
+    log::debug!(
+      "reading command FIFO for session {session_name}…",
+      session_name = session.name()
+    );
+
+    match file.read_to_string(buffer) {
+      Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+        log::warn!("command FIFO is not ready");
+        return Ok(());
+      }
+
+      x => x?,
+    };
+
+    log::info!("FIFO request: {buffer}");
+
+    let req = serde_json::from_str::<Request>(buffer).map_err(|err| OhNo::InvalidRequest {
+      req: buffer.clone(),
+      err: err.to_string(),
+    });
+
+    buffer.clear();
+
+    match req {
+      Ok(req) => match self.process_cmd(session, &req) {
+        Ok(Some(resp)) => {
+          let client = req.client_name();
+
+          if let Err(err) = session.send_response(client, &resp) {
+            log::error!("failure while sending response: {}", format!("{err}").red());
+          }
+        }
+
+        Err(err) => {
+          log::error!("handling request failed: {}", format!("{err}").red());
+        }
+
+        _ => (),
+      },
+
+      Err(err) => {
+        log::error!("malformed request: {}", format!("{err}").red());
+      }
+    }
+
+    Ok(())
+  }
+
+  fn process_cmd(
+    &mut self,
+    session: &mut Session,
+    req: &Request,
+  ) -> Result<Option<Response>, OhNo> {
+    match req {
+      Request::TryEnableHighlight { lang, .. } => self
+        .handler
+        .handle_try_enable_highlight(session.name(), lang)
+        .map(Option::Some),
+
+      Request::Highlight {
+        client,
+        buffer,
+        lang,
+        timestamp,
+      } => {
+        // we do not send the highlight immediately; instead, we change the state machine
+        *session.state_mut() = SessionState::HighlightingWaiting {
+          client: client.clone(),
+          buffer: buffer.clone(),
+          lang: lang.clone(),
+          timestamp: *timestamp,
+        };
+
+        Ok(None)
+      }
     }
   }
 
-  pub fn buffer_fifo_path(&self) -> &Path {
-    &self.buffer_fifo_path
+  fn accept_buf(
+    &mut self,
+    session: &mut Session,
+    file: &mut File,
+    buffer: &mut String,
+  ) -> Result<(), OhNo> {
+    log::debug!(
+      "reading buffer FIFO for session {session_name}…",
+      session_name = session.name()
+    );
+
+    match file.read_to_string(buffer) {
+      Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
+        log::error!("buffer FIFO is not ready");
+        return Ok(());
+      }
+
+      x => x?,
+    };
+
+    let res = self.process_buf(session, buffer);
+    buffer.clear();
+
+    res
+  }
+
+  fn process_buf(&mut self, session: &mut Session, buf: &str) -> Result<(), OhNo> {
+    if let SessionState::HighlightingWaiting {
+      client,
+      buffer,
+      lang,
+      timestamp,
+    } = session.state()
+    {
+      let client = client.clone();
+      let handled = self
+        .handler
+        .handle_highlight(session.name(), buffer, lang, *timestamp, buf);
+
+      // switch back to idle, as we have read the FIFO
+      session.state_mut().idle();
+
+      match handled {
+        Ok(resp) => {
+          if let Err(err) = session.send_response(Some(&client), &resp) {
+            log::error!("failure while sending response: {}", format!("{err}").red());
+          }
+        }
+
+        Err(err) => {
+          log::error!(
+            "handling highlight failed for session {session_name}, buffer {buf}: {err}",
+            session_name = session.name()
+          );
+        }
+      }
+    }
+
+    Ok(())
   }
 }
