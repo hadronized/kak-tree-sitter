@@ -687,7 +687,7 @@ impl FifoHandler {
 
     match file.read_to_string(buffer) {
       Err(err) if err.kind() == io::ErrorKind::WouldBlock => {
-        log::error!("buffer FIFO is not ready");
+        log::warn!("buffer FIFO is not ready");
         return Ok(());
       }
 
