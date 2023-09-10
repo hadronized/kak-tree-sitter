@@ -25,7 +25,7 @@ use crate::{
   cli::Cli,
   error::OhNo,
   handler::Handler,
-  request::{Request, UnidentifiedRequest},
+  request::{Request, UnixRequest},
   response::Response,
   session::{Fifo, Session, SessionState, SessionTracker},
 };
@@ -121,7 +121,7 @@ impl Server {
     self.server_state.start()
   }
 
-  pub fn send_request(req: UnidentifiedRequest) -> Result<(), OhNo> {
+  pub fn send_request(req: UnixRequest) -> Result<(), OhNo> {
     // serialize the request
     let serialized = serde_json::to_string(&req).map_err(|err| OhNo::CannotSendRequest {
       err: err.to_string(),
@@ -386,12 +386,11 @@ impl UnixHandler {
       })?;
     log::info!("UNIX socket request: {req_str}");
 
-    let req = serde_json::from_str::<UnidentifiedRequest>(&req_str).map_err(|err| {
-      OhNo::InvalidRequest {
+    let req =
+      serde_json::from_str::<UnixRequest>(&req_str).map_err(|err| OhNo::InvalidRequest {
         req: req_str,
         err: err.to_string(),
-      }
-    })?;
+      })?;
 
     self.process_req(poll, token_provider, session_tracker, fifo_handler, req)
   }
@@ -402,10 +401,10 @@ impl UnixHandler {
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
     fifo_handler: &mut FifoHandler,
-    req: UnidentifiedRequest,
+    req: UnixRequest,
   ) -> Result<Feedback, OhNo> {
     match req {
-      UnidentifiedRequest::NewSession { name, client } => {
+      UnixRequest::NewSession { name, client } => {
         let (cmd_fifo_path, buf_fifo_path) =
           self.track_session(poll, token_provider, session_tracker, name.clone())?;
 
@@ -417,12 +416,12 @@ impl UnixHandler {
         Session::send_non_connected_response(&name, Some(&client), &resp)?;
       }
 
-      UnidentifiedRequest::Reload => {
+      UnixRequest::Reload => {
         log::info!("reloading configuration, grammars and queries");
         self.reload(fifo_handler);
       }
 
-      UnidentifiedRequest::SessionExit { name } => {
+      UnixRequest::SessionExit { name } => {
         self.recycle_session(poll, session_tracker, token_provider, name)?;
 
         // only shutdown if were started with an initial session (non standalone)
@@ -436,7 +435,7 @@ impl UnixHandler {
         return Ok(feedback);
       }
 
-      UnidentifiedRequest::Shutdown => return Ok(Feedback::ShouldExit),
+      UnixRequest::Shutdown => return Ok(Feedback::ShouldExit),
     }
 
     Ok(Feedback::Ok)

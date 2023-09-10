@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 /// Unidentified request (i.e. not linked to a given session).
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum UnidentifiedRequest {
+pub enum UnixRequest {
   /// Inform KTS that a new session exists and that we should be sending back the Kakoune commands to get KTS features.
   NewSession { name: String, client: String },
 
@@ -21,17 +21,17 @@ pub enum UnidentifiedRequest {
   Shutdown,
 }
 
-impl UnidentifiedRequest {
+impl UnixRequest {
   /// Add a session name to a [`UnidentifiedRequest`], replacing it if one was already provided.
   pub fn with_session(self, name: impl Into<String>) -> Self {
     let name = name.into();
 
     match self {
-      UnidentifiedRequest::NewSession { client, .. } => {
-        UnidentifiedRequest::NewSession { name, client }
+      UnixRequest::NewSession { client, .. } => {
+        UnixRequest::NewSession { name, client }
       }
 
-      UnidentifiedRequest::SessionExit { .. } => UnidentifiedRequest::SessionExit { name },
+      UnixRequest::SessionExit { .. } => UnixRequest::SessionExit { name },
 
       _ => self,
     }

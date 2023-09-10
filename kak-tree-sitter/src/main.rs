@@ -17,7 +17,7 @@ use colored::Colorize;
 use error::OhNo;
 use kak_tree_sitter_config::Config;
 use logging::Verbosity;
-use request::UnidentifiedRequest;
+use request::UnixRequest;
 use server::Server;
 
 fn main() {
@@ -55,7 +55,7 @@ fn start() -> Result<(), OhNo> {
 
   if let Some(request) = cli.request {
     // otherwise, regular client
-    let req = serde_json::from_str::<UnidentifiedRequest>(&request).map_err(|err| {
+    let req = serde_json::from_str::<UnixRequest>(&request).map_err(|err| {
       OhNo::InvalidRequest {
         req: request,
         err: err.to_string(),
