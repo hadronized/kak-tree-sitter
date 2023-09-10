@@ -68,6 +68,13 @@ define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' 
   }
 }
 
+# Reload KTS.
+define-command kak-tree-sitter-req-reload -docstring 'Reload kak-tree-sitter config, grammars and queries' %{
+  nop %sh{
+    kak-tree-sitter -r '{ "type": "reload" }'
+  }
+}
+
 # Send a single request to highlight the current buffer.
 #
 # This will first send the command to highlight the buffer to KTS and then will write the content of the buffer through
