@@ -668,7 +668,21 @@ path = "runtime/queries/markdown.inline"
 # TODO
 
 # nu
-# TODO
+[language.nu.grammar]
+url = "https://github.com/nushell/tree-sitter-nu"
+pin = "786689b0562b9799ce53e824cb45a1a2a04dc673"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "nu.so"]
+link_flags = ["-O3"]
+
+[language.nu.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "107763083405868f3679d8e12476ed0688896f87"
+path = "runtime/queries/nu"
 
 # ocaml
 # TODO
