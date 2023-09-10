@@ -20,7 +20,7 @@ pub struct Language {
 }
 
 pub struct Languages {
-  /// Map a `filetype` to the tree-sitter [`Language`] and its queries.
+  /// Map a `kts_lang` to the tree-sitter [`Language`] and its queries.
   langs: HashMap<String, Language>,
 }
 

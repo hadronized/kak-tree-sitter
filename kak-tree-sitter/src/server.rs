@@ -140,7 +140,7 @@ impl Server {
 }
 
 /// Resources requiring a special drop implementation.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ServerResources {
   pub runtime_dir: PathBuf,
 }
@@ -200,11 +200,6 @@ impl TokenProvider {
 }
 
 pub struct ServerState {
-  resources: ServerResources,
-
-  // whether we were started as a standalone server
-  is_standalone: bool,
-
   // readable poll
   poll: Poll,
 
@@ -229,7 +224,11 @@ impl ServerState {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let mut poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
     let waker = Arc::new(Waker::new(poll.registry(), TokenProvider::WAKER_TOKEN)?);
-    let mut unix_handler = UnixHandler::new(ServerState::socket_path()?)?;
+    let mut unix_handler = UnixHandler::new(
+      is_standalone,
+      resources.clone(),
+      ServerState::socket_path()?,
+    )?;
     let fifo_handler = FifoHandler::new(config)?;
     let shutdown = Arc::new(AtomicBool::new(false));
     let session_tracker = SessionTracker::default();
@@ -248,8 +247,6 @@ impl ServerState {
     unix_handler.register_poll(&mut poll)?;
 
     Ok(ServerState {
-      is_standalone,
-      resources,
       poll,
       unix_handler,
       fifo_handler,
@@ -302,11 +299,10 @@ impl ServerState {
 
           TokenProvider::UNIX_LISTENER_TOKEN if event.is_readable() => {
             match self.unix_handler.accept(
-              self.is_standalone,
-              &self.resources,
               &mut self.poll,
               &mut self.token_provider,
               &mut self.session_tracker,
+              &mut self.fifo_handler,
             ) {
               Ok(Feedback::ShouldExit) => self.shutdown.store(true, Ordering::Relaxed),
 
@@ -333,15 +329,25 @@ impl ServerState {
 
 #[derive(Debug)]
 struct UnixHandler {
+  is_standalone: bool,
+  resources: ServerResources,
   unix_listener: UnixListener,
 }
 
 impl UnixHandler {
-  fn new(socket_path: impl AsRef<Path>) -> Result<Self, OhNo> {
+  fn new(
+    is_standalone: bool,
+    resources: ServerResources,
+    socket_path: impl AsRef<Path>,
+  ) -> Result<Self, OhNo> {
     let unix_listener =
       UnixListener::bind(socket_path).map_err(|err| OhNo::CannotStartServer { err })?;
 
-    Ok(Self { unix_listener })
+    Ok(Self {
+      is_standalone,
+      resources,
+      unix_listener,
+    })
   }
 
   /// Register the Unix handler to a Poll.
@@ -358,11 +364,10 @@ impl UnixHandler {
 
   fn accept(
     &mut self,
-    is_standalone: bool,
-    resources: &ServerResources,
     poll: &mut Poll,
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
+    fifo_handler: &mut FifoHandler,
   ) -> Result<Feedback, OhNo> {
     let (mut client, _) = self
       .unix_listener
@@ -388,52 +393,46 @@ impl UnixHandler {
       }
     })?;
 
-    self.process_req(
-      is_standalone,
-      resources,
-      poll,
-      token_provider,
-      session_tracker,
-      req,
-    )
+    self.process_req(poll, token_provider, session_tracker, fifo_handler, req)
   }
 
   fn process_req(
     &mut self,
-    is_standalone: bool,
-    resources: &ServerResources,
     poll: &mut Poll,
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
+    fifo_handler: &mut FifoHandler,
     req: UnidentifiedRequest,
   ) -> Result<Feedback, OhNo> {
     match req {
       UnidentifiedRequest::NewSession { name, client } => {
-        let (cmd_fifo_path, buf_fifo_path) = self.track_session(
-          resources,
-          poll,
-          token_provider,
-          session_tracker,
-          name.clone(),
-        )?;
+        let (cmd_fifo_path, buf_fifo_path) =
+          self.track_session(poll, token_provider, session_tracker, name.clone())?;
 
         let resp = Response::Init {
           cmd_fifo_path,
           buf_fifo_path,
         };
+
         Session::send_non_connected_response(&name, Some(&client), &resp)?;
+      }
+
+      UnidentifiedRequest::Reload => {
+        log::info!("reloading configuration, grammars and queries");
+        self.reload(fifo_handler);
       }
 
       UnidentifiedRequest::SessionExit { name } => {
         self.recycle_session(poll, session_tracker, token_provider, name)?;
 
         // only shutdown if were started with an initial session (non standalone)
-        let feedback = if !is_standalone && session_tracker.is_empty() {
+        let feedback = if !self.is_standalone && session_tracker.is_empty() {
           log::info!("last session exited; stopping the server…");
           Feedback::ShouldExit
         } else {
           Feedback::Ok
         };
+
         return Ok(feedback);
       }
 
@@ -445,7 +444,6 @@ impl UnixHandler {
 
   fn track_session(
     &mut self,
-    resources: &ServerResources,
     poll: &mut Poll,
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
@@ -453,11 +451,11 @@ impl UnixHandler {
   ) -> Result<(PathBuf, PathBuf), OhNo> {
     let session_name = session_name.into();
 
-    let cmd_fifo_path = Self::create_fifo(resources, Path::new("commands"), &session_name)?;
+    let cmd_fifo_path = Self::create_fifo(&self.resources, Path::new("commands"), &session_name)?;
     let cmd_fifo_file = Self::open_nonblocking_fifo(&cmd_fifo_path)?;
     let cmd_token = token_provider.create();
 
-    let buf_fifo_path = Self::create_fifo(resources, Path::new("buffers"), &session_name)?;
+    let buf_fifo_path = Self::create_fifo(&self.resources, Path::new("buffers"), &session_name)?;
     let buf_fifo_file = Self::open_nonblocking_fifo(&buf_fifo_path)?;
     let buf_token = token_provider.create();
 
@@ -565,6 +563,21 @@ impl UnixHandler {
     }
 
     Ok(())
+  }
+
+  fn reload(&mut self, fifo_handler: &mut FifoHandler) {
+    let config = match Config::load_from_xdg() {
+      Ok(config) => config,
+      Err(err) => {
+        log::error!("reloading config failed: {err}");
+        return;
+      }
+    };
+
+    match FifoHandler::new(&config) {
+      Ok(new_fifo_handler) => *fifo_handler = new_fifo_handler,
+      Err(err) => log::error!("refreshing grammars/queries failed: {err}"),
+    }
   }
 }
 

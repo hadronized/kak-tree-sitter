@@ -14,6 +14,9 @@ pub enum UnidentifiedRequest {
   /// Inform KTS that a session has exited.
   SessionExit { name: String },
 
+  /// Ask KTS to reload its configuration and reload grammars / queries.
+  Reload,
+
   /// Ask KTS to shutdown.
   Shutdown,
 }
