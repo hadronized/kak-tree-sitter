@@ -488,7 +488,20 @@ pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/java"
 
 # javascript
-# TODO
+[language.javascript.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-javascript"
+pin = "f1e5a09b8d02f8209a68249c93f0ad647b228e6e"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "javascript.so"]
+link_flags = ["-O3"]
+
+[language.javascript.queries]
+url = "https://github.com/phaazon/kak-tree-sitter"
+path = "runtime/queries/javascript"
 
 # jsdoc
 # TODO
@@ -514,7 +527,20 @@ path = "runtime/queries/json"
 # TODO
 
 # jsx
-# TODO
+[language.jsx.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-javascript"
+pin = "f1e5a09b8d02f8209a68249c93f0ad647b228e6e"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "jsx.so"]
+link_flags = ["-O3"]
+
+[language.jsx.queries]
+url = "https://github.com/phaazon/kak-tree-sitter"
+path = "runtime/queries/jsx"
 
 # julia
 # TODO
@@ -848,13 +874,39 @@ path = "runtime/queries/toml"
 # TODO
 
 # tsx
-# TODO
+[language.tsx.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-typescript"
+pin = "b1bf4825d9eaa0f3bdeb1e52f099533328acfbdf"
+path = "tsx/src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "tsx.so"]
+link_flags = ["-O3"]
+
+[language.tsx.queries]
+url = "https://github.com/phaazon/kak-tree-sitter"
+path = "runtime/queries/tsx"
 
 # twig
 # TODO
 
 # typescript
-# TODO
+[language.typescript.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-typescript"
+pin = "b1bf4825d9eaa0f3bdeb1e52f099533328acfbdf"
+path = "typescript/src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "typescript.so"]
+link_flags = ["-O3"]
+
+[language.typescript.queries]
+url = "https://github.com/phaazon/kak-tree-sitter"
+path = "runtime/queries/typescript"
 
 # ungrammar
 # TODO
