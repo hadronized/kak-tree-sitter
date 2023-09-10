@@ -55,12 +55,11 @@ fn start() -> Result<(), OhNo> {
 
   if let Some(request) = cli.request {
     // otherwise, regular client
-    let req = serde_json::from_str::<UnixRequest>(&request).map_err(|err| {
-      OhNo::InvalidRequest {
+    let req =
+      serde_json::from_str::<UnixRequest>(&request).map_err(|err| OhNo::InvalidRequest {
         req: request,
         err: err.to_string(),
-      }
-    })?;
+      })?;
     let req = if let Some(session) = cli.session {
       req.with_session(session)
     } else {

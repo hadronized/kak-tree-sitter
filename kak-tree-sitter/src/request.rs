@@ -27,9 +27,7 @@ impl UnixRequest {
     let name = name.into();
 
     match self {
-      UnixRequest::NewSession { client, .. } => {
-        UnixRequest::NewSession { name, client }
-      }
+      UnixRequest::NewSession { client, .. } => UnixRequest::NewSession { name, client },
 
       UnixRequest::SessionExit { .. } => UnixRequest::SessionExit { name },
 
