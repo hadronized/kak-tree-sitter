@@ -783,7 +783,21 @@ path = "runtime/queries/python"
 # TODO
 
 # ruby
-# TODO
+[language.ruby.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-ruby"
+pin = "206c7077164372c596ffa8eaadb9435c28941364"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "c++"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "ruby.so"]
+link_flags = ["-O3"]
+
+[language.ruby.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/ruby"
 
 # rust
 [language.rust.grammar]
