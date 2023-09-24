@@ -884,7 +884,7 @@ path = "runtime/queries/scheme"
 # toml
 [language.toml.grammar]
 url = "https://github.com/ikatyang/tree-sitter-toml"
-pin = "7cff70bbcbbc62001b465603ca1ea88edd668704"
+pin = "8bd2056818b21860e3d756b5a58c4f6e05fb744e"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -895,7 +895,7 @@ link_flags = ["-O3"]
 
 [language.toml.queries]
 url = "https://github.com/helix-editor/helix"
-pin = "6c6923c39eae8b176d4deb7779ab19dcebb326ea"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 path = "runtime/queries/toml"
 
 # tsq
