@@ -703,7 +703,6 @@ impl FifoHandler {
         log::debug!("buffer FIFO is not ready");
         return Ok(());
       } else {
-        buffer.clear();
         return Err(err.into());
       }
     };
