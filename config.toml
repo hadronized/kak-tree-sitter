@@ -957,7 +957,7 @@ compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
 compile_flags = ["-O3"]
 link = "cc"
-link_args = ["-shared", "-fpic", "parser.o", "-o" "verilog.so"]
+link_args = ["-shared", "-fpic", "parser.o", "-o", "verilog.so"]
 link_flags = ["-O3"]
 
 [language.verilog.queries]
