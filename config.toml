@@ -949,7 +949,20 @@ path = "runtime/queries/typescript"
 # TODO
 
 # verilog
-# TODO
+[language.verilog.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-verilog"
+pin = "902031343056bc0b11f3e47b33f036a9cf59f58d"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o" "verilog.so"]
+link_flags = ["-O3"]
+
+[language.verilog.queries]
+url = "https://github.com/helix-editor/helix"
+path = "runtime/queries/verilog"
 
 # vhdl
 # TODO
