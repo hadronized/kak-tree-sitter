@@ -5,4 +5,5 @@ members = [
 	"kak-tree-sitter",
 	"kak-tree-sitter-config",
 	"ktsctl",
+	"tree-sitter-highlight",
 ]
