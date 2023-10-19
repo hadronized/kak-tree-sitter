@@ -2,7 +2,6 @@ This crate is a modified version of [tree-sitter-highlight](https://docs.rs/tree
 The modifications are as follows:
 
 * Add a `tree` property to the `Highlighter` struct, representing the most recent parse tree.
-* Add the ability to pass an edited `Tree` to the `highlighter.highlight` function.
 
 The original README now follows.
 

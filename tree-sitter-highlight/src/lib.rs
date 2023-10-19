@@ -62,6 +62,7 @@ pub struct HighlightConfiguration {
 pub struct Highlighter {
   parser: Parser,
   cursors: Vec<QueryCursor>,
+  tree: Option<Tree>
 }
 
 /// Converts a general-purpose syntax highlighting iterator into a sequence of lines of HTML.
@@ -116,6 +117,7 @@ impl Highlighter {
     Highlighter {
       parser: Parser::new(),
       cursors: Vec::new(),
+      tree: None
     }
   }
 
@@ -417,6 +419,8 @@ impl<'a> HighlightIterLayer<'a> {
         ranges = next_ranges;
       }
     }
+
+    highlighter.tree = Some(result[0]._tree.clone());
 
     Ok(result)
   }
