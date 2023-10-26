@@ -557,7 +557,7 @@ link_flags = ["-O3"]
 [language.julia.queries]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
-path = "runtime/queries/json"
+path = "runtime/queries/julia"
 
 # just
 # TODO
