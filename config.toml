@@ -545,13 +545,13 @@ path = "runtime/queries/jsx"
 # julia
 [language.julia.grammar]
 url = "https://github.com/tree-sitter/tree-sitter-julia"
-pin = "0c088d1ad270f02c4e84189247ac7001e86fe342"
+pin = "2f885efd38a6a6abfefc81d53ecdd99812dcde69"
 path = "src"
 compile = "cc"
-compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_args = ["-c", "-fpic", "-flto=auto", "../parser.c", "../scanner.c", "-I", ".."]
 compile_flags = ["-O3"]
 link = "cc"
-link_args = ["-shared", "-fpic", "parser.o", "-o", "julia.so"]
+link_args = ["-shared", "-fpic", "-flto=auto", "parser.o", "scanner.o", "-o", "julia.so"]
 link_flags = ["-O3"]
 
 [language.julia.queries]
