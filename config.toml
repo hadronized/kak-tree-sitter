@@ -733,7 +733,21 @@ path = "runtime/queries/nu"
 # TODO
 
 # purescript
-# TODO
+[language.purescript.grammar]
+url = "https://github.com/Maskhjarna/tree-sitter-purescript/"
+pin = "0e36a885a941078bf40e559026be425764dc27bf"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "purescript.so"]
+link_flags = ["-O3"]
+
+[language.purescript.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "44e03fa41446f46c7be60a62acf6aa4131a62a4a"
+path = "runtime/queries/purescript"
 
 # python
 [language.python.grammar]
