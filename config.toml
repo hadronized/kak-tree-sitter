@@ -734,8 +734,8 @@ path = "runtime/queries/nu"
 
 # purescript
 [language.purescript.grammar]
-url = "https://github.com/Maskhjarna/tree-sitter-purescript/"
-pin = "0e36a885a941078bf40e559026be425764dc27bf"
+url = "https://github.com/postsolar/tree-sitter-purescript/"
+pin = "1615ac3b9c3b572259bce7a30c14cb06d6c2f2ff"
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
@@ -745,9 +745,9 @@ link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "purescript.so"]
 link_flags = ["-O3"]
 
 [language.purescript.queries]
-url = "https://github.com/helix-editor/helix"
-pin = "44e03fa41446f46c7be60a62acf6aa4131a62a4a"
-path = "runtime/queries/purescript"
+url = "https://github.com/postsolar/tree-sitter-purescript"
+pin = "1615ac3b9c3b572259bce7a30c14cb06d6c2f2ff"
+path = "queries"
 
 # python
 [language.python.grammar]
