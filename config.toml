@@ -775,7 +775,21 @@ path = "runtime/queries/nu"
 # TODO
 
 # purescript
-# TODO
+[language.purescript.grammar]
+url = "https://github.com/postsolar/tree-sitter-purescript/"
+pin = "1615ac3b9c3b572259bce7a30c14cb06d6c2f2ff"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "purescript.so"]
+link_flags = ["-O3"]
+
+[language.purescript.queries]
+url = "https://github.com/postsolar/tree-sitter-purescript"
+pin = "1615ac3b9c3b572259bce7a30c14cb06d6c2f2ff"
+path = "queries"
 
 # python
 [language.python.grammar]
