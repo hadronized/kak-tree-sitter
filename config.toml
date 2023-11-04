@@ -792,7 +792,7 @@ compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
 compile_flags = ["-O3"]
 link = "c++"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "ruby.so"]
-link_flags = ["-O3"]
+link_flags = ["-O3", "-lstdc++"]
 
 [language.ruby.queries]
 url = "https://github.com/helix-editor/helix"
