@@ -199,7 +199,21 @@ path = "runtime/queries/c"
 # TODO
 
 # cmake
-# TODO
+[language.cmake.grammar]
+url = "https://github.com/uyha/tree-sitter-cmake"
+pin = "6e51463ef3052dd3b328322c22172eda093727ad"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "../scanner.cc", "-I", ".."]
+compile_flags = ["-O3", "-flto=auto", "-march=native"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "cmake.so"]
+link_flags = ["-O3", "-lstdc++", "-flto=auto"]
+
+[language.cmake.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/cmake"
 
 # comment
 [language.comment.grammar]
@@ -339,7 +353,21 @@ path = "runtime/queries/diff"
 # TODO
 
 # fish
-# TODO
+[language.fish.grammar]
+url = "https://github.com/ram02z/tree-sitter-fish"
+pin = "84436cf24c2b3176bfbb220922a0fdbd0141e406"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
+compile_flags = ["-O3", "-march=native", "-flto=auto"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "fish.so"]
+link_flags = ["-O3", "-flto=auto"]
+
+[language.fish.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/fish"
 
 # fortran
 # TODO
