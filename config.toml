@@ -543,7 +543,21 @@ url = "https://github.com/phaazon/kak-tree-sitter"
 path = "runtime/queries/jsx"
 
 # julia
-# TODO
+[language.julia.grammar]
+url = "https://github.com/tree-sitter/tree-sitter-julia"
+pin = "2f885efd38a6a6abfefc81d53ecdd99812dcde69"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "-flto=auto", "../parser.c", "../scanner.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "-flto=auto", "parser.o", "scanner.o", "-o", "julia.so"]
+link_flags = ["-O3"]
+
+[language.julia.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+path = "runtime/queries/julia"
 
 # just
 # TODO
