@@ -62,6 +62,8 @@ define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' 
   }
 
   remove-hooks global kak-tree-sitter
+  set-option global kts_buf_fifo_path '/dev/null'
+  set-option global kts_cmd_fifo_path '/dev/null'
 
   nop %sh{
     kak-tree-sitter -r '{ "type": "shutdown" }'
