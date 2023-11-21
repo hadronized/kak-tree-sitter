@@ -13,7 +13,6 @@ mod session;
 
 use clap::Parser;
 use cli::Cli;
-use colored::Colorize;
 use error::OhNo;
 use kak_tree_sitter_config::Config;
 use logging::Verbosity;
@@ -22,7 +21,7 @@ use server::Server;
 
 fn main() {
   if let Err(err) = start() {
-    eprintln!("{}", err.to_string().red());
+    eprintln!("{err}");
     std::process::exit(1);
   }
 }

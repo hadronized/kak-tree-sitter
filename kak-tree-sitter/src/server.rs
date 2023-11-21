@@ -19,7 +19,6 @@ use std::{
   thread::{spawn, JoinHandle},
 };
 
-use colored::Colorize;
 use kak_tree_sitter_config::Config;
 use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 
@@ -659,7 +658,7 @@ impl FifoHandler {
       },
 
       Err(err) => {
-        log::error!("malformed request: {}", format!("{err}").red());
+        log::error!("malformed request: {err}");
       }
     }
 

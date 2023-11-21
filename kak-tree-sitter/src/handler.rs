@@ -1,4 +1,3 @@
-use colored::Colorize;
 use kak_tree_sitter_config::Config;
 
 use crate::{
@@ -43,7 +42,7 @@ impl Handler {
     let supported = self.langs.get(lang).is_some();
 
     if !supported {
-      log::warn!("{}", format!("language {lang} is not supported").red());
+      log::warn!("language {lang} is not supported");
     }
 
     Ok(Response::FiletypeSupported { supported })
