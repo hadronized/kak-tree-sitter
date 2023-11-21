@@ -20,7 +20,7 @@ daemonize = "0.5.0"
 dirs = "5.0.0"
 itertools = "0.12.0"
 kak-tree-sitter-config = { version = "0.3.0-dev", path = "../kak-tree-sitter-config" }
-libc = "0.2.149"
+libc = "0.2.150"
 libloading = "0.8.1"
 log = "0.4.20"
 mio = { version = "0.8.9", features = ["net", "os-ext", "os-poll"] }
