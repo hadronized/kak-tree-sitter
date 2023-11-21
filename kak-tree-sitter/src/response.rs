@@ -94,3 +94,28 @@ impl Response {
     Some(format!("eval -no-hooks {prefix}%{{{kak_cmd}}}"))
   }
 }
+
+/// Response that can be sent to a specific session.
+#[derive(Debug, Eq, PartialEq)]
+pub struct ConnectedResponse {
+  pub session: String,
+  pub client: Option<String>,
+  pub resp: Response,
+}
+
+impl ConnectedResponse {
+  pub fn new(
+    session: impl Into<String>,
+    client: impl Into<Option<String>>,
+    resp: Response,
+  ) -> Self {
+    let session = session.into();
+    let client = client.into();
+
+    Self {
+      session,
+      client,
+      resp,
+    }
+  }
+}
