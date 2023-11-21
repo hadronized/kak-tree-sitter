@@ -1,8 +1,6 @@
-use std::{collections::HashMap, fs::File, io::Write, process::Stdio};
+use std::{collections::HashMap, fs::File};
 
 use mio::Token;
-
-use crate::{error::OhNo, response::Response};
 
 /// Session tracker,
 ///
@@ -90,61 +88,6 @@ impl Session {
 
   pub fn state_mut(&mut self) -> &mut SessionState {
     &mut self.state
-  }
-
-  pub fn send_response(&self, client: Option<&str>, resp: &Response) -> Result<(), OhNo> {
-    let resp = resp.to_kak_cmd(client);
-
-    match resp {
-      Some(resp) => self.send_response_raw(&resp),
-      _ => Ok(()),
-    }
-  }
-
-  pub fn send_non_connected_response(
-    session: &str,
-    client: Option<&str>,
-    resp: &Response,
-  ) -> Result<(), OhNo> {
-    let resp = resp.to_kak_cmd(client);
-
-    match resp {
-      Some(resp) => Self::send_non_connected_response_raw(session, &resp),
-      _ => Ok(()),
-    }
-  }
-
-  pub fn send_response_raw(&self, resp: &str) -> Result<(), OhNo> {
-    Self::send_non_connected_response_raw(&self.name, resp)
-  }
-
-  pub fn send_non_connected_response_raw(session: &str, resp: &str) -> Result<(), OhNo> {
-    let mut child = std::process::Command::new("kak")
-      .args(["-p", session])
-      .stdin(Stdio::piped())
-      .spawn()
-      .map_err(|err| OhNo::CannotSendRequest {
-        err: err.to_string(),
-      })?;
-    let child_stdin = child
-      .stdin
-      .as_mut()
-      .ok_or_else(|| OhNo::CannotSendRequest {
-        err: "cannot pipe data to kak -p".to_owned(),
-      })?;
-
-    child_stdin
-      .write_all(resp.as_bytes())
-      .map_err(|err| OhNo::CannotSendRequest {
-        err: err.to_string(),
-      })?;
-
-    child_stdin.flush().map_err(|err| OhNo::CannotSendRequest {
-      err: err.to_string(),
-    })?;
-
-    child.wait()?;
-    Ok(())
   }
 }
 

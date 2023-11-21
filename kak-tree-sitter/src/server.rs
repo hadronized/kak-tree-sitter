@@ -10,11 +10,13 @@ use std::{
     },
   },
   path::{Path, PathBuf},
-  process::Command,
+  process::{Command, Stdio},
   sync::{
     atomic::{AtomicBool, Ordering},
+    mpsc::{channel, Receiver, Sender},
     Arc,
   },
+  thread::{spawn, JoinHandle},
 };
 
 use colored::Colorize;
@@ -26,7 +28,7 @@ use crate::{
   error::OhNo,
   handler::Handler,
   request::{Request, UnixRequest},
-  response::Response,
+  response::{ConnectedResponse, Response},
   session::{Fifo, Session, SessionState, SessionTracker},
 };
 
@@ -47,13 +49,12 @@ impl Server {
     Ok(Self { server_state })
   }
 
-  /// Return whether we run as a server.
+  /// Bootstrap the server from the `config` and `cli`.
   pub fn bootstrap(config: &Config, cli: &Cli) -> Result<(), OhNo> {
     // find a runtime directory to write in
     let runtime_dir = ServerState::runtime_dir()?;
     eprintln!("running in {}", runtime_dir.display());
 
-    // PID file
     let pid_file = runtime_dir.join("pid");
 
     // check whether a pid file exists and can be read
@@ -200,22 +201,12 @@ impl TokenProvider {
 }
 
 pub struct ServerState {
-  // readable poll
   poll: Poll,
-
-  // UNIX handler.
+  _resp_queue_handle: JoinHandle<()>,
   unix_handler: UnixHandler,
-
-  // FIFO handler.
   fifo_handler: FifoHandler,
-
-  // whether we should shutdown
   shutdown: Arc<AtomicBool>,
-
-  // active sessions
   session_tracker: SessionTracker,
-
-  // provider for FIFO tokens
   token_provider: TokenProvider,
 }
 
@@ -224,12 +215,14 @@ impl ServerState {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let mut poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
     let waker = Arc::new(Waker::new(poll.registry(), TokenProvider::WAKER_TOKEN)?);
+    let (resp_queue, resp_sender) = ResponseQueue::new();
     let mut unix_handler = UnixHandler::new(
       is_standalone,
       resources.clone(),
       ServerState::socket_path()?,
+      resp_sender.clone(),
     )?;
-    let fifo_handler = FifoHandler::new(config)?;
+    let fifo_handler = FifoHandler::new(config, resp_sender)?;
     let shutdown = Arc::new(AtomicBool::new(false));
     let session_tracker = SessionTracker::default();
     let token_provider = TokenProvider::default();
@@ -246,8 +239,11 @@ impl ServerState {
 
     unix_handler.register_poll(&mut poll)?;
 
+    let _resp_queue_handle = resp_queue.run();
+
     Ok(ServerState {
       poll,
+      _resp_queue_handle,
       unix_handler,
       fifo_handler,
       shutdown,
@@ -332,6 +328,7 @@ struct UnixHandler {
   is_standalone: bool,
   resources: ServerResources,
   unix_listener: UnixListener,
+  resp_sender: Sender<ConnectedResponse>,
 }
 
 impl UnixHandler {
@@ -339,6 +336,7 @@ impl UnixHandler {
     is_standalone: bool,
     resources: ServerResources,
     socket_path: impl AsRef<Path>,
+    resp_sender: Sender<ConnectedResponse>,
   ) -> Result<Self, OhNo> {
     let unix_listener =
       UnixListener::bind(socket_path).map_err(|err| OhNo::CannotStartServer { err })?;
@@ -347,6 +345,7 @@ impl UnixHandler {
       is_standalone,
       resources,
       unix_listener,
+      resp_sender,
     })
   }
 
@@ -413,7 +412,10 @@ impl UnixHandler {
           buf_fifo_path,
         };
 
-        Session::send_non_connected_response(&name, Some(&client), &resp)?;
+        let conn_resp = ConnectedResponse::new(name, client, resp);
+        if let Err(err) = self.resp_sender.send(conn_resp) {
+          log::error!("cannot send response: {err}");
+        }
       }
 
       UnixRequest::Reload => {
@@ -573,7 +575,7 @@ impl UnixHandler {
       }
     };
 
-    match FifoHandler::new(&config) {
+    match FifoHandler::new(&config, self.resp_sender.clone()) {
       Ok(new_fifo_handler) => *fifo_handler = new_fifo_handler,
       Err(err) => log::error!("refreshing grammars/queries failed: {err}"),
     }
@@ -582,12 +584,17 @@ impl UnixHandler {
 
 struct FifoHandler {
   handler: Handler,
+  resp_sender: Sender<ConnectedResponse>,
 }
 
 impl FifoHandler {
-  fn new(config: &Config) -> Result<Self, OhNo> {
+  fn new(config: &Config, resp_sender: Sender<ConnectedResponse>) -> Result<Self, OhNo> {
     let handler = Handler::new(config)?;
-    Ok(Self { handler })
+
+    Ok(Self {
+      handler,
+      resp_sender,
+    })
   }
 
   /// Dispatch FIFO reads.
@@ -636,14 +643,16 @@ impl FifoHandler {
       Ok(req) => match self.process_cmd(session, &req) {
         Ok(Some(resp)) => {
           let client = req.client_name();
+          let conn_resp =
+            ConnectedResponse::new(session.name(), client.map(|c| c.to_owned()), resp);
 
-          if let Err(err) = session.send_response(client, &resp) {
-            log::error!("failure while sending response: {}", format!("{err}").red());
+          if let Err(err) = self.resp_sender.send(conn_resp) {
+            log::error!("failure while sending response: {err}");
           }
         }
 
         Err(err) => {
-          log::error!("handling request failed: {}", format!("{err}").red());
+          log::error!("handling request failed: {err}");
         }
 
         _ => (),
@@ -731,8 +740,10 @@ impl FifoHandler {
 
       match handled {
         Ok(resp) => {
-          if let Err(err) = session.send_response(Some(&client), &resp) {
-            log::error!("failure while sending response: {}", format!("{err}").red());
+          let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
+
+          if let Err(err) = self.resp_sender.send(conn_resp) {
+            log::error!("failure while sending response: {err}");
           }
         }
 
@@ -745,6 +756,67 @@ impl FifoHandler {
       }
     }
 
+    Ok(())
+  }
+}
+
+/// Response queue, responsible in sending responses to Kakoune session.
+struct ResponseQueue {
+  receiver: Receiver<ConnectedResponse>,
+}
+
+impl ResponseQueue {
+  fn new() -> (Self, Sender<ConnectedResponse>) {
+    let (sender, receiver) = channel();
+    (Self { receiver }, sender)
+  }
+
+  /// Run the response queue by dequeuing connected responses as they arrive in a dedicated thread.
+  fn run(self) -> JoinHandle<()> {
+    spawn(move || {
+      while let Ok(conn_resp) = self.receiver.recv() {
+        if let Err(err) = Self::send(conn_resp) {
+          log::error!("cannot send connected response: {err}");
+        }
+      }
+    })
+  }
+
+  fn send(conn_resp: ConnectedResponse) -> Result<(), OhNo> {
+    let resp = conn_resp.resp.to_kak_cmd(conn_resp.client.as_deref());
+
+    match resp {
+      Some(data) => Self::send_via_kak_p(&conn_resp.session, &data),
+      None => Ok(()),
+    }
+  }
+
+  fn send_via_kak_p(session: &str, data: &str) -> Result<(), OhNo> {
+    let mut child = std::process::Command::new("kak")
+      .args(["-p", session])
+      .stdin(Stdio::piped())
+      .spawn()
+      .map_err(|err| OhNo::CannotSendRequest {
+        err: err.to_string(),
+      })?;
+    let child_stdin = child
+      .stdin
+      .as_mut()
+      .ok_or_else(|| OhNo::CannotSendRequest {
+        err: "cannot pipe data to kak -p".to_owned(),
+      })?;
+
+    child_stdin
+      .write_all(data.as_bytes())
+      .map_err(|err| OhNo::CannotSendRequest {
+        err: err.to_string(),
+      })?;
+
+    child_stdin.flush().map_err(|err| OhNo::CannotSendRequest {
+      err: err.to_string(),
+    })?;
+
+    child.wait()?;
     Ok(())
   }
 }
