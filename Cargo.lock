@@ -292,7 +292,6 @@ name = "kak-tree-sitter"
 version = "0.4.6-dev"
 dependencies = [
  "clap",
- "colored",
  "ctrlc",
  "daemonize",
  "dirs",
