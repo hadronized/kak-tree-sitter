@@ -49,6 +49,10 @@ impl SessionTracker {
         .map(|session| (session, fifo))
     })
   }
+
+  pub fn sessions(&self) -> impl Iterator<Item = &str> {
+    self.sessions.keys().map(String::as_str)
+  }
 }
 
 /// An (active) session.

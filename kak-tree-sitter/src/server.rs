@@ -202,6 +202,7 @@ impl TokenProvider {
 pub struct ServerState {
   poll: Poll,
   _resp_queue_handle: JoinHandle<()>,
+  resp_sender: Sender<ConnectedResponse>,
   unix_handler: UnixHandler,
   fifo_handler: FifoHandler,
   shutdown: Arc<AtomicBool>,
@@ -221,7 +222,7 @@ impl ServerState {
       ServerState::socket_path()?,
       resp_sender.clone(),
     )?;
-    let fifo_handler = FifoHandler::new(config, resp_sender)?;
+    let fifo_handler = FifoHandler::new(config, resp_sender.clone())?;
     let shutdown = Arc::new(AtomicBool::new(false));
     let session_tracker = SessionTracker::default();
     let token_provider = TokenProvider::default();
@@ -243,6 +244,7 @@ impl ServerState {
     Ok(ServerState {
       poll,
       _resp_queue_handle,
+      resp_sender,
       unix_handler,
       fifo_handler,
       shutdown,
@@ -317,8 +319,21 @@ impl ServerState {
     }
 
     log::info!("shutting down");
+    self.disconnect_sessions();
 
     Ok(())
+  }
+
+  /// Disconnect all sessions by sending them all a [`Response::Deinit`].
+  fn disconnect_sessions(&self) {
+    for session_name in self.session_tracker.sessions() {
+      let conn_resp = ConnectedResponse::new(session_name, None, Response::Deinit);
+      if let Err(err) = self.resp_sender.send(conn_resp) {
+        log::error!("cannot send response: {err}");
+      } else {
+        log::info!("disconnected session {session_name}");
+      }
+    }
   }
 }
 

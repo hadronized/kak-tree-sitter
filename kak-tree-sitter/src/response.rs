@@ -18,6 +18,13 @@ pub enum Response {
     buf_fifo_path: PathBuf,
   },
 
+  /// Explicit deinit response when the daemon exits.
+  ///
+  /// This is sent to all connected sessions to ask them to deinit when the server is going down. This is important as
+  /// a KTS-enabled session will use various resources (UNIX sockets, FIFOs, etc.) to communicate with KTS, and most of
+  /// those will block on Kakoune.
+  Deinit,
+
   /// Whether a filetype is supported.
   FiletypeSupported { supported: bool },
 
@@ -58,6 +65,8 @@ impl Response {
         "kak-tree-sitter-req-enable".to_owned(),
       ]
       .join("\n"),
+
+      Response::Deinit => "kak-tree-sitter-deinit".to_owned(),
 
       Response::FiletypeSupported { supported } => {
         if *supported {
