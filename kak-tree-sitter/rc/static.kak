@@ -53,10 +53,8 @@ define-command -hidden kak-tree-sitter-req-end-session -docstring 'Mark the sess
   }
 }
 
-# Stop the kak-tree-sitter daemon.
-#
-# To restart the daemon, the daemon must explicitly be restarted with a %sh{} block.
-define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' %{
+# Deinit KTS for the current session.
+define-command -hidden kak-tree-sitter-deinit %{
   evaluate-commands -no-hooks -buffer * %{
     remove-hooks buffer kak-tree-sitter
   }
@@ -64,6 +62,14 @@ define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' 
   remove-hooks global kak-tree-sitter
   set-option global kts_buf_fifo_path '/dev/null'
   set-option global kts_cmd_fifo_path '/dev/null'
+
+}
+
+# Stop the kak-tree-sitter daemon.
+#
+# To restart the daemon, the daemon must explicitly be restarted with a %sh{} block.
+define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' %{
+  kak-tree-sitter-deint
 
   nop %sh{
     kak-tree-sitter -r '{ "type": "shutdown" }'
