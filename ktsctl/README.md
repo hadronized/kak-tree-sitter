@@ -18,5 +18,5 @@ because it will perform boring operations for you automatically, and it comes wi
   - Grammars.
   - Queries.
 - Compile and link grammars. Requires `cc` to be available on your system.
-- Install grammars and queries inside your data directories — in `$XDG_DATA_DIR/kak-tree-sitter`.
+- Install grammars and queries inside your data directories.
 - Share the same configuration file as `kak-tree-sitter`.
