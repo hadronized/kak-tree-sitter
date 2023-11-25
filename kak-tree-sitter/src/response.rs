@@ -26,7 +26,10 @@ pub enum Response {
   Deinit,
 
   /// Whether a filetype is supported.
-  FiletypeSupported { supported: bool },
+  FiletypeSupported {
+    supported: bool,
+    remove_default_highlighter: bool,
+  },
 
   /// Highlights.
   ///
@@ -68,9 +71,19 @@ impl Response {
 
       Response::Deinit => "kak-tree-sitter-deinit".to_owned(),
 
-      Response::FiletypeSupported { supported } => {
+      Response::FiletypeSupported {
+        supported,
+        remove_default_highlighter,
+      } => {
         if *supported {
-          "kak-tree-sitter-highlight-enable".to_owned()
+          [
+            Some("kak-tree-sitter-highlight-enable"),
+            remove_default_highlighter
+              .then_some(r#"try %{ remove-highlighter "window/%opt{filetype}" }"#),
+          ]
+          .into_iter()
+          .flatten()
+          .join("\n")
         } else {
           String::new()
         }

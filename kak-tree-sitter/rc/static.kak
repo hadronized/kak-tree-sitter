@@ -99,12 +99,6 @@ define-command kak-tree-sitter-req-highlight-buffer -docstring 'Highlight the cu
 # This command does a couple of things, among removing the « default » highlighting (Kakoune based) of the buffer and
 # installing some hooks to automatically highlight the buffer.
 define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-sitter highlighting for this buffer' %{
-  # remove regular highlighting, if any; we wrap this with try %{} because the highlighter might not even exist or is
-  # named differently; in such a case we should probably have a mapping or something
-  try %{
-    remove-highlighter "window/%opt{filetype}"
-  }
-
   # Add the tree-sitter highlighter
   add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kts_highlighter_ranges
 

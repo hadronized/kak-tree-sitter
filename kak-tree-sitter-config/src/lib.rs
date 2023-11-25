@@ -63,18 +63,18 @@ impl LanguagesConfig {
   }
 
   /// Get the directory where all grammars live in.
-  pub fn get_grammars_dir(&self) -> Option<PathBuf> {
+  pub fn get_grammars_dir() -> Option<PathBuf> {
     dirs::data_dir().map(|dir| dir.join("kak-tree-sitter/grammars"))
   }
 
   /// Get the grammar path for a given language.
-  pub fn get_grammar_path(&self, lang: impl AsRef<str>) -> Option<PathBuf> {
+  pub fn get_grammar_path(lang: impl AsRef<str>) -> Option<PathBuf> {
     let lang = lang.as_ref();
     dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
   }
 
   /// Get the queries directory for a given language.
-  pub fn get_queries_dir(&self, lang: impl AsRef<str>) -> Option<PathBuf> {
+  pub fn get_queries_dir(lang: impl AsRef<str>) -> Option<PathBuf> {
     let lang = lang.as_ref();
     dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
   }
@@ -87,6 +87,23 @@ impl LanguagesConfig {
 pub struct LanguageConfig {
   pub grammar: LanguageGrammarConfig,
   pub queries: LanguageQueriesConfig,
+  #[serde(default)]
+  pub remove_default_highlighter: RemoveDefaultHighlighter,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+pub struct RemoveDefaultHighlighter(pub bool);
+
+impl Default for RemoveDefaultHighlighter {
+  fn default() -> Self {
+    RemoveDefaultHighlighter(true)
+  }
+}
+
+impl RemoveDefaultHighlighter {
+  pub fn to_bool(self) -> bool {
+    self.0
+  }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
