@@ -4,7 +4,7 @@
 
 use std::{collections::HashMap, path::Path};
 
-use kak_tree_sitter_config::Config;
+use kak_tree_sitter_config::{Config, LanguagesConfig};
 use libloading::Symbol;
 use tree_sitter_highlight::HighlightConfiguration;
 
@@ -13,6 +13,8 @@ use crate::{error::OhNo, queries::Queries};
 pub struct Language {
   pub hl_config: HighlightConfiguration,
   pub hl_names: Vec<String>,
+  // whether we should remove the default highlighter when highlighting a buffer with this language
+  pub remove_default_highlighter: bool,
 
   // NOTE: we need to keep that alive *probably*; better be safe than sorry
   _ts_lang: tree_sitter::Language,
@@ -55,10 +57,10 @@ impl Languages {
     let mut langs = HashMap::new();
 
     // iterate over all known languages in the configuration
-    for lang_name in config.languages.language.keys() {
-      log::info!("loading configuration for {lang_name}",);
+    for (lang_name, lang_config) in &config.languages.language {
+      log::info!("loading configuration for {lang_name}");
 
-      if let Some(grammar_path) = config.languages.get_grammar_path(lang_name) {
+      if let Some(grammar_path) = LanguagesConfig::get_grammar_path(lang_name) {
         log::info!("  grammar path: {}", grammar_path.display());
 
         let (ts_lib, ts_lang) = match Self::load_grammar(lang_name, &grammar_path) {
@@ -69,7 +71,7 @@ impl Languages {
           }
         };
 
-        if let Some(queries_dir) = config.languages.get_queries_dir(lang_name) {
+        if let Some(queries_dir) = LanguagesConfig::get_queries_dir(lang_name) {
           log::info!("  queries directory: {}", queries_dir.display());
 
           let queries = Queries::load_from_dir(queries_dir);
@@ -86,9 +88,12 @@ impl Languages {
           let hl_names: Vec<_> = config.highlight.groups.iter().cloned().collect();
           hl_config.configure(&hl_names);
 
+          let remove_default_highlighter = lang_config.remove_default_highlighter.to_bool();
+
           let lang = Language {
             hl_config,
             hl_names,
+            remove_default_highlighter,
             _ts_lang: ts_lang,
             _ts_lib: ts_lib,
           };

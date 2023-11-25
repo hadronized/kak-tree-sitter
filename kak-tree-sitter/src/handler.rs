@@ -33,19 +33,26 @@ impl Handler {
   pub fn handle_try_enable_highlight(
     &mut self,
     session_name: impl AsRef<str>,
-    lang: &str,
+    lang_name: &str,
   ) -> Result<Response, OhNo> {
     let session_name = session_name.as_ref();
 
-    log::info!("try enable highlight for language {lang}, session {session_name}");
+    log::info!("try enable highlight for language {lang_name}, session {session_name}");
 
-    let supported = self.langs.get(lang).is_some();
+    let lang = self.langs.get(lang_name);
+    let supported = lang.is_some();
+    let remove_default_highlighter = lang
+      .map(|lang| lang.remove_default_highlighter)
+      .unwrap_or_default();
 
     if !supported {
-      log::warn!("language {lang} is not supported");
+      log::warn!("language {lang_name} is not supported");
     }
 
-    Ok(Response::FiletypeSupported { supported })
+    Ok(Response::FiletypeSupported {
+      supported,
+      remove_default_highlighter,
+    })
   }
 
   pub fn handle_highlight(
