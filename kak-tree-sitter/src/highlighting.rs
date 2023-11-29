@@ -4,6 +4,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 use tree_sitter_highlight::{Highlight, HighlightEvent, Highlighter};
+use unicode_segmentation::UnicodeSegmentation;
 
 use crate::{
   error::OhNo,
@@ -77,25 +78,25 @@ impl Highlighters {
 #[derive(Debug, Eq, PartialEq)]
 pub struct KakHighlightRange {
   line_start: usize,
-  col_start: usize,
+  col_byte_start: usize,
   line_end: usize,
-  col_end: usize,
+  col_byte_end: usize,
   face: String,
 }
 
 impl KakHighlightRange {
   pub fn new(
     line_start: usize,
-    col_start: usize,
+    col_byte_start: usize,
     line_end: usize,
-    col_end: usize,
+    col_byte_end: usize,
     face: impl Into<String>,
   ) -> Self {
     Self {
       line_start,
-      col_start,
+      col_byte_start,
       line_end,
-      col_end,
+      col_byte_end,
       face: face.into(),
     }
   }
@@ -108,7 +109,7 @@ impl KakHighlightRange {
   ) -> Vec<Self> {
     let mut kak_hls = Vec::new();
     let mut faces: Vec<&str> = Vec::new();
-    let mut mapper = ByteLineColMapper::new(source.char_indices());
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
 
     // iterate on the highlight event
     for event in hl_events {
@@ -120,19 +121,19 @@ impl KakHighlightRange {
 
           mapper.advance(start);
           let line_start = mapper.line();
-          let col_start = mapper.col();
+          let col_byte_start = mapper.col_byte();
 
           mapper.advance(end - 1);
           let line_end = mapper.line();
-          let col_end = mapper.col();
+          let col_byte_end = mapper.col_byte();
 
           let face = faces.last().copied().unwrap_or("unknown");
 
           kak_hls.push(KakHighlightRange::new(
             line_start,
-            col_start,
+            col_byte_start,
             line_end,
-            col_end,
+            col_byte_end,
             format!("ts_{}", face.replace('.', "_")),
           ));
         }
@@ -161,7 +162,11 @@ impl KakHighlightRange {
   pub fn to_kak_range_str(&self) -> String {
     format!(
       "{}.{},{}.{}|{}",
-      self.line_start, self.col_start, self.line_end, self.col_end, self.face
+      self.line_start,
+      self.col_byte_start + 1, // range-specs is 1-indexed
+      self.line_end,
+      self.col_byte_end + 1, // ditto
+      self.face
     )
   }
 }
@@ -172,23 +177,19 @@ struct ByteLineColMapper<C> {
   chars: C,
   byte_idx: usize,
   line: usize,
-  col: usize,
-  change_line: bool,
+  col_byte: usize,
 }
 
-impl<C> ByteLineColMapper<C>
+impl<'a, C> ByteLineColMapper<C>
 where
-  C: Iterator<Item = (usize, char)>,
+  C: Iterator<Item = &'a str>,
 {
-  fn new(mut chars: C) -> Self {
-    let change_line = matches!(chars.next(), Some((_, '\n')));
-
+  fn new(chars: C) -> Self {
     Self {
       chars,
       byte_idx: 0,
       line: 1,
-      col: 1,
-      change_line,
+      col_byte: 0,
     }
   }
 
@@ -196,8 +197,12 @@ where
     self.line
   }
 
-  fn col(&self) -> usize {
-    self.col
+  fn col_byte(&self) -> usize {
+    self.col_byte
+  }
+
+  fn should_change_line(s: &str) -> bool {
+    ["\n", "\r\n"].contains(&s)
   }
 
   fn advance(&mut self, til: usize) {
@@ -206,17 +211,16 @@ where
         break;
       }
 
-      if let Some((idx, c)) = self.chars.next() {
-        self.byte_idx = idx;
+      if let Some(grapheme) = self.chars.next() {
+        let bytes = grapheme.as_bytes().len();
+        self.byte_idx += bytes;
 
-        if self.change_line {
+        if Self::should_change_line(grapheme) {
           self.line += 1;
-          self.col = 0;
+          self.col_byte = 0;
+        } else {
+          self.col_byte += bytes;
         }
-
-        self.change_line = c == '\n';
-
-        self.col += c.len_utf8();
       } else {
         break;
       }
@@ -226,55 +230,65 @@ where
 
 #[cfg(test)]
 mod tests {
+  use unicode_segmentation::UnicodeSegmentation;
+
   use super::ByteLineColMapper;
 
   #[test]
   fn byte_line_col_mapper() {
     let source = "const x: &'str = \"Hello, world!\";\nconst y = 3;";
-    let mut mapper = ByteLineColMapper::new(source.char_indices());
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
 
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 1);
+    assert_eq!(mapper.col_byte(), 0);
 
     mapper.advance(4);
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 5);
+    assert_eq!(mapper.col_byte(), 4);
 
     mapper.advance(33);
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 34);
+    assert_eq!(mapper.col_byte(), 33);
 
     mapper.advance(34);
     assert_eq!(mapper.line(), 2);
-    assert_eq!(mapper.col(), 1);
+    assert_eq!(mapper.col_byte(), 0);
+
+    mapper.advance(35);
+    assert_eq!(mapper.line(), 2);
+    assert_eq!(mapper.col_byte(), 1);
   }
 
   #[test]
   fn unicode() {
     let source = "const ᾩ = 1"; // the unicode symbol is 3-bytes
-    let mut mapper = ByteLineColMapper::new(source.char_indices());
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
 
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 1);
+    assert_eq!(mapper.col_byte(), 0);
+
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 1);
 
     mapper.advance(5);
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 6);
+    assert_eq!(mapper.col_byte(), 5);
 
     mapper.advance(6);
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 7);
+    assert_eq!(mapper.col_byte(), 6);
 
     mapper.advance(7);
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 8);
+    assert_eq!(mapper.col_byte(), 9);
 
     mapper.advance(8);
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 8);
+    assert_eq!(mapper.col_byte(), 9);
 
     mapper.advance(9);
     assert_eq!(mapper.line(), 1);
-    assert_eq!(mapper.col(), 9);
+    assert_eq!(mapper.col_byte(), 9);
   }
 }
