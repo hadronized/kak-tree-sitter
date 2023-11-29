@@ -248,4 +248,33 @@ mod tests {
     assert_eq!(mapper.line(), 2);
     assert_eq!(mapper.col(), 1);
   }
+
+  #[test]
+  fn unicode() {
+    let source = "const ᾩ = 1"; // the unicode symbol is 3-bytes
+    let mut mapper = ByteLineColMapper::new(source.char_indices());
+
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 1);
+
+    mapper.advance(5);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 6);
+
+    mapper.advance(6);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 7);
+
+    mapper.advance(7);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 8);
+
+    mapper.advance(8);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 8);
+
+    mapper.advance(9);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col(), 9);
+  }
 }
