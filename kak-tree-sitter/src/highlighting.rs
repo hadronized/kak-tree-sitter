@@ -235,7 +235,30 @@ mod tests {
   use super::ByteLineColMapper;
 
   #[test]
-  fn byte_line_col_mapper() {
+  fn idempotent_mapper() {
+    let source = "Hello, world!";
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
+
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 0);
+
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 1);
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 1);
+
+    mapper.advance(4);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 4);
+    mapper.advance(4);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 4);
+  }
+
+  #[test]
+  fn lines_mapper() {
     let source = "const x: &'str = \"Hello, world!\";\nconst y = 3;";
     let mut mapper = ByteLineColMapper::new(source.graphemes(true));
 
@@ -260,7 +283,7 @@ mod tests {
   }
 
   #[test]
-  fn unicode() {
+  fn unicode_mapper() {
     let source = "const ᾩ = 1"; // the unicode symbol is 3-bytes
     let mut mapper = ByteLineColMapper::new(source.graphemes(true));
 
@@ -290,5 +313,15 @@ mod tests {
     mapper.advance(9);
     assert_eq!(mapper.line(), 1);
     assert_eq!(mapper.col_byte(), 9);
+  }
+
+  #[test]
+  fn unicode_mapper_more() {
+    let source = "× a"; // 2 bytes
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
+
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 2);
   }
 }
