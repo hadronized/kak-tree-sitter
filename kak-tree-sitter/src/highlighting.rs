@@ -123,7 +123,7 @@ impl KakHighlightRange {
           let line_start = mapper.line();
           let col_byte_start = mapper.col_byte();
 
-          mapper.advance(end - 1);
+          mapper.advance(end);
           let line_end = mapper.line();
           let col_byte_end = mapper.col_byte();
 
@@ -205,6 +205,7 @@ where
     ["\n", "\r\n"].contains(&s)
   }
 
+  /// Advance the mapper until the given byte is read (or just passed over).
   fn advance(&mut self, til: usize) {
     loop {
       if self.byte_idx >= til {
@@ -235,7 +236,30 @@ mod tests {
   use super::ByteLineColMapper;
 
   #[test]
-  fn byte_line_col_mapper() {
+  fn idempotent_mapper() {
+    let source = "Hello, world!";
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
+
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 0);
+
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 1);
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 1);
+
+    mapper.advance(4);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 4);
+    mapper.advance(4);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 4);
+  }
+
+  #[test]
+  fn lines_mapper() {
     let source = "const x: &'str = \"Hello, world!\";\nconst y = 3;";
     let mut mapper = ByteLineColMapper::new(source.graphemes(true));
 
@@ -260,7 +284,7 @@ mod tests {
   }
 
   #[test]
-  fn unicode() {
+  fn unicode_mapper() {
     let source = "const ᾩ = 1"; // the unicode symbol is 3-bytes
     let mut mapper = ByteLineColMapper::new(source.graphemes(true));
 
@@ -290,5 +314,36 @@ mod tests {
     mapper.advance(9);
     assert_eq!(mapper.line(), 1);
     assert_eq!(mapper.col_byte(), 9);
+  }
+
+  #[test]
+  fn unicode_mapper_more() {
+    let source = "× a"; // 2 bytes
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
+
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 2);
+  }
+
+  #[test]
+  fn newline_mapper() {
+    let source = "×\na"; // 2 bytes, 1 byte, 1 byte
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
+
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 0);
+
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 2);
+
+    mapper.advance(2);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 2);
+
+    mapper.advance(3);
+    assert_eq!(mapper.line(), 2);
+    assert_eq!(mapper.col_byte(), 0);
   }
 }
