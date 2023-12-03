@@ -123,7 +123,7 @@ impl KakHighlightRange {
           let line_start = mapper.line();
           let col_byte_start = mapper.col_byte();
 
-          mapper.advance(end);
+          mapper.advance(end - 1);
           let line_end = mapper.line();
           let col_byte_end = mapper.col_byte();
 

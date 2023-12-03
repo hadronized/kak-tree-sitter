@@ -289,7 +289,7 @@ checksum = "af150ab688ff2122fcef229be89cb50dd66af9e01a4ff320cc137eecc9bacc38"
 
 [[package]]
 name = "kak-tree-sitter"
-version = "0.5.1-dev"
+version = "0.5.2"
 dependencies = [
  "clap",
  "ctrlc",
@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "kak-tree-sitter-config"
-version = "0.4.0-dev"
+version = "0.4.0"
 dependencies = [
  "dirs",
  "serde",
@@ -322,7 +322,7 @@ dependencies = [
 
 [[package]]
 name = "ktsctl"
-version = "0.3.3-dev"
+version = "0.3.3"
 dependencies = [
  "clap",
  "colored",
