@@ -123,7 +123,7 @@ impl KakHighlightRange {
           let line_start = mapper.line();
           let col_byte_start = mapper.col_byte();
 
-          mapper.advance(end - 1);
+          mapper.advance(end);
           let line_end = mapper.line();
           let col_byte_end = mapper.col_byte();
 
@@ -324,5 +324,26 @@ mod tests {
     mapper.advance(1);
     assert_eq!(mapper.line(), 1);
     assert_eq!(mapper.col_byte(), 2);
+  }
+
+  #[test]
+  fn newline_mapper() {
+    let source = "×\na"; // 2 bytes, 1 byte, 1 byte
+    let mut mapper = ByteLineColMapper::new(source.graphemes(true));
+
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 0);
+
+    mapper.advance(1);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 2);
+
+    mapper.advance(2);
+    assert_eq!(mapper.line(), 1);
+    assert_eq!(mapper.col_byte(), 2);
+
+    mapper.advance(3);
+    assert_eq!(mapper.line(), 2);
+    assert_eq!(mapper.col_byte(), 0);
   }
 }
