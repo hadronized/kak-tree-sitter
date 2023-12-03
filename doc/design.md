@@ -24,12 +24,14 @@ If users do not want to start `kak-tree-sitter` inside their Kakoune configurati
 like any other CLI application. They will have to source the `rc` files manually to be able to talk to the server,
 though.
 
+> Note: sourcing without starting the daemon is easy with `kak-tree-sitter --kakoune`.
+
 ## Client requests
 
 Client can then connect to the server. They have to provide a couple of information when performing a request:
 
 - The Kakoune session name, obviously.
-- The Kakoune client name, optional. Whenever a user wants to perform an operation that implies their Kakoune instance,
+- The Kakoune client name, optional. Whenever a user wants to perform an operation that implies a Kakoune instance,
   the client is necessary. For instance, highlighting or selecting requires a client.
 
 ## Active and inactive sessions
@@ -44,16 +46,19 @@ _inactive_ — it’s actually completely removed from the server.
 Once the server has an empty set of active session, it automatically exits. This allows to control precisely when the
 server should quit.
 
+> Note: this is only true if started from Kakoune, via `--kakoune`. If you start the server from the CLI, the server
+> remains up even if no session is connected to it.
+
 If a Kakoune session is killed and the `KakEnd` hook cannot run, the server will stay up until explicitely killed. The
-`kak-tree-sitter-stop` can be used to shutdwon the server.
+`kak-tree-sitter-req-stop` can be used to shutdwon the server.
 
 ## Automatic highlighting hooks
 
-A hook is automatically inserted on `BufCreate` (and transitively `WindowCreate`) to send a special request to the
+A hook is automatically inserted on `WinCreate` (and transitively `WinDisplay`) to send a special request to the
 server to try and highlight the current buffer. That request is a two-step process:
 
-1. A request of type `try_highlight` is sent to the server with the content of `%opt{filetype}`.
-2. If `%opt{filetype}` has an associated grammar and highlight queries (highlights, locals, injections, etc.), then
+1. A request of type `try_highlight` is sent to the server with the content of `%opt{kts_lang}`.
+2. If `%opt{kts_lang}` has an associated grammar and highlight queries (highlights, locals, injections, etc.), then
   the server sends back some more Kakoune commands to run. Otherwise, it just does nothing and the process ends there.
 3. If the server sent back highlighting commands to run, they are executed and install a `buffer` local set of hooks to
   highlight the buffer in the current session. Those hooks will react to user input to automatically re-highlight the
@@ -63,8 +68,6 @@ server to try and highlight the current buffer. That request is a two-step proce
 
 `ktsctl` is the controller CLI of `kak-tree-sitter`. It allows to run a variety of operations on the server and
 especially its runtime configuration.
-
-TODO: documentation of `ktsctl`.
 
 ## Grammars and queries sources
 
