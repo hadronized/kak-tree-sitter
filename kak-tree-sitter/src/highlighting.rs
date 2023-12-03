@@ -205,6 +205,7 @@ where
     ["\n", "\r\n"].contains(&s)
   }
 
+  /// Advance the mapper until the given byte is read (or just passed over).
   fn advance(&mut self, til: usize) {
     loop {
       if self.byte_idx >= til {
