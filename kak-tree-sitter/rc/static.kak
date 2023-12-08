@@ -69,7 +69,7 @@ define-command -hidden kak-tree-sitter-deinit %{
 #
 # To restart the daemon, the daemon must explicitly be restarted with a %sh{} block.
 define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' %{
-  kak-tree-sitter-deint
+  kak-tree-sitter-deinit
 
   nop %sh{
     kak-tree-sitter -r '{ "type": "shutdown" }'
