@@ -17,8 +17,14 @@ pub struct Language {
   pub remove_default_highlighter: bool,
 
   // NOTE: we need to keep that alive *probably*; better be safe than sorry
-  _ts_lang: tree_sitter::Language,
+  ts_lang: tree_sitter::Language,
   _ts_lib: libloading::Library,
+}
+
+impl Language {
+  pub fn lang(&self) -> tree_sitter::Language {
+    self.ts_lang
+  }
 }
 
 pub struct Languages {
@@ -94,7 +100,7 @@ impl Languages {
             hl_config,
             hl_names,
             remove_default_highlighter,
-            _ts_lang: ts_lang,
+            ts_lang,
             _ts_lib: ts_lib,
           };
           langs.insert(lang_name.to_owned(), lang);

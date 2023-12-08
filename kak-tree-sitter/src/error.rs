@@ -2,6 +2,7 @@ use std::{io, path::PathBuf};
 
 use log::SetLoggerError;
 use thiserror::Error;
+use tree_sitter::LanguageError;
 
 #[derive(Debug, Error)]
 pub enum OhNo {
@@ -65,6 +66,15 @@ pub enum OhNo {
   #[error("cannot send request: {err}")]
   CannotSendRequest { err: String },
 
+  #[error("cannot parse buffer")]
+  CannotParseBuffer,
+
   #[error("highlight error: {err}")]
   HighlightError { err: String },
+
+  #[error("language error: {err}")]
+  LangError {
+    #[from]
+    err: LanguageError,
+  },
 }
