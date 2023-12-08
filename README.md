@@ -16,7 +16,7 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 
 - [x] **Semantic highlighting.**
 - [ ] **Semantic selections (types, functions, declarations, etc.)**
-- Efficient parsing via `tree-sitter`, with partial parsing, etc.
+- [ ] Incremental parsing.
 - Shared between Kakoune sessions.
 
 ## Roadmap
