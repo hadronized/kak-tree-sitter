@@ -68,6 +68,9 @@ pub enum OhNo {
   #[error("cannot send request: {err}")]
   CannotSendRequest { err: String },
 
+  #[error("cannot parse buffer")]
+  CannotParseBuffer,
+
   #[error("highlight error: {err}")]
   HighlightError { err: String },
 }
