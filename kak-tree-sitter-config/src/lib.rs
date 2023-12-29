@@ -30,10 +30,29 @@ pub struct Config {
 }
 
 impl Config {
+  pub fn load() -> Result<Config, ConfigError> {
+    Self::load_from_xdg().or(Self::load_builtin())
+  }
+
   /// Load the config from the default user location (XDG).
-  pub fn load_from_xdg() -> Result<Config, ConfigError> {
+  fn load_from_xdg() -> Result<Config, ConfigError> {
     let dir = dirs::config_dir().ok_or(ConfigError::NoConfigDir)?;
     let path = dir.join("kak-tree-sitter/config.toml");
+    let content = fs::read_to_string(path).map_err(|err| ConfigError::CannotReadConfig { err })?;
+
+    toml::from_str(&content).map_err(|err| ConfigError::CannotParseConfig {
+      err: err.to_string(),
+    })
+  }
+
+  /// Load the built-in config which may be shipped with the binary.
+  fn load_builtin() -> Result<Config, ConfigError> {
+    let exec = std::env::current_exe().map_err(|err| ConfigError::CannotReadConfig { err })?;
+    let root = exec
+      .parent()
+      .and_then(|bin| bin.parent())
+      .ok_or(ConfigError::NoConfigDir)?;
+    let path = root.join("share/kak-tree-sitter/config.toml");
     let content = fs::read_to_string(path).map_err(|err| ConfigError::CannotReadConfig { err })?;
 
     toml::from_str(&content).map_err(|err| ConfigError::CannotParseConfig {
@@ -57,6 +76,29 @@ pub struct LanguagesConfig {
 }
 
 impl LanguagesConfig {
+  /// Get the directory with built-in grammars and queries relative to the binary.
+  fn get_builtin_dir() -> Option<PathBuf> {
+    let exec = match std::env::current_exe() {
+      Ok(path) => Some(path),
+      Err(_) => None,
+    }?;
+    exec
+      .parent()
+      .and_then(|bin| bin.parent())
+      .map(|dir| dir.join("share/kak-tree-sitter"))
+  }
+
+  fn fallback(from_xdg: Option<PathBuf>, builtin: Option<PathBuf>) -> Option<PathBuf> {
+    match from_xdg {
+      Some(path) => match path.try_exists() {
+        Ok(true) => Some(path),
+        Ok(false) => builtin,
+        Err(_) => builtin,
+      },
+      None => builtin,
+    }
+  }
+
   /// Get the configuration for `lang`.
   pub fn get_lang_conf(&self, lang: impl AsRef<str>) -> Option<&LanguageConfig> {
     self.language.get(lang.as_ref())
@@ -64,19 +106,26 @@ impl LanguagesConfig {
 
   /// Get the directory where all grammars live in.
   pub fn get_grammars_dir() -> Option<PathBuf> {
-    dirs::data_dir().map(|dir| dir.join("kak-tree-sitter/grammars"))
+    let builtin = Self::get_builtin_dir().map(|dir| dir.join("grammars"));
+    let from_xdg = dirs::data_dir().map(|dir| dir.join("kak-tree-sitter/grammars"));
+    Self::fallback(from_xdg, builtin)
   }
 
   /// Get the grammar path for a given language.
   pub fn get_grammar_path(lang: impl AsRef<str>) -> Option<PathBuf> {
     let lang = lang.as_ref();
-    dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
+    let builtin = Self::get_grammars_dir().map(|dir| dir.join(format!("{lang}.so")));
+    let from_xdg =
+      dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")));
+    Self::fallback(from_xdg, builtin)
   }
 
   /// Get the queries directory for a given language.
   pub fn get_queries_dir(lang: impl AsRef<str>) -> Option<PathBuf> {
     let lang = lang.as_ref();
-    dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
+    let builtin = Self::get_builtin_dir().map(|dir| dir.join(format!("queries/{lang}")));
+    let from_xdg = dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")));
+    Self::fallback(from_xdg, builtin)
   }
 }
 

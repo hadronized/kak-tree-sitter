@@ -28,7 +28,7 @@ fn main() {
 
 fn start() -> Result<(), OhNo> {
   let cli = Cli::parse();
-  let config = match Config::load_from_xdg() {
+  let config = match Config::load() {
     Ok(config) => config,
     Err(err) => {
       eprintln!("configuration error; will be using empty configuration: {err}");

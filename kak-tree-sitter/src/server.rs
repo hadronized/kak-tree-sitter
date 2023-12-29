@@ -647,7 +647,7 @@ impl UnixHandler {
   }
 
   fn reload(&mut self, fifo_handler: &mut FifoHandler) {
-    let config = match Config::load_from_xdg() {
+    let config = match Config::load() {
       Ok(config) => config,
       Err(err) => {
         log::error!("reloading config failed: {err}");
