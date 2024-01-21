@@ -39,7 +39,7 @@ impl UnixRequest {
 /// Request payload.
 ///
 /// Request payload are parameterized with the « origin » at which requests are expected.
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum Request {
   /// Try enabling highlighting for a given filetype.

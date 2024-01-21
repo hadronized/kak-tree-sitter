@@ -680,36 +680,6 @@ impl FifoHandler {
     Ok(())
   }
 
-  fn process_cmd(
-    &mut self,
-    session: &mut Session,
-    req: &Request,
-  ) -> Result<Option<Response>, OhNo> {
-    match req {
-      Request::TryEnableHighlight { lang, .. } => self
-        .handler
-        .handle_try_enable_highlight(session.name(), lang)
-        .map(Option::Some),
-
-      Request::Highlight {
-        client,
-        buffer,
-        lang,
-        timestamp,
-      } => {
-        // we do not send the highlight immediately; instead, we change the state machine
-        *session.state_mut() = SessionState::HighlightingWaiting {
-          client: client.clone(),
-          buffer: buffer.clone(),
-          lang: lang.clone(),
-          timestamp: *timestamp,
-        };
-
-        Ok(None)
-      }
-    }
-  }
-
   fn accept_buf(
     &mut self,
     session: &mut Session,
@@ -736,37 +706,60 @@ impl FifoHandler {
     res
   }
 
-  fn process_buf(&mut self, session: &mut Session, buf: &str) -> Result<(), OhNo> {
-    if let SessionState::HighlightingWaiting {
-      client,
-      buffer,
-      lang,
-      timestamp,
-    } = session.state()
-    {
-      let client = client.clone();
-      let handled = self
+  fn process_cmd(
+    &mut self,
+    session: &mut Session,
+    req: &Request,
+  ) -> Result<Option<Response>, OhNo> {
+    match req {
+      Request::TryEnableHighlight { lang, .. } => self
         .handler
-        .handle_highlight(session.name(), buffer, lang, *timestamp, buf);
+        .handle_try_enable_highlight(session.name(), &lang)
+        .map(Option::Some),
 
-      // switch back to idle, as we have read the FIFO
-      session.state_mut().idle();
+      Request::Highlight { .. } => {
+        // we do not send the highlight immediately; instead, we change the state machine
+        *session.state_mut() = SessionState::WaitingForBuf(req.clone());
+        Ok(None)
+      }
+    }
+  }
 
-      match handled {
-        Ok(resp) => {
-          let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
+  fn process_buf(&mut self, session: &mut Session, buf: &str) -> Result<(), OhNo> {
+    let Some(req) = session.state_mut().take_waiting_req() else {
+      return Ok(());
+    };
 
-          if let Err(err) = self.resp_sender.send(conn_resp) {
-            log::error!("failure while sending response: {err}");
+    match req {
+      Request::Highlight {
+        client,
+        buffer,
+        lang,
+        timestamp,
+      } => {
+        let handled = self
+          .handler
+          .handle_highlight(session.name(), &buffer, &lang, timestamp, buf);
+
+        match handled {
+          Ok(resp) => {
+            let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
+
+            if let Err(err) = self.resp_sender.send(conn_resp) {
+              log::error!("failure while sending response: {err}");
+            }
+          }
+
+          Err(err) => {
+            log::error!(
+              "handling highlight failed for session {session_name}, buffer {buf}: {err}",
+              session_name = session.name()
+            );
           }
         }
-
-        Err(err) => {
-          log::error!(
-            "handling highlight failed for session {session_name}, buffer {buf}: {err}",
-            session_name = session.name()
-          );
-        }
+      }
+      _ => {
+        log::error!("Unexpected request type was waiting for buffer: {req:?}");
       }
     }
 
