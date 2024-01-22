@@ -96,9 +96,16 @@ define-command kak-tree-sitter-req-highlight-buffer -docstring 'Highlight the cu
 
 define-command kak-tree-sitter-req-textobjects -params 1 %{
   evaluate-commands -no-hooks %{
-    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp}, ""selection"": ""%val{selection_desc}"", ""textobject_type"": ""%arg{1}"" }"
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp}, ""selection"": ""%val{selection_desc}"", ""textobject_type"": ""%arg{1}"", ""object_flags"": ""%val{object_flags}"", ""select_mode"": ""%val{select_mode}"" }"
     write %opt{kts_buf_fifo_path}
   }
+}
+
+define-command -hidden kak-tree-sitter-text-objects-enable %{
+  map -docstring 'function (tree-sitter)'  buffer object f   '<a-;> kak-tree-sitter-req-textobjects function<ret>'
+  map -docstring 'class (tree-sitter)'     buffer object t   '<a-;> kak-tree-sitter-req-textobjects class<ret>'
+  map -docstring 'comment (tree-sitter)'   buffer object '#' '<a-;> kak-tree-sitter-req-textobjects comment<ret>'
+  map -docstring 'parameter (tree-sitter)' buffer object 'v' '<a-;> kak-tree-sitter-req-textobjects parameter<ret>'
 }
 
 # Enable highlighting for the current buffer.
@@ -128,6 +135,7 @@ define-command -hidden kak-tree-sitter-set-lang %{
 define-command kak-tree-sitter-req-enable -docstring 'Send request to enable tree-sitter support' %{
   kak-tree-sitter-set-lang
   echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{kts_lang}"", ""client"": ""%val{client}"" }"
+  kak-tree-sitter-text-objects-enable
 }
 
 # Initiate request.
