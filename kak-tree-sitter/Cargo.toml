@@ -24,7 +24,7 @@ libloading = "0.8.1"
 log = "0.4.20"
 mio = { version = "0.8.10", features = ["net", "os-ext", "os-poll"] }
 serde = { version = "1.0.195", features = ["derive"] }
-serde_json = "1.0.109"
+serde_json = "1.0.111"
 simple_logger = "4.3.3"
 thiserror = "1.0.56"
 tree-sitter = "0.20.10"
