@@ -48,7 +48,8 @@ impl Handler {
         entry.into_mut()
       }
     };
-    ts.update(buf);
+    // Ignore errors here...
+    let _ = ts.update(buf);
     Ok(ts)
   }
 
@@ -116,30 +117,39 @@ impl Handler {
     lang_name: &str,
     timestamp: u64,
     buf: &str,
-    selection: kak::LocRange,
-    textobject_type: String,
-  ) -> Result<Response, OhNo> {
+    selection: &kak::LocRange,
+    textobject_type: &str,
+    inside: bool,
+  ) -> Result<Option<kak::LocRange>, OhNo> {
     log::debug!(
       "text_objects for session {session_name}, buffer {buffer}, lang {lang_name}, timestamp {timestamp}"
     );
     let buffer_id = BufferId::new(session_name, buffer);
     let Some(lang) = self.langs.get(lang_name) else {
-      return Ok(Response::status(format!(
-        "unsupported language: {lang_name}"
-      )));
+      return Err(OhNo::TextobjectError {
+        err: format!("unsupported language: {lang_name}"),
+      });
     };
     let Some(query) = lang.textobjects_query.as_ref() else {
-      return Ok(Response::status("language does not support textobjects"));
+      return Err(OhNo::TextobjectError {
+        err: "language does not support textobjects".into(),
+      });
     };
 
     let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
     let mut cursor = tree_sitter::QueryCursor::new();
     let names = query.capture_names();
     let captures = cursor.captures(query, tree_state.tree().root_node(), buf.as_bytes());
-    let Some(name_idx) = query.capture_index_for_name(&textobject_type) else {
-      return Ok(Response::status(
-        "language does not support this textobject",
-      ));
+
+    let capture_name = format!(
+      "{textobject_type}.{}",
+      if inside { "inside" } else { "around" }
+    );
+
+    let Some(name_idx) = query.capture_index_for_name(&capture_name) else {
+      return Err(OhNo::TextobjectError {
+        err: "language does not support this textobject".into(),
+      });
     };
 
     // Iterator over all code ranges that match the textobject type
@@ -160,18 +170,11 @@ impl Handler {
 
     // Objects that contain the current selection and are not equal to it. This lets us call the function repeatedly to expand the selection
     let ranges =
-      ranges.filter(|(range, byte_len)| range.contains_range(&selection) && *range != selection);
+      ranges.filter(|(range, _byte_len)| range.contains_range(selection) && *range != *selection);
     // We want the innermost object, i.e. the shortest one that contains the selection
-    let res = ranges.min_by_key(|(range, byte_len)| *byte_len);
-
-    if let Some((range, _byte_len)) = res {
-      Ok(Response::TextObject {
-        timestamp,
-        obj_type: textobject_type,
-        range,
-      })
-    } else {
-      Ok(Response::status("No textobject found"))
-    }
+    let obj_range = ranges
+      .min_by_key(|(_range, byte_len)| *byte_len)
+      .map(|x| x.0);
+    Ok(obj_range)
   }
 }

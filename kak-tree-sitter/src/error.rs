@@ -70,4 +70,7 @@ pub enum OhNo {
 
   #[error("highlight error: {err}")]
   HighlightError { err: String },
+  
+  #[error("textobject error: {err}")]
+  TextobjectError { err: String },
 }
