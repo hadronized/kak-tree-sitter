@@ -714,11 +714,11 @@ impl FifoHandler {
     match req {
       Request::TryEnableHighlight { lang, .. } => self
         .handler
-        .handle_try_enable_highlight(session.name(), &lang)
+        .handle_try_enable_highlight(session.name(), lang)
         .map(Option::Some),
 
-      Request::Highlight { .. } => {
-        // we do not send the highlight immediately; instead, we change the state machine
+      Request::TextObjects { .. } | Request::Highlight { .. } => {
+        // Postpone the request for when the buffer is received
         *session.state_mut() = SessionState::WaitingForBuf(req.clone());
         Ok(None)
       }
@@ -729,41 +729,58 @@ impl FifoHandler {
     let Some(req) = session.state_mut().take_waiting_req() else {
       return Ok(());
     };
+    let client = req.client_name().map(ToOwned::to_owned);
+    let resp = self.process_req_with_buf(session, req, buf);
+    match resp {
+      Ok(resp) => {
+        let conn_resp = ConnectedResponse::new(session.name(), client, resp);
 
-    match req {
-      Request::Highlight {
-        client,
-        buffer,
-        lang,
-        timestamp,
-      } => {
-        let handled = self
-          .handler
-          .handle_highlight(session.name(), &buffer, &lang, timestamp, buf);
-
-        match handled {
-          Ok(resp) => {
-            let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
-
-            if let Err(err) = self.resp_sender.send(conn_resp) {
-              log::error!("failure while sending response: {err}");
-            }
-          }
-
-          Err(err) => {
-            log::error!(
-              "handling highlight failed for session {session_name}, buffer {buf}: {err}",
-              session_name = session.name()
-            );
-          }
+        if let Err(err) = self.resp_sender.send(conn_resp) {
+          log::error!("failure while sending response: {err}");
         }
       }
-      _ => {
-        log::error!("Unexpected request type was waiting for buffer: {req:?}");
+
+      Err(err) => {
+        log::error!(
+          "handling request failed for session {session_name}, buffer {buf}: {err}",
+          session_name = session.name()
+        );
       }
     }
 
     Ok(())
+  }
+
+  /// Process a request where buffer contents have also been received
+  fn process_req_with_buf(
+    &mut self,
+    session: &mut Session,
+    req: Request,
+    buf: &str,
+  ) -> Result<Response, OhNo> {
+    match req {
+      Request::Highlight {
+        client: _,
+        buffer,
+        lang,
+        timestamp,
+      } => self
+        .handler
+        .handle_highlight(session.name(), &buffer, &lang, timestamp, buf),
+      Request::TextObjects {
+        client: _,
+        buffer,
+        lang,
+        timestamp,
+        textobject_type,
+        selection, 
+      } => self
+        .handler
+        .handle_text_objects(session.name(), &buffer, &lang, timestamp, buf, selection, textobject_type),
+      _ => Err(OhNo::InternalError {
+        err: format!("Unexpected request type was waiting for buffer: {req:?}"),
+      }),
+    }
   }
 }
 

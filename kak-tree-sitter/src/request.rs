@@ -4,6 +4,8 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
+use crate::kak;
+
 /// Unidentified request (i.e. not linked to a given session).
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -58,6 +60,17 @@ pub enum Request {
     lang: String,
     timestamp: u64,
   },
+
+  TextObjects {
+    client: String,
+    buffer: String,
+    lang: String,
+    timestamp: u64,
+    /// Which textobject to look for. Format: {type,function,parameter,comment}.{inside,around}
+    textobject_type: String,
+    /// Will return the smallest matching textobject that contains this selection
+    selection: kak::LocRange,
+  },
 }
 
 impl Request {
@@ -65,6 +78,7 @@ impl Request {
     match self {
       Request::TryEnableHighlight { client, .. } => Some(client.as_str()),
       Request::Highlight { client, .. } => Some(client.as_str()),
+      Request::TextObjects { client, .. } => Some(client.as_str()),
     }
   }
 }

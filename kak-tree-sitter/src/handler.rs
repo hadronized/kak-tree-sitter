@@ -1,11 +1,11 @@
 use std::collections::{hash_map::Entry, HashMap};
 
 use kak_tree_sitter_config::Config;
-use tree_sitter::Language as TSLanguage;
 
 use crate::{
   error::OhNo,
   highlighting::BufferId,
+  kak,
   languages::{Language, Languages},
   response::Response,
   tree_sitter_state::TreeState,
@@ -38,21 +38,18 @@ impl Handler {
     buffer_id: BufferId,
     buf: &str,
   ) -> Result<&'a mut TreeState, OhNo> {
-    match tree_states.entry(buffer_id) {
-      Entry::Vacant(entry) => {
-        // first time we see this buffer; full parse
-        let tree_state = TreeState::new(lang)?;
-        Ok(entry.insert(tree_state))
-      }
+    let ts = match tree_states.entry(buffer_id) {
+      Entry::Vacant(entry) => entry.insert(TreeState::new(lang)?),
 
       Entry::Occupied(mut entry) => {
         if entry.get().lang() != lang.lang() {
           entry.insert(TreeState::new(lang)?);
         }
-        entry.get_mut().update(buf);
-        Ok(entry.into_mut())
+        entry.into_mut()
       }
-    }
+    };
+    ts.update(buf);
+    Ok(ts)
   }
 
   pub fn handle_try_enable_highlight(
@@ -93,16 +90,7 @@ impl Handler {
     );
 
     let buffer_id = BufferId::new(session_name, buffer);
-    self.handle_highlight_req(buffer_id, lang_name, timestamp, buf)
-  }
 
-  fn handle_highlight_req(
-    &mut self,
-    buffer_id: BufferId,
-    lang_name: &str,
-    timestamp: u64,
-    buf: &str,
-  ) -> Result<Response, OhNo> {
     if let Some(lang) = self.langs.get(lang_name) {
       let tree_state = Self::compute_tree(&mut self.trees, &lang, buffer_id, buf)?;
 
@@ -118,6 +106,72 @@ impl Handler {
       Ok(Response::status(format!(
         "unsupported language: {lang_name}"
       )))
+    }
+  }
+
+  pub fn handle_text_objects(
+    &mut self,
+    session_name: &str,
+    buffer: &str,
+    lang_name: &str,
+    timestamp: u64,
+    buf: &str,
+    selection: kak::LocRange,
+    textobject_type: String,
+  ) -> Result<Response, OhNo> {
+    log::debug!(
+      "text_objects for session {session_name}, buffer {buffer}, lang {lang_name}, timestamp {timestamp}"
+    );
+    let buffer_id = BufferId::new(session_name, buffer);
+    let Some(lang) = self.langs.get(lang_name) else {
+      return Ok(Response::status(format!(
+        "unsupported language: {lang_name}"
+      )));
+    };
+    let Some(query) = lang.textobjects_query.as_ref() else {
+      return Ok(Response::status("language does not support textobjects"));
+    };
+
+    let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
+    let mut cursor = tree_sitter::QueryCursor::new();
+    let names = query.capture_names();
+    let captures = cursor.captures(query, tree_state.tree().root_node(), buf.as_bytes());
+    let Some(name_idx) = query.capture_index_for_name(&textobject_type) else {
+      return Ok(Response::status(
+        "language does not support this textobject",
+      ));
+    };
+
+    // Iterator over all code ranges that match the textobject type
+    let ranges = captures.filter_map(|(query_match, _size)| {
+      let mut iter = query_match
+        .captures
+        .iter()
+        .filter_map(|x| (x.index == name_idx).then_some(x.node));
+      if let Some(first) = iter.next() {
+        let last = iter.last().unwrap_or(first);
+        let range = first.start_position()..last.end_position();
+        let byte_len = first.start_byte().abs_diff(last.end_byte());
+        Some((kak::LocRange::from(range), byte_len))
+      } else {
+        None
+      }
+    });
+
+    // Objects that contain the current selection and are not equal to it. This lets us call the function repeatedly to expand the selection
+    let ranges =
+      ranges.filter(|(range, byte_len)| range.contains_range(&selection) && *range != selection);
+    // We want the innermost object, i.e. the shortest one that contains the selection
+    let res = ranges.min_by_key(|(range, byte_len)| *byte_len);
+
+    if let Some((range, _byte_len)) = res {
+      Ok(Response::TextObject {
+        timestamp,
+        obj_type: textobject_type,
+        range,
+      })
+    } else {
+      Ok(Response::status("No textobject found"))
     }
   }
 }

@@ -94,6 +94,13 @@ define-command kak-tree-sitter-req-highlight-buffer -docstring 'Highlight the cu
   }
 }
 
+define-command kak-tree-sitter-req-text-objects -params 1 %{
+  evaluate-commands -no-hooks %{
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp}, ""selection"": ""%val{selection_desc}"", ""textobject_type"": ""%arg{1}"" }"
+    write %opt{kts_buf_fifo_path}
+  }
+}
+
 # Enable highlighting for the current buffer.
 # 
 # This command does a couple of things, among removing the « default » highlighting (Kakoune based) of the buffer and

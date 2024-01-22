@@ -66,21 +66,18 @@ impl TreeState {
     crate::highlighting::highlight(&mut self.highlighter, lang, langs, source)
   }
 
-  pub fn query(&self, query: &Query, code: &str) {
-    let mut cursor = QueryCursor::new();
-    let captures = cursor.captures(query, self.tree.root_node(), code.as_bytes());
-    let names = query.capture_names();
+  pub fn tree(&self) -> &tree_sitter::Tree {
+    &self.tree
+  }
 
-    for (query_match, size) in captures {
-      for capture in query_match.captures {
-        log::info!(
-          "--> {}: {:#?} {:?} // {:?}",
-          &code[capture.node.byte_range()],
-          capture.node.kind(),
-          names.get(capture.index as usize),
-          capture
-        );
-      }
-    }
+  pub fn query<'a>(
+    &'a self,
+    cursor: &'a mut QueryCursor,
+    query: &'a Query,
+    code: &'a str,
+  ) -> impl Iterator<Item = &'a tree_sitter::QueryCapture<'a>> {
+    let captures = cursor.captures(query, self.tree.root_node(), code.as_bytes());
+
+    captures.flat_map(|(qm, _size)| qm.captures)
   }
 }

@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs::File, mem::replace};
+use std::{collections::HashMap, fs::File};
 
 use mio::Token;
 
@@ -148,9 +148,11 @@ impl SessionState {
 
   /// If a request is waiting for the buffer content, take it, and reset the state to idle
   pub fn take_waiting_req(&mut self) -> Option<Request> {
-    if let SessionState::WaitingForBuf(req) = self {
+    if let SessionState::WaitingForBuf(_req) = self {
       let oldself = std::mem::replace(self, SessionState::Idle);
-      let SessionState::WaitingForBuf(req) = oldself;
+      let SessionState::WaitingForBuf(req) = oldself else {
+        unreachable!()
+      };
       Some(req)
     } else {
       None

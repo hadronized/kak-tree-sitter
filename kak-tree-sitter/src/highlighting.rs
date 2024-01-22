@@ -1,6 +1,6 @@
 //! Convert from tree-sitter-highlight events to Kakoune ranges highlighter.
 
-use std::collections::HashMap;
+
 
 use serde::{Deserialize, Serialize};
 use tree_sitter_highlight::{Highlight, HighlightEvent, Highlighter};
@@ -9,7 +9,6 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::{
   error::OhNo,
   languages::{Language, Languages},
-  response::Response,
 };
 
 /// A unique way to identify a buffer.
