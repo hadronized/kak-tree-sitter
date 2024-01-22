@@ -22,6 +22,7 @@ use std::{
 
 use kak_tree_sitter_config::Config;
 use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token, Waker};
+use serde::Deserialize;
 
 use crate::{
   cli::Cli,
@@ -759,36 +760,38 @@ impl FifoHandler {
 
     log::info!("FIFO request: {buffer}");
 
-    let req = serde_json::from_str::<Request>(buffer).map_err(|err| OhNo::InvalidRequest {
-      req: buffer.clone(),
-      err: err.to_string(),
-    });
+    let mut de = serde_json::Deserializer::from_str(buffer);
+    while de.end().is_err() {
+      let req = Request::deserialize(&mut de).map_err(|err| OhNo::InvalidRequest {
+        req: buffer.clone(),
+        err: err.to_string(),
+      });
 
-    buffer.clear();
+      match req {
+        Ok(req) => match self.process_cmd(session, &req) {
+          Ok(Some(resp)) => {
+            let client = req.client_name();
+            let conn_resp =
+              ConnectedResponse::new(session.name(), client.map(|c| c.to_owned()), resp);
 
-    match req {
-      Ok(req) => match self.process_cmd(session, &req) {
-        Ok(Some(resp)) => {
-          let client = req.client_name();
-          let conn_resp =
-            ConnectedResponse::new(session.name(), client.map(|c| c.to_owned()), resp);
-
-          if let Err(err) = self.resp_sender.send(conn_resp) {
-            log::error!("failure while sending response: {err}");
+            if let Err(err) = self.resp_sender.send(conn_resp) {
+              log::error!("failure while sending response: {err}");
+            }
           }
-        }
+
+          Err(err) => {
+            log::error!("handling request failed: {err}");
+          }
+
+          _ => (),
+        },
 
         Err(err) => {
-          log::error!("handling request failed: {err}");
+          log::error!("malformed request: {err}");
         }
-
-        _ => (),
-      },
-
-      Err(err) => {
-        log::error!("malformed request: {err}");
       }
     }
+    buffer.clear();
 
     Ok(())
   }
