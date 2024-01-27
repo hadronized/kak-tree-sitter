@@ -10,6 +10,9 @@ declare-option str kts_cmd_fifo_path /dev/null
 # current session. 
 declare-option str kts_buf_fifo_path /dev/null
 
+# The timestamp of when the buffer was most recently highlighted by kts
+declare-option -hidden int kts_highlight_timestamp -1
+
 # Highlight ranges used when highlighting buffers.
 declare-option range-specs kts_highlighter_ranges
 
@@ -83,14 +86,40 @@ define-command kak-tree-sitter-req-reload -docstring 'Reload kak-tree-sitter con
   }
 }
 
+# Part of the trick below to avoid a shell to check a value
+define-command -hidden kak-tree-sitter--nop-exists-if-zero-0 nop
+
+# If the buffer has changed since this function was last called with the same option as first parameter,
+# it will evaluate the commands given as second parameter
+# Usage:
+# declare-option int kts_highlight_timestamp -1
+# kak-tree-sitter-if-changed-since kts_highlight_timestamp %{
+#   echo "Changed!"
+# }
+define-command -hidden kak-tree-sitter-if-changed-since -params 2 %{
+  # this subtracts the timestamp from the current value in the option
+  set -remove buffer %arg{1} %val{timestamp}
+  try %{
+    # This only succeeds if it finds the above function, i.e. if the value of the option in %arg{1} is now 0
+    eval "eval ""kak-tree-sitter--nop-exists-if-zero-%%opt{%arg{1}}"""
+    set buffer %arg{1} %val{timestamp}
+  } catch %{
+    set buffer %arg{1} %val{timestamp}
+    eval %arg{2}
+  }
+}
+
 # Send a single request to highlight the current buffer.
 #
 # This will first send the command to highlight the buffer to KTS and then will write the content of the buffer through
 # the same FIFO.
 define-command kak-tree-sitter-req-highlight-buffer -docstring 'Highlight the current buffer' %{
-  evaluate-commands -no-hooks %{
-    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp} }"
-    write %opt{kts_buf_fifo_path}
+  kak-tree-sitter-if-changed-since kts_highlight_timestamp %{
+    evaluate-commands -no-hooks %{
+      echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""highlight"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp} }"
+      write %opt{kts_buf_fifo_path}
+      set-option buffer kts_highlight_timestamp %val{timestamp}
+    }
   }
 }
 
