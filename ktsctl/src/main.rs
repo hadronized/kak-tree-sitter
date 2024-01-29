@@ -110,6 +110,8 @@ fn start() -> Result<(), AppError> {
   })?;
 
   let lang = cli.lang;
+  
+  
   let lang_config =
     config
       .languages

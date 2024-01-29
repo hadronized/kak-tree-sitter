@@ -269,4 +269,10 @@
 
 (identifier) @variable
 
+((comment) @comment.documentation
+    (#match? @comment.documentation "^///\\s.*"))
+    
+((comment) @comment.documentation
+    (#match? @comment.documentation "^/\\*\\*\\s+.*"))
+    
 (comment) @comment
