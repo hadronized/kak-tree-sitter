@@ -592,7 +592,21 @@ path = "runtime/queries/julia"
 # TODO
 
 # kotlin
-# TODO
+[language.kotlin.grammar]
+url = "https://github.com/fwcd/tree-sitter-kotlin"
+pin = "a4f71eb9b8c9b19ded3e0e9470be4b1b77c2b569"
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "kotlin.so"]
+link_flags = ["-O3"]
+
+[language.kotlin.queries]
+url = "https://github.com/helix-editor/helix"
+pin = "f73e9a8d15fd5a87d472a49808baf42ba403f9bf"
+path = "runtime/queries/kotlin"
 
 # latex
 [language.latex.grammar]
