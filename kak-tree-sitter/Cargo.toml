@@ -23,7 +23,7 @@ libc = "0.2.153"
 libloading = "0.8.1"
 log = "0.4.20"
 mio = { version = "0.8.10", features = ["net", "os-ext", "os-poll"] }
-serde = { version = "1.0.195", features = ["derive"] }
+serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"
 simple_logger = "4.3.3"
 thiserror = "1.0.56"
