@@ -17,7 +17,7 @@ clap = { version = "4.4.16", features = ["derive"] }
 ctrlc = "3.4.2"
 daemonize = "0.5.0"
 dirs = "5.0.0"
-itertools = "0.12.0"
+itertools = "0.12.1"
 kak-tree-sitter-config = { version = "0.4.0-dev", path = "../kak-tree-sitter-config" }
 libc = "0.2.152"
 libloading = "0.8.1"
