@@ -62,7 +62,7 @@ impl Server {
       eprintln!("checking whether PID {pid} is still up…");
 
       // if the contained pid corresponds to a running process, stop right away
-      // otherwise, remove the files left by the previous instance and continue
+      // otherwise, remove the previous PID and socket files
       if Command::new("ps")
         .args(["-p", pid])
         .output()
@@ -71,8 +71,11 @@ impl Server {
         eprintln!("kak-tree-sitter already running; not starting a new server");
         return Ok(());
       } else {
-        eprintln!("cleaning up previous instance");
-        let _ = std::fs::remove_dir_all(&runtime_dir);
+        eprintln!("removing previous PID file");
+        std::fs::remove_file(&pid_file)?;
+
+        eprintln!("removing previous socket file");
+        std::fs::remove_file(runtime_dir.join("socket"))?;
       }
     }
 
@@ -153,10 +156,6 @@ impl ServerResources {
 
 impl Drop for ServerResources {
   fn drop(&mut self) {
-    // NOTE (#84): I’m not entirely sure what we should delete, because if KTS crashes for whatever reason, we will want
-    // to keep access to the logs…
-
-    // for now, we just remove the pid file so that we don’t cleanup next time we start
     let _ = std::fs::remove_dir_all(self.runtime_dir.join("pid"));
   }
 }
