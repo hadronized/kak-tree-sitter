@@ -128,7 +128,7 @@ define-command kak-tree-sitter-req-enable -docstring 'Send request to enable tre
 # This is used to ask the server to tell us where to write commands and other various data.
 define-command -hidden kak-tree-sitter-req-init %{
   nop %sh{
-    kak-tree-sitter -r "{ \"type\": \"new_session\", \"name\": \"$kak_session\", \"client\": \"$kak_client\" }"
+    kak-tree-sitter -r "{ \"type\": \"register_session\", \"name\": \"$kak_session\", \"client\": \"$kak_client\" }"
   }
 }
 

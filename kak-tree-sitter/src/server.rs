@@ -416,7 +416,7 @@ impl UnixHandler {
     req: UnixRequest,
   ) -> Result<Feedback, OhNo> {
     match req {
-      UnixRequest::NewSession { name, client } => {
+      UnixRequest::RegisterSession { name } => {
         let (cmd_fifo_path, buf_fifo_path) =
           self.track_session(poll, token_provider, session_tracker, name.clone())?;
 
@@ -425,7 +425,7 @@ impl UnixHandler {
           buf_fifo_path,
         };
 
-        let conn_resp = ConnectedResponse::new(name, client, resp);
+        let conn_resp = ConnectedResponse::new(name, None, resp);
         if let Err(err) = self.resp_sender.send(conn_resp) {
           log::error!("cannot send response: {err}");
         }
