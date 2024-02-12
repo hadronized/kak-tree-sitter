@@ -110,17 +110,16 @@ impl Handler {
     }
   }
 
-  pub fn handle_text_objects(
+  pub fn query_text_objects(
     &mut self,
     session_name: &str,
     buffer: &str,
     lang_name: &str,
     timestamp: u64,
     buf: &str,
-    selection: &kak::LocRange,
     textobject_type: &str,
     inside: bool,
-  ) -> Result<Option<kak::LocRange>, OhNo> {
+  ) -> Result<impl FnMut(kak::LocRange) -> Option<kak::LocRange>, OhNo> {
     log::debug!(
       "text_objects for session {session_name}, buffer {buffer}, lang {lang_name}, timestamp {timestamp}"
     );
@@ -153,28 +152,73 @@ impl Handler {
     };
 
     // Iterator over all code ranges that match the textobject type
-    let ranges = captures.filter_map(|(query_match, _size)| {
-      let mut iter = query_match
-        .captures
-        .iter()
-        .filter_map(|x| (x.index == name_idx).then_some(x.node));
-      if let Some(first) = iter.next() {
-        let last = iter.last().unwrap_or(first);
-        let range = first.start_position()..last.end_position();
-        let byte_len = first.start_byte().abs_diff(last.end_byte());
-        Some((kak::LocRange::from(range), byte_len))
-      } else {
-        None
-      }
-    });
+    let ranges: Vec<_> = captures
+      .filter_map(|(query_match, _size)| {
+        let mut iter = query_match
+          .captures
+          .iter()
+          .filter_map(|x| (x.index == name_idx).then_some(x.node));
+        if let Some(first) = iter.next() {
+          let last = iter.last().unwrap_or(first);
+          let range = first.start_position()..last.end_position();
+          let byte_len = first.start_byte().abs_diff(last.end_byte());
+          Some((kak::LocRange::from(range), byte_len))
+        } else {
+          None
+        }
+      })
+      .collect();
 
-    // Objects that contain the current selection and are not equal to it. This lets us call the function repeatedly to expand the selection
-    let ranges =
-      ranges.filter(|(range, _byte_len)| range.contains_range(selection) && *range != *selection);
+    // Objects that contain the given selection and are not equal to it. This lets us call the function repeatedly to expand the selection
+    let out_selections = move |selection| {
+      let ranges = ranges
+        .iter()
+        .filter(|(range, _byte_len)| range.contains_range(&selection) && *range != selection);
+      ranges
+        .min_by_key(|(_range, byte_len)| *byte_len)
+        .map(|x| x.0)
+    };
     // We want the innermost object, i.e. the shortest one that contains the selection
-    let obj_range = ranges
-      .min_by_key(|(_range, byte_len)| *byte_len)
-      .map(|x| x.0);
-    Ok(obj_range)
+    Ok(out_selections)
+  }
+
+  pub fn handle_text_objects(
+    &mut self,
+    session_name: &str,
+    buffer: &str,
+    lang_name: &str,
+    timestamp: u64,
+    buf: &str,
+    textobject_type: &str,
+    selections: impl Iterator<Item = kak::LocRange>,
+    object_flags: &kak::ObjectFlags,
+    select_mode: kak::SelectMode,
+  ) -> Result<Response, OhNo> {
+    let mut surrounding_textobject =
+      self.query_text_objects(session_name, buffer, lang_name, timestamp, buf, textobject_type, object_flags.inner)?;
+    let ranges = selections
+      .filter_map(|selection| {
+        let range = surrounding_textobject(selection)?;
+        let mut out_sel = if object_flags.to_begin && object_flags.to_end {
+          range
+        } else if object_flags.to_end {
+          kak::LocRange::new(selection.start(), range.end())
+        } else if object_flags.to_begin {
+          kak::LocRange::new(selection.end(), range.start())
+        } else {
+          selection
+        };
+        if select_mode == kak::SelectMode::Extend {
+          out_sel = out_sel.extend(selection)
+        }
+        Some(out_sel)
+      })
+      .collect();
+
+    Ok(Response::TextObjects {
+      timestamp,
+      obj_type: textobject_type.into(),
+      ranges,
+    })
   }
 }

@@ -888,42 +888,25 @@ impl FifoHandler {
         lang,
         timestamp,
         textobject_type,
-        selection,
+        selections,
         object_flags,
         select_mode,
       } => {
-        let range = self.handler.handle_text_objects(
-          session.name(),
-          &buffer,
-          &lang,
-          timestamp,
-          buf,
-          &selection,
-          &textobject_type,
-          object_flags.inner,
-        )?;
-        if let Some(range) = range {
-          // Merge selections as specified
-          let mut out_sel = if object_flags.to_begin && object_flags.to_end {
-            range
-          } else if object_flags.to_end {
-            kak::LocRange::new(selection.start(), range.end())
-          } else if object_flags.to_begin {
-            kak::LocRange::new(selection.end(), range.start())
-          } else {
-            selection
-          };
-          if select_mode == kak::SelectMode::Extend {
-            out_sel = out_sel.extend(selection)
-          }
-          Ok(Response::TextObject {
+        let selections = selections
+          .split_whitespace()
+          .filter_map(kak::LocRange::parse_selection);
+        self.handler
+          .handle_text_objects(
+            session.name(),
+            &buffer,
+            &lang,
             timestamp,
-            obj_type: textobject_type,
-            range: out_sel,
-          })
-        } else {
-          Ok(Response::status("No textobject found"))
-        }
+            buf,
+            &textobject_type,
+            selections,
+            &object_flags,
+            select_mode,
+          )
       }
       _ => {
         // This is a programming error

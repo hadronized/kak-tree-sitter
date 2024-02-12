@@ -40,10 +40,10 @@ pub enum Response {
     ranges: Vec<KakHighlightRange>,
   },
 
-  TextObject {
+  TextObjects {
     timestamp: u64,
     obj_type: String,
-    range: kak::LocRange,
+    ranges: Vec<kak::LocRange>,
   },
 }
 
@@ -109,12 +109,13 @@ impl Response {
         )
       }
 
-      Response::TextObject {
+      Response::TextObjects {
         timestamp,
-        obj_type,
-        range,
+        obj_type: _,
+        ranges,
       } => {
-        format!("select -timestamp {timestamp} {range}")
+        let ranges = ranges.iter().join(" ");
+        format!("select -timestamp {timestamp} {ranges}")
       }
     };
 
