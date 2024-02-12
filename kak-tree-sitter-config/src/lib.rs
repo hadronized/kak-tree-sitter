@@ -78,13 +78,10 @@ pub struct LanguagesConfig {
 impl LanguagesConfig {
   /// Get the directory with built-in grammars and queries relative to the binary.
   fn get_builtin_dir() -> Option<PathBuf> {
-    let exec = match std::env::current_exe() {
-      Ok(path) => Some(path),
-      Err(_) => None,
-    }?;
-    exec
+    std::env::current_exe()
+      .ok()?
+      .parent()?
       .parent()
-      .and_then(|bin| bin.parent())
       .map(|dir| dir.join("share/kak-tree-sitter"))
   }
 
