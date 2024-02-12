@@ -88,4 +88,11 @@ impl Handler {
       )))
     }
   }
+
+  pub fn handle_declare_faces(&mut self, hl_names: Vec<String>) {
+    log::debug!("Active highlighter groups: {hl_names:?}");
+    for (_, lang) in self.langs.langs.iter_mut() {
+      lang.configure_hl_names(hl_names.clone())
+    }
+  }
 }

@@ -244,3 +244,16 @@ set-face global ts_variable_builtin             "%opt{kts_red}"
 set-face global ts_variable_other_member        "%opt{kts_teal}"
 set-face global ts_variable_parameter           "%opt{kts_maroon}+i"
 set-face global ts_warning                      "%opt{kts_peach}+b"
+
+define-command kak-tree-sitter-highlight-submit-faces %{
+  # Writes the names of all current faces in a specific format to the *debug* buffer
+  debug faces
+  eval -draft -save-regs "a" -no-hooks %{
+    eval -draft -buffer *debug* %{
+      # Long kakoune magic select all of the faces from the debug buffer that start with ts_
+      exec 'gj<a-/>^Faces:$<ret>?^[^ ]<ret>s^ \* ts_\w+:<ret>h<a-i>w'
+      set-register a "%val{selections}"
+    }
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""declare_faces"", ""faces"": ""%reg[a]"" }"
+  }
+}

@@ -819,6 +819,15 @@ impl FifoHandler {
 
         Ok(None)
       }
+      Request::DeclareFaces { faces } => {
+        let hl_names: Vec<_> = faces
+          .split_whitespace()
+          .filter_map(|x| Some(x.strip_prefix("ts_")?.replace('_', ".").replace("..", "_")))
+          .collect();
+          
+        self.handler.handle_declare_faces(hl_names);
+        Ok(None)
+      }
     }
   }
 

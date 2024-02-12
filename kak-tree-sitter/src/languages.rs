@@ -21,9 +21,20 @@ pub struct Language {
   _ts_lib: libloading::Library,
 }
 
+impl Language {
+  pub fn lang(&self) -> tree_sitter::Language {
+    self.ts_lang
+  }
+  
+  pub fn configure_hl_names(&mut self, hl_names: Vec<String>) {
+     self.hl_config.configure(&hl_names);
+     self.hl_names = hl_names;
+  }
+}
+
 pub struct Languages {
   /// Map a `kts_lang` to the tree-sitter [`Language`] and its queries.
-  langs: HashMap<String, Language>,
+  pub langs: HashMap<String, Language>,
 }
 
 impl Languages {

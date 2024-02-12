@@ -59,6 +59,13 @@ pub enum Request {
     lang: String,
     timestamp: u64,
   },
+
+  /// Set which faces are available for highlighting
+  /// This is the list of faces from kakoune that need to be parsed to choose the available selectors
+  DeclareFaces {
+    /// Space separated list of face names formatted as ts_<selector>_<subselector>
+    faces: String,
+  },
 }
 
 impl Request {
@@ -66,6 +73,7 @@ impl Request {
     match self {
       Request::TryEnableHighlight { client, .. } => Some(client.as_str()),
       Request::Highlight { client, .. } => Some(client.as_str()),
+      Request::DeclareFaces { .. } => None,
     }
   }
 }
