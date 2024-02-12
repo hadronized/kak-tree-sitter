@@ -67,10 +67,11 @@ pub enum Request {
     buffer: String,
     lang: String,
     timestamp: u64,
-    /// Which textobject to look for, i.e.  type,function,parameter,comment
+    /// Which textobject to look for, i.e. type,function,parameter,comment
     textobject_type: String,
-    /// Will return the smallest matching textobject that contains this selection
-    selection: kak::LocRange,
+    /// Space separated list of selections as kak::LocRange
+    /// For each selection, return the smallest matching textobject that contains this selection
+    selections: String,
     object_flags: kak::ObjectFlags,
     select_mode: kak::SelectMode,
   },

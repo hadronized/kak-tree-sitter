@@ -96,7 +96,7 @@ define-command kak-tree-sitter-req-highlight-buffer -docstring 'Highlight the cu
 
 define-command kak-tree-sitter-req-textobjects -params 1 %{
   evaluate-commands -no-hooks %{
-    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp}, ""selection"": ""%val{selection_desc}"", ""textobject_type"": ""%arg{1}"", ""object_flags"": ""%val{object_flags}"", ""select_mode"": ""%val{select_mode}"" }"
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp}, ""selections"": ""%val{selections_desc}"", ""textobject_type"": ""%arg{1}"", ""object_flags"": ""%val{object_flags}"", ""select_mode"": ""%val{select_mode}"" }"
     write %opt{kts_buf_fifo_path}
   }
 }

@@ -58,10 +58,13 @@ pub struct LocRange {
 
 impl<T: Into<Loc>> From<Range<T>> for LocRange {
   fn from(value: Range<T>) -> Self {
-    Self {
+    let mut res =  Self {
       anchor: value.start.into(),
       cursor: value.end.into(),
-    }
+    };
+    // Tree sitter ranges are excluding the end, kak ranges include it
+    res.cursor.col_byte = res.cursor.col_byte.saturating_sub(1);
+    res
   }
 }
 
