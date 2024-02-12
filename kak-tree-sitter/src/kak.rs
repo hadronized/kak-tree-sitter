@@ -177,3 +177,4 @@ pub enum SelectMode {
   #[serde(rename = "extend")]
   Extend,
 }
+

@@ -835,6 +835,15 @@ impl FifoHandler {
         .handler
         .handle_try_enable_highlight(session.name(), lang)
         .map(Option::Some),
+      Request::DeclareFaces { faces } => {
+        let hl_names: Vec<_> = faces
+          .split_whitespace()
+          .filter_map(|x| Some(x.strip_prefix("ts_")?.replace('_', ".").replace("..", "_")))
+          .collect();
+          
+        self.handler.handle_declare_faces(hl_names);
+        Ok(None)
+      }
       Request::TextObjects { .. }
       | Request::Highlight { .. }
       | Request::SelectTextObjects { .. } => {

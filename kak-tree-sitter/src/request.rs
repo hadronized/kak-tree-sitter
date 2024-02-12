@@ -75,7 +75,7 @@ pub enum Request {
     object_flags: kak::ObjectFlags,
     select_mode: kak::SelectMode,
   },
-  
+
   SelectTextObjects {
     client: String,
     buffer: String,
@@ -87,6 +87,13 @@ pub enum Request {
     /// For each selection, return the smallest matching textobject that contains this selection
     selections: String,
   },
+
+  /// Set which faces are available for highlighting
+  /// This is the list of faces from kakoune that need to be parsed to choose the available selectors
+  DeclareFaces {
+    /// Space separated list of face names formatted as ts_<selector>_<subselector>
+    faces: String,
+  },
 }
 
 impl Request {
@@ -96,6 +103,7 @@ impl Request {
       Request::Highlight { client, .. } => Some(client.as_str()),
       Request::TextObjects { client, .. } => Some(client.as_str()),
       Request::SelectTextObjects { client, .. } => Some(client.as_str()),
+      Request::DeclareFaces { .. } => None,
     }
   }
 }
