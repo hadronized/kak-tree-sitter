@@ -121,6 +121,8 @@ impl Server {
   }
 
   fn start(mut self) -> Result<(), OhNo> {
+    // search for already existing sessions, and if so, register them ahead of time
+    self.server_state.register_already_existing_sessions()?;
     self.server_state.start()
   }
 
@@ -199,6 +201,7 @@ impl TokenProvider {
 }
 
 pub struct ServerState {
+  resources: ServerResources,
   poll: Poll,
   _resp_queue_handle: JoinHandle<()>,
   resp_sender: Sender<ConnectedResponse>,
@@ -241,6 +244,7 @@ impl ServerState {
     let _resp_queue_handle = resp_queue.run();
 
     Ok(ServerState {
+      resources,
       poll,
       _resp_queue_handle,
       resp_sender,
@@ -263,6 +267,64 @@ impl ServerState {
 
   pub fn socket_path() -> Result<PathBuf, OhNo> {
     Ok(Self::runtime_dir()?.join("socket"))
+  }
+
+  fn register_already_existing_sessions(&mut self) -> Result<(), OhNo> {
+    // we use command FIFOs for that
+    let fifo_dir = self.resources.runtime_dir.join("commands");
+    for dentry in fifo_dir.read_dir()?.flatten() {
+      if let Some(name) = dentry.file_name().to_str().map(str::to_owned) {
+        // check that the session exists; if not, clean it up
+        if !Self::check_session_exists(&name) {
+          self.cleanup_session_data(&name)?;
+          continue;
+        }
+
+        if let Err(err) = self.unix_handler.process_req(
+          &mut self.poll,
+          &mut self.token_provider,
+          &mut self.session_tracker,
+          &mut self.fifo_handler,
+          UnixRequest::RegisterSession {
+            name: name.clone(),
+            client: None,
+          },
+        ) {
+          log::error!("cannot register already existing session '{name}': {err}");
+        }
+      }
+    }
+
+    Ok(())
+  }
+
+  fn check_session_exists(session: &str) -> bool {
+    Command::new("kak")
+      .arg("-l")
+      .output()
+      .map(|output| {
+        let output_str = String::from_utf8(output.stdout).unwrap_or_default();
+        output_str.lines().any(|sess| sess == session)
+      })
+      .unwrap_or_default()
+  }
+
+  /// Remove the runtime files of a session.
+  fn cleanup_session_data(&mut self, session: &str) -> Result<(), OhNo> {
+    log::warn!("removing session '{session}' data");
+
+    let command_fifo = self
+      .resources
+      .runtime_dir
+      .join(format!("commands/{session}"));
+    std::fs::remove_file(command_fifo)?;
+
+    let buf_fifo = self
+      .resources
+      .runtime_dir
+      .join(format!("buffers/{session}"));
+    std::fs::remove_file(buf_fifo)?;
+    Ok(())
   }
 
   /// Start the server state and wait for events to be dispatched.
@@ -416,7 +478,9 @@ impl UnixHandler {
     req: UnixRequest,
   ) -> Result<Feedback, OhNo> {
     match req {
-      UnixRequest::RegisterSession { name } => {
+      UnixRequest::RegisterSession { name, client } => {
+        log::info!("registering session {name}");
+
         let (cmd_fifo_path, buf_fifo_path) =
           self.track_session(poll, token_provider, session_tracker, name.clone())?;
 
@@ -425,7 +489,7 @@ impl UnixHandler {
           buf_fifo_path,
         };
 
-        let conn_resp = ConnectedResponse::new(name, None, resp);
+        let conn_resp = ConnectedResponse::new(name, client, resp);
         if let Err(err) = self.resp_sender.send(conn_resp) {
           log::error!("cannot send response: {err}");
         }
@@ -787,20 +851,19 @@ impl ResponseQueue {
   /// Run the response queue by dequeuing connected responses as they arrive in a dedicated thread.
   fn run(self) -> JoinHandle<()> {
     spawn(move || {
-      while let Ok(conn_resp) = self.receiver.recv() {
-        if let Err(err) = Self::send(conn_resp) {
-          log::error!("cannot send connected response: {err}");
-        }
+      for conn_resp in self.receiver {
+        Self::send(conn_resp);
       }
     })
   }
 
-  fn send(conn_resp: ConnectedResponse) -> Result<(), OhNo> {
+  fn send(conn_resp: ConnectedResponse) {
     let resp = conn_resp.resp.to_kak_cmd(conn_resp.client.as_deref());
 
-    match resp {
-      Some(data) => Self::send_via_kak_p(&conn_resp.session, &data),
-      None => Ok(()),
+    if let Some(data) = resp {
+      if let Err(err) = Self::send_via_kak_p(&conn_resp.session, &data) {
+        log::error!("error while sending connected response: {err}");
+      }
     }
   }
 

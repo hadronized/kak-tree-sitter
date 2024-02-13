@@ -9,7 +9,10 @@ use serde::{Deserialize, Serialize};
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum UnixRequest {
   /// Inform KTS that a session exists and that we should be sending back the Kakoune commands to get KTS features.
-  RegisterSession { name: String },
+  RegisterSession {
+    name: String,
+    client: Option<String>,
+  },
 
   /// Inform KTS that a session has exited.
   SessionExit { name: String },
@@ -27,7 +30,7 @@ impl UnixRequest {
     let name = name.into();
 
     match self {
-      UnixRequest::RegisterSession { .. } => UnixRequest::RegisterSession { name },
+      UnixRequest::RegisterSession { client, .. } => UnixRequest::RegisterSession { client, name },
       UnixRequest::SessionExit { .. } => UnixRequest::SessionExit { name },
       _ => self,
     }
