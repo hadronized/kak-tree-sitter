@@ -26,7 +26,7 @@ mio = { version = "0.8.10", features = ["net", "os-ext", "os-poll"] }
 serde = { version = "1.0.196", features = ["derive"] }
 serde_json = "1.0.113"
 simple_logger = "4.3.3"
-thiserror = "1.0.56"
+thiserror = "1.0.57"
 tree-sitter = "0.20.10"
 tree-sitter-highlight = "0.20.1"
 unicode-segmentation = "1.11.0"
