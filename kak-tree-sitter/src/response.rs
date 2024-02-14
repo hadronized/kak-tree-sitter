@@ -65,7 +65,8 @@ impl Response {
           "set-option global kts_buf_fifo_path {path}",
           path = buf_fifo_path.display()
         ),
-        "kak-tree-sitter-req-enable".to_owned(),
+        // enable if we were already looking at a buffer
+        "try kak-tree-sitter-req-enable".to_owned(),
       ]
       .join("\n"),
 

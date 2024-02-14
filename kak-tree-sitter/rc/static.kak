@@ -128,21 +128,21 @@ define-command kak-tree-sitter-req-enable -docstring 'Send request to enable tre
 # This is used to ask the server to tell us where to write commands and other various data.
 define-command -hidden kak-tree-sitter-req-init %{
   nop %sh{
-    kak-tree-sitter -r "{ \"type\": \"new_session\", \"name\": \"$kak_session\", \"client\": \"$kak_client\" }"
+    kak-tree-sitter -r "{ \"type\": \"register_session\", \"name\": \"$kak_session\", \"client\": \"$kak_client\" }"
   }
 }
 
-# Enable tree-sitter once we open a new window.
-hook -group kak-tree-sitter global WinCreate .* %{
-  hook -group kak-tree-sitter buffer -once WinDisplay .* kak-tree-sitter-req-enable
-}
-
-# Make kak-tree-sitter know the session has ended whenever we end it.
-hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-req-end-session
-
 # Wait to have a client and then ask the server to initiate.
 hook -group kak-tree-sitter global -once ClientCreate .* %{
-  kak-tree-sitter-req-init 
+  kak-tree-sitter-req-init
+
+  # Enable tree-sitter once we open a new window.
+  hook -group kak-tree-sitter global WinCreate .* %{
+    hook -group kak-tree-sitter buffer -once WinDisplay .* kak-tree-sitter-req-enable
+  }
+
+  # Make kak-tree-sitter know the session has ended whenever we end it.
+  hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-req-end-session
 }
 
 #set-face global ts_unknown                     red+ub
