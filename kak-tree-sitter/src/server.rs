@@ -1,4 +1,5 @@
 use std::{
+  collections::HashSet,
   ffi::CString,
   fs::{self, File, OpenOptions},
   io::{self, Read, Write},
@@ -270,12 +271,14 @@ impl ServerState {
   }
 
   fn register_already_existing_sessions(&mut self) -> Result<(), OhNo> {
+    let sessions = Self::get_running_sessions();
+
     // we use command FIFOs for that
     let fifo_dir = self.resources.runtime_dir.join("commands");
     for dentry in fifo_dir.read_dir()?.flatten() {
       if let Some(name) = dentry.file_name().to_str().map(str::to_owned) {
         // check that the session exists; if not, clean it up
-        if !Self::check_session_exists(&name) {
+        if !sessions.contains(&name) {
           self.cleanup_session_data(&name)?;
           continue;
         }
@@ -298,13 +301,13 @@ impl ServerState {
     Ok(())
   }
 
-  fn check_session_exists(session: &str) -> bool {
+  fn get_running_sessions() -> HashSet<String> {
     Command::new("kak")
       .arg("-l")
       .output()
       .map(|output| {
         let output_str = String::from_utf8(output.stdout).unwrap_or_default();
-        output_str.lines().any(|sess| sess == session)
+        output_str.lines().map(|s| s.to_owned()).collect()
       })
       .unwrap_or_default()
   }
