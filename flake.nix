@@ -2,18 +2,29 @@
   description = "tree-sitter meets Kakoune";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    devshell.url = "github:numtide/devshell";
+    fenix.inputs.nixpkgs.follows = "nixpkgs";
+    fenix.url = "github:nix-community/fenix";
     flake-utils.url = "github:numtide/flake-utils";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
   };
 
   outputs = {
-    nixpkgs,
+    devshell,
+    fenix,
     flake-utils,
+    nixpkgs,
     ...
   }:
   # Get Linux x86_64, Linux aarch64, macOS x86_64 and macOS aarch64 for free.
     flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = nixpkgs.legacyPackages.${system};
+      pkgs = import nixpkgs {
+        inherit system;
+        overlays = [
+          devshell.overlays.default
+          fenix.overlays.default
+        ];
+      };
 
       # Read the kak-tree-sitter version from Cargo.toml.
       version = (builtins.fromTOML (builtins.readFile ./kak-tree-sitter/Cargo.toml)).package.version;
@@ -74,6 +85,12 @@
         apps.default = {
           type = "app";
           program = "${final}/bin/kak-tree-sitter";
+        };
+
+        devShell = pkgs.devshell.mkShell {
+          name = "kak-tree-sitter";
+          motd = "Entered the kak-tree-sitter development environment";
+          packages = [(pkgs.fenix.stable.withComponents ["cargo" "clippy" "rust-analyzer" "rustfmt" "rust-src"])];
         };
       });
 }
