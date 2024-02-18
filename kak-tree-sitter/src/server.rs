@@ -878,7 +878,7 @@ impl FifoHandler {
 
         Err(err) => {
           log::error!(
-            "handling highlight failed for session {session_name}, buffer {buf}: {err}",
+            "handling highlight failed for session {session_name}: {err}",
             session_name = session.name()
           );
         }

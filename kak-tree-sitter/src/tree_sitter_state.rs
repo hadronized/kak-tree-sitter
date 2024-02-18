@@ -1,25 +1,25 @@
 //! Tree-sitter state (i.e. highlighting, tree walking, etc.)
 
-use tree_sitter::{Language, Parser, Query, QueryCursor};
+use tree_sitter::{Parser, Query, QueryCursor};
 
-use crate::{error::OhNo, queries::Queries};
+use crate::{error::OhNo, highlighting::KakHighlightRange, languages::Language};
 
 /// State around a tree.
 ///
 /// A tree-sitter tree represents a parsed buffer in a given state. It can be walked with queries and updated.
 pub struct TreeState {
+  parser: Parser,
   tree: tree_sitter::Tree,
 
   // TODO: for now, we don’t support custom highligthing, and hence have to use tree-sitter-highlight; see
   // #26 for further information
   highlighter: tree_sitter_highlight::Highlighter,
-  highlight_conf: tree_sitter_highlight::HighlightConfiguration,
 }
 
 impl TreeState {
-  pub fn new(lang: Language, queries: &Queries, buf: &str) -> Result<Self, OhNo> {
+  pub fn new(lang: &Language, buf: &str) -> Result<Self, OhNo> {
     let mut parser = Parser::new();
-    parser.set_language(lang)?;
+    parser.set_language(lang.lang())?;
     parser.set_timeout_micros(1000);
 
     let tree = parser
@@ -27,21 +27,33 @@ impl TreeState {
       .ok_or(OhNo::CannotParseBuffer)?;
 
     let highlighter = tree_sitter_highlight::Highlighter::new();
-    let highlight_conf = tree_sitter_highlight::HighlightConfiguration::new(
-      lang,
-      queries.highlights.as_deref().unwrap_or_default(),
-      queries.injections.as_deref().unwrap_or_default(),
-      queries.locals.as_deref().unwrap_or_default(),
-    )
-    .map_err(|err| OhNo::HighlightError {
-      err: err.to_string(),
-    })?;
 
     Ok(Self {
+      parser,
       tree,
       highlighter,
-      highlight_conf,
     })
+  }
+
+  pub fn highlight<'a>(
+    &'a mut self,
+    lang: &'a Language,
+    buf: &'a str,
+    injection_callback: impl FnMut(&str) -> Option<&'a tree_sitter_highlight::HighlightConfiguration>
+      + 'a,
+  ) -> Result<Vec<KakHighlightRange>, OhNo> {
+    let events = self
+      .highlighter
+      .highlight(&lang.hl_config, buf.as_bytes(), None, injection_callback)
+      .map_err(|err| OhNo::HighlightError {
+        err: err.to_string(),
+      })?;
+
+    Ok(KakHighlightRange::from_iter(
+      buf,
+      &lang.hl_names,
+      events.flatten(),
+    ))
   }
 
   pub fn query(&self, query: &Query, code: &str) {
