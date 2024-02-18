@@ -20,7 +20,6 @@ impl TreeState {
   pub fn new(lang: &Language, buf: &str) -> Result<Self, OhNo> {
     let mut parser = Parser::new();
     parser.set_language(lang.lang())?;
-    parser.set_timeout_micros(1000);
 
     let tree = parser
       .parse(buf.as_bytes(), None)
