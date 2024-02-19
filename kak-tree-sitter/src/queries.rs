@@ -17,7 +17,7 @@ impl Queries {
     let highlights = fs::read_to_string(dir.join("highlights.scm")).ok();
     let injections = fs::read_to_string(dir.join("injections.scm")).ok();
     let locals = fs::read_to_string(dir.join("locals.scm")).ok();
-    let text_objects = fs::read_to_string(dir.join("text_objects.scm")).ok();
+    let text_objects = fs::read_to_string(dir.join("textobjects.scm")).ok();
 
     Queries {
       highlights,

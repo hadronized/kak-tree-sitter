@@ -2,7 +2,9 @@ use std::{io, path::PathBuf};
 
 use log::SetLoggerError;
 use thiserror::Error;
-use tree_sitter::LanguageError;
+use tree_sitter::{LanguageError, QueryError};
+
+use crate::text_objects;
 
 #[derive(Debug, Error)]
 pub enum OhNo {
@@ -77,4 +79,16 @@ pub enum OhNo {
     #[from]
     err: LanguageError,
   },
+
+  #[error("query error: {err}")]
+  QueryError {
+    #[from]
+    err: QueryError,
+  },
+
+  #[error("text-objects not supported")]
+  UnsupportedTextObjects,
+
+  #[error("no such {ty} text-object query")]
+  UnknownTextObjectQuery { ty: text_objects::Type },
 }

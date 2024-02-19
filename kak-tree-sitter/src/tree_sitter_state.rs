@@ -2,7 +2,7 @@
 
 use tree_sitter::{Parser, Query, QueryCursor};
 
-use crate::{error::OhNo, highlighting::KakHighlightRange, languages::Language};
+use crate::{error::OhNo, highlighting::KakHighlightRange, languages::Language, text_objects};
 
 /// State around a tree.
 ///
@@ -41,6 +41,15 @@ impl TreeState {
     injection_callback: impl FnMut(&str) -> Option<&'a tree_sitter_highlight::HighlightConfiguration>
       + 'a,
   ) -> Result<Vec<KakHighlightRange>, OhNo> {
+    self.text_objects(
+      lang,
+      buf,
+      text_objects::Type {
+        pattern: text_objects::Pattern::Function,
+        level: text_objects::Level::Inside,
+      },
+    )?;
+
     let events = self
       .highlighter
       .highlight(&lang.hl_config, buf.as_bytes(), None, injection_callback)
@@ -53,6 +62,36 @@ impl TreeState {
       &lang.hl_names,
       events.flatten(),
     ))
+  }
+
+  /// Get the text-objects for the given type.
+  pub fn text_objects(
+    &self,
+    lang: &Language,
+    buf: &str,
+    ty: text_objects::Type,
+  ) -> Result<(), OhNo> {
+    // first, check whether the language supports text-objects, and also check whether it has the text-object type in
+    // its capture names
+    let query = lang
+      .textobject_query
+      .as_ref()
+      .ok_or_else(|| OhNo::UnsupportedTextObjects)?;
+    let capture_index = query
+      .capture_index_for_name(ty.as_query_name())
+      .ok_or_else(|| OhNo::UnknownTextObjectQuery { ty })?;
+
+    // run the query via a query cursor
+    let mut cursor = QueryCursor::new();
+    let mut captures = cursor
+      .captures(query, self.tree.root_node(), buf.as_bytes())
+      .flat_map(|(cm, _)| cm.captures.iter())
+      .filter(|cq| cq.index == capture_index)
+      .collect::<Vec<_>>();
+
+    log::info!("text_objects: {captures:#?}");
+
+    Ok(())
   }
 
   pub fn query(&self, query: &Query, code: &str) {
