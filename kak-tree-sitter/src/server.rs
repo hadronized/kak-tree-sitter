@@ -792,36 +792,6 @@ impl FifoHandler {
     Ok(())
   }
 
-  fn process_cmd(
-    &mut self,
-    session: &mut Session,
-    req: &Request,
-  ) -> Result<Option<Response>, OhNo> {
-    match req {
-      Request::TryEnableHighlight { lang, .. } => self
-        .handler
-        .handle_try_enable_highlight(session.name(), lang)
-        .map(Option::Some),
-
-      Request::Highlight {
-        client,
-        buffer,
-        lang,
-        timestamp,
-      } => {
-        // we do not send the highlight immediately; instead, we change the state machine
-        *session.state_mut() = SessionState::HighlightingWaiting {
-          client: client.clone(),
-          buffer: buffer.clone(),
-          lang: lang.clone(),
-          timestamp: *timestamp,
-        };
-
-        Ok(None)
-      }
-    }
-  }
-
   fn accept_buf(
     &mut self,
     session: &mut Session,
@@ -851,41 +821,89 @@ impl FifoHandler {
     res
   }
 
-  fn process_buf(&mut self, session: &mut Session, buf: &str) -> Result<(), OhNo> {
-    if let SessionState::HighlightingWaiting {
-      client,
-      buffer,
-      lang,
-      timestamp,
-    } = session.state()
-    {
-      let client = client.clone();
-      let handled = self
+  fn process_cmd(
+    &mut self,
+    session: &mut Session,
+    req: &Request,
+  ) -> Result<Option<Response>, OhNo> {
+    match req {
+      Request::TryEnableHighlight { lang, .. } => self
         .handler
-        .handle_highlight(session.name(), buffer, lang, *timestamp, buf);
+        .handle_try_enable_highlight(session.name(), lang)
+        .map(Option::Some),
+      Request::TextObjects { .. } | Request::Highlight { .. } => {
+        // Postpone the request for when the buffer is received
+        *session.state_mut() = SessionState::WaitingForBuf(req.clone());
+        Ok(None)
+      }
+    }
+  }
 
-      // switch back to idle, as we have read the FIFO
-      session.state_mut().idle();
+  fn process_buf(&mut self, session: &mut Session, buf: &str) -> Result<(), OhNo> {
+    let Some(req) = session.state_mut().take_waiting_req() else {
+      return Ok(());
+    };
+    let client = req.client_name().map(ToOwned::to_owned);
+    let resp = self.process_req_with_buf(session, req, buf);
+    match resp {
+      Ok(resp) => {
+        let conn_resp = ConnectedResponse::new(session.name(), client, resp);
 
-      match handled {
-        Ok(resp) => {
-          let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
-
-          if let Err(err) = self.resp_sender.send(conn_resp) {
-            log::error!("failure while sending response: {err}");
-          }
+        if let Err(err) = self.resp_sender.send(conn_resp) {
+          log::error!("failure while sending response: {err}");
         }
+      }
 
-        Err(err) => {
-          log::error!(
-            "handling highlight failed for session {session_name}, buffer {buf}: {err}",
-            session_name = session.name()
-          );
-        }
+      Err(err) => {
+        log::error!(
+          "handling request failed for session {session_name}, buffer {buf}: {err}",
+          session_name = session.name()
+        );
       }
     }
 
     Ok(())
+  }
+
+  /// Process a request where buffer contents have also been received
+  fn process_req_with_buf(
+    &mut self,
+    session: &mut Session,
+    req: Request,
+    buf: &str,
+  ) -> Result<Response, OhNo> {
+    match req {
+      Request::Highlight {
+        client: _,
+        buffer,
+        lang,
+        timestamp,
+      } => self
+        .handler
+        .handle_highlight(session.name(), &buffer, &lang, timestamp, buf),
+      Request::TextObjects {
+        client: _,
+        buffer,
+        lang,
+        timestamp,
+        textobject_type,
+        selection,
+      } => self.handler.handle_text_objects(
+        session.name(),
+        &buffer,
+        &lang,
+        timestamp,
+        buf,
+        selection,
+        textobject_type,
+      ),
+      _ => {
+        // This is a programming error
+        unreachable!(
+          "Request that should have been handled by process_req reached process_req_with_buf"
+        )
+      }
+    }
   }
 }
 

@@ -2,6 +2,8 @@ use std::{collections::HashMap, fs::File};
 
 use mio::Token;
 
+use crate::request::Request;
+
 /// Session tracker,
 ///
 /// Responsible for tracking sessions (by names) along with the associated command token and buffer token.
@@ -135,17 +137,25 @@ pub enum SessionState {
   /// The session is idle.
   Idle,
 
-  /// The session requested highlighting and we are waiting for the buffer content.
-  HighlightingWaiting {
-    client: String,
-    buffer: String,
-    lang: String,
-    timestamp: u64,
-  },
+  /// A request is waiting for the buffer content.
+  WaitingForBuf(Request),
 }
 
 impl SessionState {
   pub fn idle(&mut self) {
     *self = SessionState::Idle
+  }
+
+  /// If a request is waiting for the buffer content, take it, and reset the state to idle
+  pub fn take_waiting_req(&mut self) -> Option<Request> {
+    if let SessionState::WaitingForBuf(_req) = self {
+      let oldself = std::mem::replace(self, SessionState::Idle);
+      let SessionState::WaitingForBuf(req) = oldself else {
+        unreachable!()
+      };
+      Some(req)
+    } else {
+      None
+    }
   }
 }

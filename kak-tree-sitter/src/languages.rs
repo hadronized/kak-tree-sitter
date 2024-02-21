@@ -6,6 +6,7 @@ use std::{collections::HashMap, path::Path};
 
 use kak_tree_sitter_config::{Config, LanguagesConfig};
 use libloading::Symbol;
+use tree_sitter::Query;
 use tree_sitter_highlight::HighlightConfiguration;
 
 use crate::{error::OhNo, queries::Queries};
@@ -15,10 +16,18 @@ pub struct Language {
   pub hl_names: Vec<String>,
   // whether we should remove the default highlighter when highlighting a buffer with this language
   pub remove_default_highlighter: bool,
+  pub textobjects_query: Option<Query>,
+  pub indents_query: Option<Query>,
 
   // NOTE: we need to keep that alive *probably*; better be safe than sorry
-  _ts_lang: tree_sitter::Language,
+  ts_lang: tree_sitter::Language,
   _ts_lib: libloading::Library,
+}
+
+impl Language {
+  pub fn lang(&self) -> tree_sitter::Language {
+    self.ts_lang
+  }
 }
 
 pub struct Languages {
@@ -94,8 +103,16 @@ impl Languages {
             hl_config,
             hl_names,
             remove_default_highlighter,
-            _ts_lang: ts_lang,
+            ts_lang,
             _ts_lib: ts_lib,
+            textobjects_query: queries
+              .textobjects
+              .as_deref()
+              .and_then(|x| Query::new(ts_lang, x).ok()),
+            indents_query: queries
+              .indents
+              .as_deref()
+              .and_then(|x| Query::new(ts_lang, x).ok()),
           };
           langs.insert(lang_name.to_owned(), lang);
         }

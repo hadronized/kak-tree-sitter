@@ -268,6 +268,7 @@ dependencies = [
  "thiserror",
  "tree-sitter",
  "tree-sitter-highlight",
+ "tree-sitter-rust",
  "unicode-segmentation",
 ]
 
@@ -608,6 +609,16 @@ checksum = "042342584c5a7a0b833d9fc4e2bdab3f9868ddc6c4b339a1e01451c6720868bc"
 dependencies = [
  "regex",
  "thiserror",
+ "tree-sitter",
+]
+
+[[package]]
+name = "tree-sitter-rust"
+version = "0.20.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b0832309b0b2b6d33760ce5c0e818cb47e1d72b468516bfe4134408926fa7594"
+dependencies = [
+ "cc",
  "tree-sitter",
 ]
 

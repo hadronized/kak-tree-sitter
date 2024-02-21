@@ -5,6 +5,7 @@ use std::path::PathBuf;
 use itertools::Itertools;
 
 use crate::highlighting::KakHighlightRange;
+use crate::kak;
 
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]
@@ -37,6 +38,12 @@ pub enum Response {
   Highlights {
     timestamp: u64,
     ranges: Vec<KakHighlightRange>,
+  },
+
+  TextObject {
+    timestamp: u64,
+    obj_type: String,
+    range: kak::LocRange,
   },
 }
 
@@ -100,6 +107,14 @@ impl Response {
           "{range_specs} {timestamp} {ranges_str}",
           range_specs = "set buffer kts_highlighter_ranges",
         )
+      }
+
+      Response::TextObject {
+        timestamp,
+        obj_type,
+        range,
+      } => {
+        format!("select -timestamp {timestamp} {range}")
       }
     };
 
