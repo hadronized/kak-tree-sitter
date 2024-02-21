@@ -73,10 +73,21 @@ impl Server {
         return Ok(());
       } else {
         eprintln!("removing previous PID file");
-        std::fs::remove_file(&pid_file)?;
+        std::fs::remove_file(&pid_file).map_err(|err| OhNo::CannotStartDaemon {
+          err: format!(
+            "cannot remove previous PID file {path}: {err}",
+            path = pid_file.display()
+          ),
+        })?;
 
         eprintln!("removing previous socket file");
-        std::fs::remove_file(runtime_dir.join("socket"))?;
+        let socket_file = runtime_dir.join("socket");
+        std::fs::remove_file(&socket_file).map_err(|err| OhNo::CannotStartDaemon {
+          err: format!(
+            "cannot remove previous socket file {path}: {err}",
+            path = socket_file.display()
+          ),
+        })?;
       }
     }
 
@@ -123,7 +134,10 @@ impl Server {
 
   fn start(mut self) -> Result<(), OhNo> {
     // search for already existing sessions, and if so, register them ahead of time
-    self.server_state.register_already_existing_sessions()?;
+    if let Err(err) = self.server_state.register_already_existing_sessions() {
+      log::error!("error while registering already existing sessions: {err}");
+    }
+
     self.server_state.start()
   }
 
@@ -217,7 +231,10 @@ impl ServerState {
   pub fn new(config: &Config, is_standalone: bool) -> Result<Self, OhNo> {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let mut poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
-    let waker = Arc::new(Waker::new(poll.registry(), TokenProvider::WAKER_TOKEN)?);
+    let waker = Arc::new(
+      Waker::new(poll.registry(), TokenProvider::WAKER_TOKEN)
+        .map_err(|err| OhNo::CannotStartServer { err })?,
+    );
     let (resp_queue, resp_sender) = ResponseQueue::new();
     let mut unix_handler = UnixHandler::new(
       is_standalone,
@@ -237,7 +254,8 @@ impl ServerState {
         log::warn!("received SIGINT");
         shutdown.store(true, Ordering::Relaxed);
         waker.wake().unwrap();
-      })?;
+      })
+      .map_err(|err| OhNo::SigIntHandlerError { err })?;
     }
 
     unix_handler.register_poll(&mut poll)?;
@@ -275,11 +293,17 @@ impl ServerState {
 
     // we use command FIFOs for that
     let fifo_dir = self.resources.runtime_dir.join("commands");
-    for dentry in fifo_dir.read_dir()?.flatten() {
+    for dentry in fifo_dir
+      .read_dir()
+      .map_err(|err| OhNo::CannotGetSessions {
+        err: err.to_string(),
+      })?
+      .flatten()
+    {
       if let Some(name) = dentry.file_name().to_str().map(str::to_owned) {
         // check that the session exists; if not, clean it up
         if !sessions.contains(&name) {
-          self.cleanup_session_data(&name)?;
+          self.cleanup_session_data(&name);
           continue;
         }
 
@@ -313,21 +337,30 @@ impl ServerState {
   }
 
   /// Remove the runtime files of a session.
-  fn cleanup_session_data(&mut self, session: &str) -> Result<(), OhNo> {
+  fn cleanup_session_data(&mut self, session: &str) {
     log::warn!("removing session '{session}' data");
 
     let command_fifo = self
       .resources
       .runtime_dir
       .join(format!("commands/{session}"));
-    std::fs::remove_file(command_fifo)?;
+    if let Err(err) = std::fs::remove_file(&command_fifo) {
+      log::warn!(
+        "cannot remove command FIFO at {path}: {err}",
+        path = command_fifo.display()
+      );
+    }
 
     let buf_fifo = self
       .resources
       .runtime_dir
       .join(format!("buffers/{session}"));
-    std::fs::remove_file(buf_fifo)?;
-    Ok(())
+    if let Err(err) = std::fs::remove_file(&buf_fifo) {
+      log::warn!(
+        "cannot remove buffer FIFO at {path}: {err}",
+        path = buf_fifo.display()
+      );
+    }
   }
 
   /// Start the server state and wait for events to be dispatched.
@@ -345,7 +378,7 @@ impl ServerState {
         if err.kind() == io::ErrorKind::Interrupted {
           log::warn!("mio interrupted");
         } else {
-          return Err(OhNo::from(err));
+          return Err(OhNo::PollError { err });
         }
       }
 
@@ -547,14 +580,14 @@ impl UnixHandler {
         cmd_token,
         Interest::READABLE,
       )
-      .map_err(|err| OhNo::PollEventsError { err })?;
+      .map_err(|err| OhNo::PollError { err })?;
     registry
       .register(
         &mut SourceFd(&buf_fifo_file.as_raw_fd()),
         buf_token,
         Interest::READABLE,
       )
-      .map_err(|err| OhNo::PollEventsError { err })?;
+      .map_err(|err| OhNo::PollError { err })?;
 
     session_tracker.track(
       session_name.clone(),
@@ -585,7 +618,9 @@ impl UnixHandler {
     // if the file doesn’t already exist, create it
     if let Ok(false) = path.try_exists() {
       // ensure the directory exists
-      fs::create_dir_all(dir)?;
+      fs::create_dir_all(&dir).map_err(|err| OhNo::CannotCreateFifo {
+        err: format!("cannot create directory {dir}: {err}", dir = dir.display()),
+      })?;
 
       let path_bytes = path.as_os_str().as_bytes();
       let c_path = CString::new(path_bytes).map_err(|err| OhNo::CannotCreateFifo {
@@ -611,7 +646,13 @@ impl UnixHandler {
     let fifo = OpenOptions::new()
       .read(true)
       .custom_flags(libc::O_NONBLOCK)
-      .open(path)?;
+      .open(path)
+      .map_err(|err| OhNo::CannotCreateFifo {
+        err: format!(
+          "cannot open non-blocking FIFO {path}: {err}",
+          path = path.display()
+        ),
+      })?;
     Ok(fifo)
   }
 
@@ -630,13 +671,15 @@ impl UnixHandler {
       if let Some(cmd_fifo) = cmd_fifo {
         poll
           .registry()
-          .deregister(&mut SourceFd(&cmd_fifo.file().as_raw_fd()))?;
+          .deregister(&mut SourceFd(&cmd_fifo.file().as_raw_fd()))
+          .map_err(|err| OhNo::PollError { err })?;
       }
 
       if let Some(buf_fifo) = buf_fifo {
         poll
           .registry()
-          .deregister(&mut SourceFd(&buf_fifo.file().as_raw_fd()))?;
+          .deregister(&mut SourceFd(&buf_fifo.file().as_raw_fd()))
+          .map_err(|err| OhNo::PollError { err })?;
       }
 
       token_provider.recycle(session.cmd_token());
@@ -706,7 +749,10 @@ impl FifoHandler {
         return Ok(());
       } else {
         buffer.clear();
-        return Err(err.into());
+        return Err(OhNo::InvalidRequest {
+          req: "<cmd>".to_owned(),
+          err: err.to_string(),
+        });
       }
     };
 
@@ -792,7 +838,10 @@ impl FifoHandler {
         log::debug!("buffer FIFO is not ready");
         return Ok(());
       } else {
-        return Err(err.into());
+        return Err(OhNo::InvalidRequest {
+          req: "<buf>".to_owned(),
+          err: err.to_string(),
+        });
       }
     };
 
@@ -895,7 +944,9 @@ impl ResponseQueue {
       err: err.to_string(),
     })?;
 
-    child.wait()?;
+    child.wait().map_err(|err| OhNo::CannotSendRequest {
+      err: format!("error while waiting on kak -p: {err}"),
+    })?;
     Ok(())
   }
 }

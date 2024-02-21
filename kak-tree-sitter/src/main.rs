@@ -21,7 +21,7 @@ use server::Server;
 
 fn main() {
   if let Err(err) = start() {
-    eprintln!("{err}");
+    log::error!("{err}");
     std::process::exit(1);
   }
 }

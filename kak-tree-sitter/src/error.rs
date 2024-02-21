@@ -32,19 +32,16 @@ pub enum OhNo {
   #[error("cannot start poll: {err}")]
   CannotStartPoll { err: io::Error },
 
-  #[error("error while waiting for events: {err}")]
-  PollEventsError { err: io::Error },
+  #[error("poll error: {err}")]
+  PollError { err: io::Error },
+
+  #[error("cannot get already existing sessions: {err}")]
+  CannotGetSessions { err: String },
 
   #[error("cannot set SIGINT handler: {err}")]
   SigIntHandlerError {
     #[from]
     err: ctrlc::Error,
-  },
-
-  #[error("IO error: {err:#?}")]
-  IOError {
-    #[from]
-    err: io::Error,
   },
 
   #[error("cannot create FIFO: {err}")]
