@@ -7,7 +7,8 @@ pub struct Queries {
   pub highlights: Option<String>,
   pub injections: Option<String>,
   pub locals: Option<String>,
-  pub text_objects: Option<String>,
+  pub textobjects: Option<String>,
+  pub indents: Option<String>,
 }
 
 impl Queries {
@@ -17,13 +18,15 @@ impl Queries {
     let highlights = fs::read_to_string(dir.join("highlights.scm")).ok();
     let injections = fs::read_to_string(dir.join("injections.scm")).ok();
     let locals = fs::read_to_string(dir.join("locals.scm")).ok();
-    let text_objects = fs::read_to_string(dir.join("text_objects.scm")).ok();
+    let textobjects = fs::read_to_string(dir.join("textobjects.scm")).ok();
+    let indents = fs::read_to_string(dir.join("indents.scm")).ok();
 
     Queries {
       highlights,
       injections,
       locals,
-      text_objects,
+      textobjects,
+      indents,
     }
   }
 }

@@ -10,6 +10,8 @@ mod request;
 mod response;
 mod server;
 mod session;
+mod tree_sitter_state;
+mod kak;
 
 use clap::Parser;
 use cli::Cli;
