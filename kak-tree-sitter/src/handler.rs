@@ -119,7 +119,7 @@ impl Handler {
     buf: &str,
     textobject_type: &str,
     inside: bool,
-  ) -> Result<impl FnMut(kak::LocRange) -> Option<kak::LocRange>, OhNo> {
+  ) -> Result<Vec<(kak::LocRange, usize)>, OhNo> {
     log::debug!(
       "text_objects for session {session_name}, buffer {buffer}, lang {lang_name}, timestamp {timestamp}"
     );
@@ -152,7 +152,7 @@ impl Handler {
     };
 
     // Iterator over all code ranges that match the textobject type
-    let ranges: Vec<_> = captures
+    let ranges = captures
       .filter_map(|(query_match, _size)| {
         let mut iter = query_match
           .captures
@@ -168,18 +168,7 @@ impl Handler {
         }
       })
       .collect();
-
-    // Objects that contain the given selection and are not equal to it. This lets us call the function repeatedly to expand the selection
-    let out_selections = move |selection| {
-      let ranges = ranges
-        .iter()
-        .filter(|(range, _byte_len)| range.contains_range(&selection) && *range != selection);
-      ranges
-        .min_by_key(|(_range, byte_len)| *byte_len)
-        .map(|x| x.0)
-    };
-    // We want the innermost object, i.e. the shortest one that contains the selection
-    Ok(out_selections)
+    Ok(ranges)
   }
 
   pub fn handle_text_objects(
@@ -194,8 +183,27 @@ impl Handler {
     object_flags: &kak::ObjectFlags,
     select_mode: kak::SelectMode,
   ) -> Result<Response, OhNo> {
-    let mut surrounding_textobject =
-      self.query_text_objects(session_name, buffer, lang_name, timestamp, buf, textobject_type, object_flags.inner)?;
+    let ranges = self.query_text_objects(
+      session_name,
+      buffer,
+      lang_name,
+      timestamp,
+      buf,
+      textobject_type,
+      object_flags.inner,
+    )?;
+
+    // Objects that contain the given selection and are not equal to it. This lets us call the function repeatedly to expand the s
+    let surrounding_textobject = move |selection| {
+      let ranges = ranges
+        .iter()
+        .filter(|(range, _byte_len)| range.contains_range(&selection) && *range != selection);
+      ranges
+        .min_by_key(|(_range, byte_len)| *byte_len)
+        .map(|x| x.0)
+    };
+    
+    // We want the innermost object, i.e. the shortest one that contains the selection
     let ranges = selections
       .filter_map(|selection| {
         let range = surrounding_textobject(selection)?;
@@ -215,10 +223,40 @@ impl Handler {
       })
       .collect();
 
-    Ok(Response::TextObjects {
+    Ok(Response::Selections { timestamp, ranges })
+  }
+
+  pub fn handle_select(
+    &mut self,
+    session_name: &str,
+    buffer: &str,
+    lang_name: &str,
+    timestamp: u64,
+    buf: &str,
+    textobject_type: &str,
+    selections: impl Iterator<Item = kak::LocRange>,
+  ) -> Result<Response, OhNo> {
+    let ranges = self.query_text_objects(
+      session_name,
+      buffer,
+      lang_name,
       timestamp,
-      obj_type: textobject_type.into(),
-      ranges,
+      buf,
+      textobject_type,
+      false,
+    )?;
+    let mut res: Vec<kak::LocRange> = Vec::new();
+    for selection in selections {
+      for (r, _len) in &ranges {
+        if selection.contains_range(r) && res.last().map(|x| !x.contains_range(r)).unwrap_or(true) {
+          res.push(*r)
+        }
+      }
+    }
+
+    Ok(Response::Selections {
+      timestamp,
+      ranges: res,
     })
   }
 }

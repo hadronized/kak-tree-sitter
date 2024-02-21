@@ -75,6 +75,18 @@ pub enum Request {
     object_flags: kak::ObjectFlags,
     select_mode: kak::SelectMode,
   },
+  
+  SelectTextObjects {
+    client: String,
+    buffer: String,
+    lang: String,
+    timestamp: u64,
+    /// Which textobject to look for, i.e. type,function,parameter,comment
+    textobject_type: String,
+    /// Space separated list of selections as kak::LocRange
+    /// For each selection, return the smallest matching textobject that contains this selection
+    selections: String,
+  },
 }
 
 impl Request {
@@ -83,6 +95,7 @@ impl Request {
       Request::TryEnableHighlight { client, .. } => Some(client.as_str()),
       Request::Highlight { client, .. } => Some(client.as_str()),
       Request::TextObjects { client, .. } => Some(client.as_str()),
+      Request::SelectTextObjects { client, .. } => Some(client.as_str()),
     }
   }
 }

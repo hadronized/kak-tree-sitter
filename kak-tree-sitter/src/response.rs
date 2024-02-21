@@ -40,9 +40,8 @@ pub enum Response {
     ranges: Vec<KakHighlightRange>,
   },
 
-  TextObjects {
+  Selections {
     timestamp: u64,
-    obj_type: String,
     ranges: Vec<kak::LocRange>,
   },
 }
@@ -109,13 +108,13 @@ impl Response {
         )
       }
 
-      Response::TextObjects {
-        timestamp,
-        obj_type: _,
-        ranges,
-      } => {
-        let ranges = ranges.iter().join(" ");
-        format!("select -timestamp {timestamp} {ranges}")
+      Response::Selections { timestamp, ranges } => {
+        if ranges.is_empty() {
+          "fail no selections remaining".into()
+        } else {
+          let ranges = ranges.iter().join(" ");
+          format!("select -timestamp {timestamp} {ranges}")
+        }
       }
     };
 
