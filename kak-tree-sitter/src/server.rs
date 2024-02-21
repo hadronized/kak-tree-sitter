@@ -832,7 +832,9 @@ impl FifoHandler {
         .handler
         .handle_try_enable_highlight(session.name(), lang)
         .map(Option::Some),
-      Request::TextObjects { .. } | Request::Highlight { .. } => {
+      Request::TextObjects { .. }
+      | Request::Highlight { .. }
+      | Request::SelectTextObjects { .. } => {
         // Postpone the request for when the buffer is received
         *session.state_mut() = SessionState::WaitingForBuf(req.clone());
         Ok(None)
@@ -895,19 +897,36 @@ impl FifoHandler {
         let selections = selections
           .split_whitespace()
           .filter_map(kak::LocRange::parse_selection);
-        self.handler
-          .handle_text_objects(
-            session.name(),
-            &buffer,
-            &lang,
-            timestamp,
-            buf,
-            &textobject_type,
-            selections,
-            &object_flags,
-            select_mode,
-          )
+        self.handler.handle_text_objects(
+          session.name(),
+          &buffer,
+          &lang,
+          timestamp,
+          buf,
+          &textobject_type,
+          selections,
+          &object_flags,
+          select_mode,
+        )
       }
+      Request::SelectTextObjects {
+        client: _,
+        buffer,
+        lang,
+        timestamp,
+        textobject_type,
+        selections,
+      } => self.handler.handle_select(
+        session.name(),
+        &buffer,
+        &lang,
+        timestamp,
+        buf,
+        &textobject_type,
+        selections
+          .split_whitespace()
+          .filter_map(kak::LocRange::parse_selection),
+      ),
       _ => {
         // This is a programming error
         unreachable!(

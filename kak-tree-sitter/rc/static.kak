@@ -101,11 +101,26 @@ define-command kak-tree-sitter-req-textobjects -params 1 %{
   }
 }
 
-define-command -hidden kak-tree-sitter-text-objects-enable %{
-  map -docstring 'function (tree-sitter)'  buffer object f   '<a-;> kak-tree-sitter-req-textobjects function<ret>'
-  map -docstring 'class (tree-sitter)'     buffer object t   '<a-;> kak-tree-sitter-req-textobjects class<ret>'
-  map -docstring 'comment (tree-sitter)'   buffer object '#' '<a-;> kak-tree-sitter-req-textobjects comment<ret>'
-  map -docstring 'parameter (tree-sitter)' buffer object 'v' '<a-;> kak-tree-sitter-req-textobjects parameter<ret>'
+define-command kak-tree-sitter-req-select -params 1 %{
+  evaluate-commands -no-hooks %{
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""select_text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""timestamp"": %val{timestamp}, ""selections"": ""%val{selections_desc}"", ""textobject_type"": ""%arg{1}"" }"
+    write %opt{kts_buf_fifo_path}
+  }
+}
+
+declare-user-mode kak-tree-sitter
+
+# Enable textobject mappings
+define-command -hidden kak-tree-sitter-textobjects-enable %{
+  map -docstring 'function (tree-sitter)'         buffer object f   '<a-;> kak-tree-sitter-req-textobjects function<ret>'
+  map -docstring 'class (tree-sitter)'            buffer object t   '<a-;> kak-tree-sitter-req-textobjects class<ret>'
+  map -docstring 'parameter (tree-sitter)'        buffer object v '<a-;> kak-tree-sitter-req-textobjects parameter<ret>'
+  map -docstring 'comment (tree-sitter)'          buffer object '#' '<a-;> kak-tree-sitter-req-textobjects comment<ret>'
+  
+  map -docstring 'narrow selection to functions'  buffer kak-tree-sitter f   ':kak-tree-sitter-req-select function<ret>'
+  map -docstring 'narrow selection to classs'     buffer kak-tree-sitter t   ':kak-tree-sitter-req-select class<ret>'
+  map -docstring 'narrow selection to parameters' buffer kak-tree-sitter v   ':kak-tree-sitter-req-select parameter<ret>'
+  map -docstring 'narrow selection to comments'   buffer kak-tree-sitter '#' ':kak-tree-sitter-req-select comment<ret>'
 }
 
 # Enable highlighting for the current buffer.
