@@ -89,6 +89,9 @@ pub enum OhNo {
   #[error("text-objects not supported")]
   UnsupportedTextObjects,
 
-  #[error("no such {ty} text-object query")]
-  UnknownTextObjectQuery { ty: text_objects::Type },
+  #[error("no such {pattern}.{level} text-object query")]
+  UnknownTextObjectQuery {
+    pattern: String,
+    level: text_objects::Level,
+  },
 }
