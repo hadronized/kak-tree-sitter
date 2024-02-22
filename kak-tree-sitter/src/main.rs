@@ -8,6 +8,7 @@ mod queries;
 mod rc;
 mod request;
 mod response;
+mod selection;
 mod server;
 mod session;
 mod text_objects;
