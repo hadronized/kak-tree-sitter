@@ -1,8 +1,14 @@
 //! Tree-sitter state (i.e. highlighting, tree walking, etc.)
 
-use tree_sitter::{Parser, Query, QueryCursor};
+use tree_sitter::{Parser, Point, QueryCapture, QueryCursor};
 
-use crate::{error::OhNo, highlighting::KakHighlightRange, languages::Language, text_objects};
+use crate::{
+  error::OhNo,
+  highlighting::KakHighlightRange,
+  languages::Language,
+  selection::{Pos, Sel},
+  text_objects,
+};
 
 /// State around a tree.
 ///
@@ -41,8 +47,6 @@ impl TreeState {
     injection_callback: impl FnMut(&str) -> Option<&'a tree_sitter_highlight::HighlightConfiguration>
       + 'a,
   ) -> Result<Vec<KakHighlightRange>, OhNo> {
-    self.text_objects(lang, buf, "function", text_objects::Level::Inside)?;
-
     let events = self
       .highlighter
       .highlight(&lang.hl_config, buf.as_bytes(), None, injection_callback)
@@ -57,7 +61,7 @@ impl TreeState {
     ))
   }
 
-  /// Get the text-objects for the given pattern and level.
+  /// Get the text-objects for the given pattern.
   ///
   /// This function takes in a list of selections and a mode of operation.
   pub fn text_objects(
@@ -65,7 +69,8 @@ impl TreeState {
     lang: &Language,
     buf: &str,
     pattern: &str,
-    level: text_objects::Level,
+    selections: &[Sel],
+    mode: &text_objects::OperationMode,
   ) -> Result<(), OhNo> {
     // first, check whether the language supports text-objects, and also check whether it has the text-object type in
     // its capture names
@@ -78,19 +83,54 @@ impl TreeState {
         .capture_index_for_name(pattern)
         .ok_or(OhNo::UnknownTextObjectQuery {
           pattern: pattern.to_owned(),
-          level,
         })?;
 
     // run the query via a query cursor
     let mut cursor = QueryCursor::new();
-    let mut captures = cursor
+    let captures = cursor
       .captures(query, self.tree.root_node(), buf.as_bytes())
       .flat_map(|(cm, _)| cm.captures.iter())
       .filter(|cq| cq.index == capture_index)
       .collect::<Vec<_>>();
 
-    log::info!("text_objects: {captures:#?}");
+    match mode {
+      text_objects::OperationMode::Next => {
+        for sel in selections {
+          if let Some(found) = Self::find_next_text_object(sel, &captures[..]) {
+            log::info!("new selection {found:?}");
+          }
+        }
+      }
+
+      text_objects::OperationMode::Prev => todo!(),
+      text_objects::OperationMode::Inside => todo!(),
+      text_objects::OperationMode::Around => todo!(),
+      text_objects::OperationMode::Select => todo!(),
+      text_objects::OperationMode::Split => todo!(),
+    }
 
     Ok(())
+  }
+
+  fn point_to_pos(p: &Point) -> Pos {
+    Pos {
+      line: p.row,
+      col: p.column,
+    }
+  }
+
+  /// Find the next text-object for a given selection. If found, return a new [`Sel`].
+  fn find_next_text_object(sel: &Sel, captures: &[&QueryCapture]) -> Option<Sel> {
+    let p = sel.anchor.max(sel.cursor);
+    let mut candidates = captures
+      .iter()
+      .filter(|c| Self::point_to_pos(&c.node.start_position()) >= p)
+      .collect::<Vec<_>>();
+    candidates.sort_by_key(|c| c.node.start_byte());
+    let candidate = candidates.first()?;
+    let start = Self::point_to_pos(&candidate.node.start_position());
+    let end = Self::point_to_pos(&candidate.node.end_position());
+
+    Some(sel.replace(&start, &end))
   }
 }

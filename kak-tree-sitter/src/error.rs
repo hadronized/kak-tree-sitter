@@ -4,8 +4,6 @@ use log::SetLoggerError;
 use thiserror::Error;
 use tree_sitter::{LanguageError, QueryError};
 
-use crate::text_objects;
-
 #[derive(Debug, Error)]
 pub enum OhNo {
   #[error("nothing to do; please either use --server or --request")]
@@ -89,9 +87,6 @@ pub enum OhNo {
   #[error("text-objects not supported")]
   UnsupportedTextObjects,
 
-  #[error("no such {pattern}.{level} text-object query")]
-  UnknownTextObjectQuery {
-    pattern: String,
-    level: text_objects::Level,
-  },
+  #[error("no such {pattern} text-object query")]
+  UnknownTextObjectQuery { pattern: String },
 }

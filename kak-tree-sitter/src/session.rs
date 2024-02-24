@@ -2,6 +2,8 @@ use std::{collections::HashMap, fs::File};
 
 use mio::Token;
 
+use crate::{selection::Sel, text_objects};
+
 /// Session tracker,
 ///
 /// Responsible for tracking sessions (by names) along with the associated command token and buffer token.
@@ -141,6 +143,16 @@ pub enum SessionState {
     buffer: String,
     lang: String,
     timestamp: u64,
+  },
+
+  /// The session requested text-objects and we are waiting for the buffer content.
+  TextObjectsWaiting {
+    client: String,
+    buffer: String,
+    lang: String,
+    pattern: String,
+    selections: Vec<Sel>,
+    mode: text_objects::OperationMode,
   },
 }
 

@@ -29,6 +29,7 @@ use crate::{
   handler::Handler,
   request::{Request, UnixRequest},
   response::{ConnectedResponse, Response},
+  selection::Sel,
   session::{Fifo, Session, SessionState, SessionTracker},
 };
 
@@ -819,6 +820,27 @@ impl FifoHandler {
 
         Ok(None)
       }
+
+      Request::TextObjects {
+        client,
+        buffer,
+        lang,
+        pattern,
+        selections,
+        mode,
+      } => {
+        let selections = Sel::parse_many(selections);
+        *session.state_mut() = SessionState::TextObjectsWaiting {
+          client: client.clone(),
+          buffer: buffer.clone(),
+          lang: lang.clone(),
+          pattern: pattern.clone(),
+          selections,
+          mode: *mode,
+        };
+
+        Ok(None)
+      }
     }
   }
 
@@ -852,37 +874,80 @@ impl FifoHandler {
   }
 
   fn process_buf(&mut self, session: &mut Session, buf: &str) -> Result<(), OhNo> {
-    if let SessionState::HighlightingWaiting {
-      client,
-      buffer,
-      lang,
-      timestamp,
-    } = session.state()
-    {
-      let client = client.clone();
-      let handled = self
-        .handler
-        .handle_highlight(session.name(), buffer, lang, *timestamp, buf);
+    match session.state() {
+      SessionState::HighlightingWaiting {
+        client,
+        buffer,
+        lang,
+        timestamp,
+      } => {
+        let client = client.clone();
+        let handled = self
+          .handler
+          .handle_highlight(session.name(), buffer, lang, *timestamp, buf);
 
-      // switch back to idle, as we have read the FIFO
-      session.state_mut().idle();
+        // switch back to idle, as we have read the FIFO
+        session.state_mut().idle();
 
-      match handled {
-        Ok(resp) => {
-          let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
+        match handled {
+          Ok(resp) => {
+            let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
 
-          if let Err(err) = self.resp_sender.send(conn_resp) {
-            log::error!("failure while sending response: {err}");
+            if let Err(err) = self.resp_sender.send(conn_resp) {
+              log::error!("failure while sending response: {err}");
+            }
+          }
+
+          Err(err) => {
+            log::error!(
+              "handling highlight failed for session {session_name}: {err}",
+              session_name = session.name()
+            );
           }
         }
+      }
 
-        Err(err) => {
-          log::error!(
-            "handling highlight failed for session {session_name}: {err}",
-            session_name = session.name()
-          );
+      SessionState::TextObjectsWaiting {
+        client,
+        buffer,
+        lang,
+        pattern,
+        selections,
+        mode,
+      } => {
+        let client = client.clone();
+        let handled = self.handler.handle_text_objects(
+          session.name(),
+          buffer,
+          lang,
+          buf,
+          pattern,
+          selections,
+          mode,
+        );
+
+        // switch back to idle, as we have read the FIFO
+        session.state_mut().idle();
+
+        match handled {
+          Ok(resp) => {
+            let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
+
+            if let Err(err) = self.resp_sender.send(conn_resp) {
+              log::error!("failure while sending response: {err}");
+            }
+          }
+
+          Err(err) => {
+            log::error!(
+              "handling text-objects failed for session {session_name}: {err}",
+              session_name = session.name()
+            );
+          }
         }
       }
+
+      SessionState::Idle => (),
     }
 
     Ok(())

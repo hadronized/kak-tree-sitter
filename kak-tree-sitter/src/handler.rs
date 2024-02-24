@@ -7,6 +7,8 @@ use crate::{
   highlighting::BufferId,
   languages::{Language, Languages},
   response::Response,
+  selection::Sel,
+  text_objects,
   tree_sitter_state::TreeState,
 };
 
@@ -101,18 +103,58 @@ impl Handler {
     timestamp: u64,
     buf: &str,
   ) -> Result<Response, OhNo> {
-    if let Some(lang) = self.langs.get(lang_name) {
-      let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
-
-      let ranges = tree_state.highlight(lang, buf, |lang2| {
-        self.langs.get(lang2).map(|lang2| &lang2.hl_config)
-      })?;
-
-      Ok(Response::Highlights { timestamp, ranges })
-    } else {
-      Ok(Response::status(format!(
+    let Some(lang) = self.langs.get(lang_name) else {
+      return Ok(Response::status(format!(
         "unsupported language: {lang_name}"
-      )))
-    }
+      )));
+    };
+
+    let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
+
+    let ranges = tree_state.highlight(lang, buf, |lang2| {
+      self.langs.get(lang2).map(|lang2| &lang2.hl_config)
+    })?;
+
+    Ok(Response::Highlights { timestamp, ranges })
+  }
+
+  pub fn handle_text_objects(
+    &mut self,
+    session_name: &str,
+    buffer: &str,
+    lang_name: &str,
+    buf: &str,
+    pattern: &str,
+    selections: &[Sel],
+    mode: &text_objects::OperationMode,
+  ) -> Result<Response, OhNo> {
+    log::debug!(
+      "text-objects {pattern} for session {session_name}, buffer {buffer}, lang {lang_name}"
+    );
+
+    let buffer_id = BufferId::new(session_name, buffer);
+
+    self.handle_text_objects_req(buffer_id, lang_name, buf, pattern, selections, mode)
+  }
+
+  fn handle_text_objects_req(
+    &mut self,
+    buffer_id: BufferId,
+    lang_name: &str,
+    buf: &str,
+    pattern: &str,
+    selections: &[Sel],
+    mode: &text_objects::OperationMode,
+  ) -> Result<Response, OhNo> {
+    let Some(lang) = self.langs.get(lang_name) else {
+      return Ok(Response::status(format!(
+        "unsupported language: {lang_name}"
+      )));
+    };
+
+    let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
+    tree_state.text_objects(lang, buf, pattern, selections, mode)?;
+
+    Ok(Response::status("done"))
   }
 }

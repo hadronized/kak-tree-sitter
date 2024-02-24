@@ -4,32 +4,29 @@ use std::fmt::Display;
 
 use serde::{Deserialize, Serialize};
 
-/// Level of the text-object.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub enum Level {
-  Inside,
-  Around,
-}
-
-impl Display for Level {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    let s = match self {
-      Level::Inside => "inside",
-      Level::Around => "around",
-    };
-
-    f.write_str(s)
-  }
-}
-
-/// Operation mode.
 ///
 /// Text-objects can be manipulated in two different ways:
 ///
 /// - In object mode, to expand selections or replace them.
 /// - To shrink selections via selecting or splitting, as in `s`, `S`, etc.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
 pub enum OperationMode {
-  Object,
-  Shrink,
+  /// Find the next text-object.
+  Next,
+
+  /// Find the previous text-object.
+  Prev,
+
+  /// Select the enclosing text-object (inside).
+  Inside,
+
+  /// Select the enclosing text-object (around)
+  Around,
+
+  /// Select text-objects inside the selection.
+  Select,
+
+  /// Split with text-objects inside the selection.
+  Split,
 }

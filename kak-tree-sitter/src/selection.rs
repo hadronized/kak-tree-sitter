@@ -1,7 +1,7 @@
 //! Selections as recognized by Kakoune, as well as associated types and functions.
 
 /// A single position in a buffer.
-#[derive(Clone, Debug, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Pos {
   pub line: usize,
   pub col: usize,
@@ -40,6 +40,11 @@ impl Sel {
     let cursor = parts.next()?;
 
     Some(Self { anchor, cursor })
+  }
+
+  /// Parse many [`Sel`] from a space-separated list of selection.
+  pub fn parse_many(s: &str) -> Vec<Self> {
+    s.split_whitespace().flat_map(Self::parse_kak_str).collect()
   }
 
   /// Replace a selection with two other points.
