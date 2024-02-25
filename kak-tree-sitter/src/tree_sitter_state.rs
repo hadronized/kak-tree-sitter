@@ -1,6 +1,8 @@
 //! Tree-sitter state (i.e. highlighting, tree walking, etc.)
 
-use tree_sitter::{Parser, Point, QueryCapture, QueryCursor};
+use std::cmp::Reverse;
+
+use tree_sitter::{Parser, QueryCapture, QueryCursor};
 
 use crate::{
   error::OhNo,
@@ -63,7 +65,8 @@ impl TreeState {
 
   /// Get the text-objects for the given pattern.
   ///
-  /// This function takes in a list of selections and a mode of operation.
+  /// This function takes in a list of selections and a mode of operation, and return new selections, depending on the
+  /// mode.
   pub fn text_objects(
     &self,
     lang: &Language,
@@ -71,7 +74,7 @@ impl TreeState {
     pattern: &str,
     selections: &[Sel],
     mode: &text_objects::OperationMode,
-  ) -> Result<(), OhNo> {
+  ) -> Result<Vec<Sel>, OhNo> {
     // first, check whether the language supports text-objects, and also check whether it has the text-object type in
     // its capture names
     let query = lang
@@ -93,43 +96,52 @@ impl TreeState {
       .filter(|cq| cq.index == capture_index)
       .collect::<Vec<_>>();
 
-    match mode {
-      text_objects::OperationMode::Next => {
-        for sel in selections {
-          if let Some(found) = Self::find_next_text_object(sel, &captures[..]) {
-            log::info!("new selection {found:?}");
-          }
-        }
-      }
+    let sels = match mode {
+      text_objects::OperationMode::Next => selections
+        .iter()
+        .flat_map(|sel| Self::find_next_text_object(sel, &captures[..]))
+        .collect(),
 
-      text_objects::OperationMode::Prev => todo!(),
+      text_objects::OperationMode::Prev => selections
+        .iter()
+        .flat_map(|sel| Self::find_prev_text_object(sel, &captures[..]))
+        .collect(),
+
       text_objects::OperationMode::Inside => todo!(),
       text_objects::OperationMode::Around => todo!(),
       text_objects::OperationMode::Select => todo!(),
       text_objects::OperationMode::Split => todo!(),
-    }
+    };
 
-    Ok(())
-  }
-
-  fn point_to_pos(p: &Point) -> Pos {
-    Pos {
-      line: p.row,
-      col: p.column,
-    }
+    Ok(sels)
   }
 
   /// Find the next text-object for a given selection. If found, return a new [`Sel`].
   fn find_next_text_object(sel: &Sel, captures: &[&QueryCapture]) -> Option<Sel> {
-    let p = sel.anchor.max(sel.cursor);
     let mut candidates = captures
       .iter()
-      .filter(|c| Self::point_to_pos(&c.node.start_position()) >= p)
+      .filter(|c| Pos::from(c.node.start_position()) >= sel.cursor)
       .collect::<Vec<_>>();
     candidates.sort_by_key(|c| c.node.start_byte());
     let candidate = candidates.first()?;
-    let start = Self::point_to_pos(&candidate.node.start_position());
-    let end = Self::point_to_pos(&candidate.node.end_position());
+    let start = Pos::from(candidate.node.start_position());
+    let mut end = Pos::from(candidate.node.end_position());
+    end.col -= 1;
+
+    Some(sel.replace(&start, &end))
+  }
+
+  /// Find the prev text-object for a given selection. If found, return a new [`Sel`].
+  fn find_prev_text_object(sel: &Sel, captures: &[&QueryCapture]) -> Option<Sel> {
+    let mut candidates = captures
+      .iter()
+      .filter(|c| Pos::from(c.node.start_position()) <= sel.cursor)
+      .collect::<Vec<_>>();
+    candidates.sort_by_key(|c| Reverse(c.node.start_byte()));
+    let candidate = candidates.first()?;
+    let start = Pos::from(candidate.node.start_position());
+    let mut end = Pos::from(candidate.node.end_position());
+    end.col -= 1;
 
     Some(sel.replace(&start, &end))
   }

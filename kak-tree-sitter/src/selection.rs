@@ -1,10 +1,21 @@
 //! Selections as recognized by Kakoune, as well as associated types and functions.
 
+use tree_sitter::Point;
+
 /// A single position in a buffer.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Pos {
   pub line: usize,
   pub col: usize,
+}
+
+impl From<Point> for Pos {
+  fn from(p: Point) -> Self {
+    Self {
+      line: p.row + 1,
+      col: p.column + 1,
+    }
+  }
 }
 
 impl Pos {
@@ -47,6 +58,19 @@ impl Sel {
     s.split_whitespace().flat_map(Self::parse_kak_str).collect()
   }
 
+  /// Kakoune string representatio.
+  ///
+  /// The anchor always come first; then the cursor.
+  pub fn to_kak_str(&self) -> String {
+    format!(
+      "{anchor_line}.{anchor_col},{cursor_line}.{cursor_col}",
+      anchor_line = self.anchor.line,
+      anchor_col = self.anchor.col,
+      cursor_line = self.cursor.line,
+      cursor_col = self.cursor.col
+    )
+  }
+
   /// Replace a selection with two other points.
   ///
   /// This function replaces the selection with two other points by keeping the order anchor / cursor; if the anchor is
@@ -55,13 +79,13 @@ impl Sel {
   pub fn replace(&self, a: &Pos, b: &Pos) -> Self {
     if self.anchor <= self.cursor {
       Self {
-        anchor: a.clone(),
-        cursor: b.clone(),
+        anchor: *a,
+        cursor: *b,
       }
     } else {
       Self {
-        anchor: b.clone(),
-        cursor: a.clone(),
+        anchor: *b,
+        cursor: *a,
       }
     }
   }

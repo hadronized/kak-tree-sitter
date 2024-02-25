@@ -1,10 +1,13 @@
 //! Text-object support.
-
-use std::fmt::Display;
+//!
+//! Requests use strings like `"function.inside"`, `"function.around"`, etc. to target specific capture groups. We do
+//! not provide a type for this, as the patterns are free and varies on the languages / grammars.
+//!
+//! However, operation modes are fixed and represent what to do with the matched parts of the buffer. For instance,
+//! [`OperationMode::Next`] will move each selection to the next matched capture group, etc.
 
 use serde::{Deserialize, Serialize};
 
-///
 /// Text-objects can be manipulated in two different ways:
 ///
 /// - In object mode, to expand selections or replace them.

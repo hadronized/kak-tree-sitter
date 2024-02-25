@@ -153,8 +153,8 @@ impl Handler {
     };
 
     let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
-    tree_state.text_objects(lang, buf, pattern, selections, mode)?;
+    let sels = tree_state.text_objects(lang, buf, pattern, selections, mode)?;
 
-    Ok(Response::status("done"))
+    Ok(Response::Selections { sels })
   }
 }

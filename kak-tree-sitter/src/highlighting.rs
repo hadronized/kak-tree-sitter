@@ -1,59 +1,8 @@
 //! Convert from tree-sitter-highlight events to Kakoune ranges highlighter.
 
-use std::collections::HashMap;
-
 use serde::{Deserialize, Serialize};
-use tree_sitter_highlight::{Highlight, HighlightEvent, Highlighter};
+use tree_sitter_highlight::{Highlight, HighlightEvent};
 use unicode_segmentation::UnicodeSegmentation;
-
-use crate::{
-  error::OhNo,
-  languages::{Language, Languages},
-  response::Response,
-};
-
-
-/// Session/buffer highlighters.
-///
-/// This type maps a [`BufferId`] with a tree-sitter highlighter.
-pub struct Highlighters {
-  highlighters: HashMap<BufferId, Highlighter>,
-}
-
-impl Highlighters {
-  pub fn new() -> Self {
-    Highlighters {
-      highlighters: HashMap::new(),
-    }
-  }
-}
-
-impl Highlighters {
-  pub fn highlight(
-    &mut self,
-    lang: &Language,
-    langs: &Languages,
-    buffer_id: BufferId,
-    timestamp: u64,
-    source: &str,
-  ) -> Result<Response, OhNo> {
-    let highlighter = self
-      .highlighters
-      .entry(buffer_id)
-      .or_insert(Highlighter::new());
-
-    let injection_callback = |lang_name: &str| langs.get(lang_name).map(|lang| &lang.hl_config);
-    let events = highlighter
-      .highlight(&lang.hl_config, source.as_bytes(), None, injection_callback)
-      .map_err(|err| OhNo::HighlightError {
-        err: err.to_string(),
-      })?;
-
-    let ranges = KakHighlightRange::from_iter(source, &lang.hl_names, events.flatten());
-
-    Ok(Response::Highlights { timestamp, ranges })
-  }
-}
 
 /// A convenient representation of a single highlight range for Kakoune.
 ///
