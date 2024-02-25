@@ -91,6 +91,40 @@ impl Sel {
   }
 }
 
+/// Object flags; used in object mode.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct ObjectFlags {
+  pub to_begin: bool,
+  pub to_end: bool,
+  pub inner: bool,
+}
+
+impl ObjectFlags {
+  pub fn parse_kak_str(s: &str) -> Self {
+    s.split('|').fold(Self::default(), |flags, s| match s {
+      "to_begin" => flags.set_to_begin(),
+      "to_end" => flags.set_to_end(),
+      "inner" => flags.set_inner(),
+      _ => flags,
+    })
+  }
+
+  pub fn set_to_begin(mut self) -> Self {
+    self.to_begin = true;
+    self
+  }
+
+  pub fn set_to_end(mut self) -> Self {
+    self.to_end = true;
+    self
+  }
+
+  pub fn set_inner(mut self) -> Self {
+    self.inner = true;
+    self
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::{Pos, Sel};
