@@ -25,6 +25,16 @@ pub enum OperationMode {
   /// Similar to `<a-/>`.
   SearchPrev,
 
+  /// Search-extend for the next text-object.
+  ///
+  /// Similar to `?`.
+  SearchExtendNext,
+
+  /// Search-extend for the previous text-object.
+  ///
+  /// Similar to `<a-?>`.
+  SearchExtendPrev,
+
   /// Find the next text-object.
   ///
   /// Similar to `f`.

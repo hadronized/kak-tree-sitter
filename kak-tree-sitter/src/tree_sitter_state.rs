@@ -106,6 +106,16 @@ impl TreeState {
         .flat_map(|sel| Self::search_prev_text_object(sel, &captures[..]))
         .collect(),
 
+      text_objects::OperationMode::SearchExtendNext => selections
+        .iter()
+        .flat_map(|sel| Self::search_extend_next_text_object(sel, &captures[..]))
+        .collect(),
+
+      text_objects::OperationMode::SearchExtendPrev => selections
+        .iter()
+        .flat_map(|sel| Self::search_extend_prev_text_object(sel, &captures[..]))
+        .collect(),
+
       text_objects::OperationMode::FindNext => selections
         .iter()
         .flat_map(|sel| Self::find_text_object(sel, &captures[..], false))
@@ -140,6 +150,28 @@ impl TreeState {
     end.col -= 1;
 
     Some(sel.replace(&start, &end))
+  }
+
+  /// Search-extend the next text-object for a given selection.
+  fn search_extend_next_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
+    let candidate = Self::node_after(&sel.cursor, captures)?;
+    let cursor = Pos::from(candidate.node.start_position());
+
+    Some(Sel {
+      anchor: sel.anchor,
+      cursor,
+    })
+  }
+
+  /// Search extend the prev text-object for a given selection.
+  fn search_extend_prev_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
+    let candidate = Self::node_before(&sel.cursor, captures)?;
+    let cursor = Pos::from(candidate.node.start_position());
+
+    Some(Sel {
+      anchor: sel.anchor,
+      cursor,
+    })
   }
 
   /// Find the next/prev text-object for a given selection.
