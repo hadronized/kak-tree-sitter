@@ -123,19 +123,7 @@ impl TreeState {
   /// Search the next text-object for a given selection.
   fn search_next_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
     let p = sel.anchor.max(sel.cursor);
-
-    // tree-sitter API here is HORRIBLE as it mutates in-place on Iterator::next(); we can’t collect();
-    //
-    // Related discussions:
-    // - <https://github.com/tree-sitter/tree-sitter/issues/2265>
-    // - <https://github.com/tree-sitter/tree-sitter/issues/608>
-    let mut candidates = captures.iter()
-      .filter(|c| Pos::from(c.node.start_position()) > p)
-      .map(|qc| qc.to_owned()) // related to the problem explained above
-      .collect::<Vec<_>>();
-
-    candidates.sort_by_key(|c| c.node.start_byte());
-    let candidate = candidates.first()?;
+    let candidate = Self::node_after(&p, captures)?;
     let start = Pos::from(candidate.node.start_position());
     let mut end = Pos::from(candidate.node.end_position());
     end.col -= 1;
@@ -146,15 +134,7 @@ impl TreeState {
   /// Search the prev text-object for a given selection.
   fn search_prev_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
     let p = sel.anchor.min(sel.cursor);
-
-    // same shit as previously
-    let mut candidates = captures.iter()
-      .filter(|c| Pos::from(c.node.start_position()) < p)
-      .map(|qc| qc.to_owned()) // related to the problem explained above
-      .collect::<Vec<_>>();
-
-    candidates.sort_by_key(|c| c.node.start_byte());
-    let candidate = candidates.last()?;
+    let candidate = Self::node_before(&p, captures)?;
     let start = Pos::from(candidate.node.start_position());
     let mut end = Pos::from(candidate.node.end_position());
     end.col -= 1;
@@ -177,6 +157,11 @@ impl TreeState {
 
   /// Get the next node after given position.
   fn node_after<'a>(p: &Pos, captures: &[QueryCapture<'a>]) -> Option<QueryCapture<'a>> {
+    // tree-sitter API here is HORRIBLE as it mutates in-place on Iterator::next(); we can’t collect();
+    //
+    // Related discussions:
+    // - <https://github.com/tree-sitter/tree-sitter/issues/2265>
+    // - <https://github.com/tree-sitter/tree-sitter/issues/608>
     let mut candidates = captures.iter()
       .filter(|c| &Pos::from(c.node.start_position()) > p)
       .map(|qc| qc.to_owned()) // related to the problem explained above
@@ -188,6 +173,11 @@ impl TreeState {
 
   /// Get the previous node before a given position.
   fn node_before<'a>(p: &Pos, captures: &[QueryCapture<'a>]) -> Option<QueryCapture<'a>> {
+    // tree-sitter API here is HORRIBLE as it mutates in-place on Iterator::next(); we can’t collect();
+    //
+    // Related discussions:
+    // - <https://github.com/tree-sitter/tree-sitter/issues/2265>
+    // - <https://github.com/tree-sitter/tree-sitter/issues/608>
     let mut candidates = captures.iter()
       .filter(|c| &Pos::from(c.node.start_position()) < p)
       .map(|qc| qc.to_owned()) // related to the problem explained above
