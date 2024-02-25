@@ -44,4 +44,14 @@ pub enum OperationMode {
   ///
   /// Similar to `<a-f>`.
   FindPrev,
+
+  /// Extend onto the next text-object.
+  ///
+  /// Similar to `F`.
+  ExtendNext,
+
+  /// Extend onto the previous text-object.
+  ///
+  /// Similar to `<a-F>`.
+  ExtendPrev,
 }

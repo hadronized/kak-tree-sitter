@@ -125,6 +125,16 @@ impl TreeState {
         .iter()
         .flat_map(|sel| Self::find_text_object(sel, &captures[..], true))
         .collect(),
+
+      text_objects::OperationMode::ExtendNext => selections
+        .iter()
+        .flat_map(|sel| Self::extend_text_object(sel, &captures[..], false))
+        .collect(),
+
+      text_objects::OperationMode::ExtendPrev => selections
+        .iter()
+        .flat_map(|sel| Self::extend_text_object(sel, &captures[..], true))
+        .collect(),
     };
 
     Ok(sels)
@@ -183,6 +193,19 @@ impl TreeState {
     };
     let cursor = node.node.start_position().into();
     let anchor = sel.cursor;
+
+    Some(Sel { anchor, cursor })
+  }
+
+  /// Extend onto the next/prev text-object for a given selection.
+  fn extend_text_object(sel: &Sel, captures: &[QueryCapture], is_prev: bool) -> Option<Sel> {
+    let node = if is_prev {
+      Self::node_before(&sel.cursor, captures)?
+    } else {
+      Self::node_after(&sel.cursor, captures)?
+    };
+    let cursor = node.node.start_position().into();
+    let anchor = sel.anchor;
 
     Some(Sel { anchor, cursor })
   }
