@@ -89,11 +89,11 @@ impl TreeState {
 
     // run the query via a query cursor
     let mut cursor = QueryCursor::new();
-    let captures = cursor
+    let captures: Vec<_> = cursor
       .captures(query, self.tree.root_node(), buf.as_bytes())
-      .flat_map(|(cm, _)| cm.captures.iter())
+      .flat_map(|(cm, _)| cm.captures.iter().cloned())
       .filter(|cq| cq.index == capture_index)
-      .collect::<Vec<_>>();
+      .collect();
 
     let sels = match mode {
       text_objects::OperationMode::SearchNext => selections
@@ -116,12 +116,19 @@ impl TreeState {
   }
 
   /// Find the next text-object for a given selection. If found, return a new [`Sel`].
-  fn find_next_text_object(sel: &Sel, captures: &[&QueryCapture]) -> Option<Sel> {
+  fn find_next_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
     let p = sel.anchor.max(sel.cursor);
-    let mut candidates = captures
-      .iter()
+
+    // tree-sitter API here is HORRIBLE as it mutates in-place on Iterator::next(); we can’t collect();
+    //
+    // Related discussions:
+    // - <https://github.com/tree-sitter/tree-sitter/issues/2265>
+    // - <https://github.com/tree-sitter/tree-sitter/issues/608>
+    let mut candidates = captures.iter()
       .filter(|c| Pos::from(c.node.start_position()) > p)
+      .map(|qc| qc.to_owned()) // related to the problem explained above
       .collect::<Vec<_>>();
+
     candidates.sort_by_key(|c| c.node.start_byte());
     let candidate = candidates.first()?;
     let start = Pos::from(candidate.node.start_position());
@@ -132,12 +139,15 @@ impl TreeState {
   }
 
   /// Find the prev text-object for a given selection. If found, return a new [`Sel`].
-  fn find_prev_text_object(sel: &Sel, captures: &[&QueryCapture]) -> Option<Sel> {
+  fn find_prev_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
     let p = sel.anchor.min(sel.cursor);
-    let mut candidates = captures
-      .iter()
+
+    // same shit as previously
+    let mut candidates = captures.iter()
       .filter(|c| Pos::from(c.node.start_position()) < p)
+      .map(|qc| qc.to_owned()) // related to the problem explained above
       .collect::<Vec<_>>();
+
     candidates.sort_by_key(|c| c.node.start_byte());
     let candidate = candidates.last()?;
     let start = Pos::from(candidate.node.start_position());
