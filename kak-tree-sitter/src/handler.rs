@@ -3,8 +3,8 @@ use std::collections::{hash_map::Entry, HashMap};
 use kak_tree_sitter_config::Config;
 
 use crate::{
+  buffer::BufferId,
   error::OhNo,
-  highlighting::BufferId,
   languages::{Language, Languages},
   response::Response,
   selection::Sel,

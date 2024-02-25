@@ -1,3 +1,4 @@
+mod buffer;
 mod cli;
 mod error;
 mod handler;
