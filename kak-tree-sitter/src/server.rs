@@ -24,6 +24,7 @@ use kak_tree_sitter_config::Config;
 use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token, Waker};
 
 use crate::{
+  buffer::BufferId,
   cli::Cli,
   error::OhNo,
   handler::Handler,
@@ -882,29 +883,12 @@ impl FifoHandler {
         timestamp,
       } => {
         let client = client.clone();
-        let handled = self
+        let buffer_id = BufferId::new(session.name(), buffer);
+        let resp = self
           .handler
-          .handle_highlight(session.name(), buffer, lang, *timestamp, buf);
+          .handle_highlight(buffer_id, lang, *timestamp, buf);
 
-        // switch back to idle, as we have read the FIFO
-        session.state_mut().idle();
-
-        match handled {
-          Ok(resp) => {
-            let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
-
-            if let Err(err) = self.resp_sender.send(conn_resp) {
-              log::error!("failure while sending response: {err}");
-            }
-          }
-
-          Err(err) => {
-            log::error!(
-              "handling highlight failed for session {session_name}: {err}",
-              session_name = session.name()
-            );
-          }
-        }
+        self.finish_cmd(session, Some(&client), resp);
       }
 
       SessionState::TextObjectsWaiting {
@@ -916,41 +900,48 @@ impl FifoHandler {
         mode,
       } => {
         let client = client.clone();
-        let handled = self.handler.handle_text_objects(
-          session.name(),
-          buffer,
-          lang,
-          buf,
-          pattern,
-          selections,
-          mode,
-        );
+        let buffer_id = BufferId::new(session.name(), buffer);
+        let resp = self
+          .handler
+          .handle_text_objects(buffer_id, lang, buf, pattern, selections, mode);
 
-        // switch back to idle, as we have read the FIFO
-        session.state_mut().idle();
-
-        match handled {
-          Ok(resp) => {
-            let conn_resp = ConnectedResponse::new(session.name(), Some(client), resp);
-
-            if let Err(err) = self.resp_sender.send(conn_resp) {
-              log::error!("failure while sending response: {err}");
-            }
-          }
-
-          Err(err) => {
-            log::error!(
-              "handling text-objects failed for session {session_name}: {err}",
-              session_name = session.name()
-            );
-          }
-        }
+        self.finish_cmd(session, Some(&client), resp);
       }
 
+      // keep this branch so that we have exhaustiveness
       SessionState::Idle => (),
     }
 
     Ok(())
+  }
+
+  /// Inspect the result of a command and eventually send a response back to the Kakoune session.
+  fn finish_cmd(
+    &mut self,
+    session: &mut Session,
+    client: Option<&str>,
+    resp: Result<Response, OhNo>,
+  ) {
+    // switch back to idle, as we have read the FIFO
+    session.state_mut().idle();
+
+    match resp {
+      Ok(resp) => {
+        let conn_resp =
+          ConnectedResponse::new(session.name().to_owned(), client.map(str::to_owned), resp);
+
+        if let Err(err) = self.resp_sender.send(conn_resp) {
+          log::error!("failure while sending response: {err}");
+        }
+      }
+
+      Err(err) => {
+        log::error!(
+          "command failed for session {session_name}: {err}",
+          session_name = session.name()
+        );
+      }
+    }
   }
 }
 

@@ -82,27 +82,13 @@ impl Handler {
 
   pub fn handle_highlight(
     &mut self,
-    session_name: &str,
-    buffer: &str,
-    lang_name: &str,
-    timestamp: u64,
-    buf: &str,
-  ) -> Result<Response, OhNo> {
-    log::debug!(
-      "highlight for session {session_name}, buffer {buffer}, lang {lang_name}, timestamp {timestamp}"
-    );
-
-    let buffer_id = BufferId::new(session_name, buffer);
-    self.handle_highlight_req(buffer_id, lang_name, timestamp, buf)
-  }
-
-  fn handle_highlight_req(
-    &mut self,
     buffer_id: BufferId,
     lang_name: &str,
     timestamp: u64,
     buf: &str,
   ) -> Result<Response, OhNo> {
+    log::debug!("highlight for buffer {buffer_id:?}, lang {lang_name}, timestamp {timestamp}");
+
     let Some(lang) = self.langs.get(lang_name) else {
       return Ok(Response::status(format!(
         "unsupported language: {lang_name}"
@@ -120,25 +106,6 @@ impl Handler {
 
   pub fn handle_text_objects(
     &mut self,
-    session_name: &str,
-    buffer: &str,
-    lang_name: &str,
-    buf: &str,
-    pattern: &str,
-    selections: &[Sel],
-    mode: &text_objects::OperationMode,
-  ) -> Result<Response, OhNo> {
-    log::debug!(
-      "text-objects {pattern} for session {session_name}, buffer {buffer}, lang {lang_name}"
-    );
-
-    let buffer_id = BufferId::new(session_name, buffer);
-
-    self.handle_text_objects_req(buffer_id, lang_name, buf, pattern, selections, mode)
-  }
-
-  fn handle_text_objects_req(
-    &mut self,
     buffer_id: BufferId,
     lang_name: &str,
     buf: &str,
@@ -146,6 +113,8 @@ impl Handler {
     selections: &[Sel],
     mode: &text_objects::OperationMode,
   ) -> Result<Response, OhNo> {
+    log::debug!("text-objects {pattern} for buffer {buffer_id:?}, lang {lang_name}");
+
     let Some(lang) = self.langs.get(lang_name) else {
       return Ok(Response::status(format!(
         "unsupported language: {lang_name}"
