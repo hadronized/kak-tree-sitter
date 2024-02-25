@@ -1,6 +1,5 @@
 //! Convert from tree-sitter-highlight events to Kakoune ranges highlighter.
 
-use serde::{Deserialize, Serialize};
 use tree_sitter_highlight::{Highlight, HighlightEvent};
 use unicode_segmentation::UnicodeSegmentation;
 

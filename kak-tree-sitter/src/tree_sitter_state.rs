@@ -16,7 +16,8 @@ use crate::{
 ///
 /// A tree-sitter tree represents a parsed buffer in a given state. It can be walked with queries and updated.
 pub struct TreeState {
-  parser: Parser,
+  // this will be useful for #26
+  _parser: Parser,
   tree: tree_sitter::Tree,
 
   // TODO: for now, we don’t support custom highligthing, and hence have to use tree-sitter-highlight; see
@@ -36,7 +37,7 @@ impl TreeState {
     let highlighter = tree_sitter_highlight::Highlighter::new();
 
     Ok(Self {
-      parser,
+      _parser: parser,
       tree,
       highlighter,
     })
