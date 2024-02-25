@@ -15,11 +15,11 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OperationMode {
-  /// Find the next text-object.
-  Next,
+  /// Search for the next text-object.
+  SearchNext,
 
-  /// Find the previous text-object.
-  Prev,
+  /// Search for the previous text-object.
+  SearchPrev,
 
   /// Select the enclosing text-object (inside).
   Inside,

@@ -1,7 +1,5 @@
 //! Tree-sitter state (i.e. highlighting, tree walking, etc.)
 
-use std::cmp::Reverse;
-
 use tree_sitter::{Parser, QueryCapture, QueryCursor};
 
 use crate::{
@@ -98,12 +96,12 @@ impl TreeState {
       .collect::<Vec<_>>();
 
     let sels = match mode {
-      text_objects::OperationMode::Next => selections
+      text_objects::OperationMode::SearchNext => selections
         .iter()
         .flat_map(|sel| Self::find_next_text_object(sel, &captures[..]))
         .collect(),
 
-      text_objects::OperationMode::Prev => selections
+      text_objects::OperationMode::SearchPrev => selections
         .iter()
         .flat_map(|sel| Self::find_prev_text_object(sel, &captures[..]))
         .collect(),
@@ -119,9 +117,10 @@ impl TreeState {
 
   /// Find the next text-object for a given selection. If found, return a new [`Sel`].
   fn find_next_text_object(sel: &Sel, captures: &[&QueryCapture]) -> Option<Sel> {
+    let p = sel.anchor.max(sel.cursor);
     let mut candidates = captures
       .iter()
-      .filter(|c| Pos::from(c.node.start_position()) >= sel.cursor)
+      .filter(|c| Pos::from(c.node.start_position()) > p)
       .collect::<Vec<_>>();
     candidates.sort_by_key(|c| c.node.start_byte());
     let candidate = candidates.first()?;
@@ -134,12 +133,13 @@ impl TreeState {
 
   /// Find the prev text-object for a given selection. If found, return a new [`Sel`].
   fn find_prev_text_object(sel: &Sel, captures: &[&QueryCapture]) -> Option<Sel> {
+    let p = sel.anchor.min(sel.cursor);
     let mut candidates = captures
       .iter()
-      .filter(|c| Pos::from(c.node.start_position()) <= sel.cursor)
+      .filter(|c| Pos::from(c.node.start_position()) < p)
       .collect::<Vec<_>>();
-    candidates.sort_by_key(|c| Reverse(c.node.start_byte()));
-    let candidate = candidates.first()?;
+    candidates.sort_by_key(|c| c.node.start_byte());
+    let candidate = candidates.last()?;
     let start = Pos::from(candidate.node.start_position());
     let mut end = Pos::from(candidate.node.end_position());
     end.col -= 1;
