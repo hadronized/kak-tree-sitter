@@ -98,25 +98,30 @@ impl TreeState {
     let sels = match mode {
       text_objects::OperationMode::SearchNext => selections
         .iter()
-        .flat_map(|sel| Self::find_next_text_object(sel, &captures[..]))
+        .flat_map(|sel| Self::search_next_text_object(sel, &captures[..]))
         .collect(),
 
       text_objects::OperationMode::SearchPrev => selections
         .iter()
-        .flat_map(|sel| Self::find_prev_text_object(sel, &captures[..]))
+        .flat_map(|sel| Self::search_prev_text_object(sel, &captures[..]))
         .collect(),
 
-      text_objects::OperationMode::Inside => todo!(),
-      text_objects::OperationMode::Around => todo!(),
-      text_objects::OperationMode::Select => todo!(),
-      text_objects::OperationMode::Split => todo!(),
+      text_objects::OperationMode::FindNext => selections
+        .iter()
+        .flat_map(|sel| Self::find_text_object(sel, &captures[..], false))
+        .collect(),
+
+      text_objects::OperationMode::FindPrev => selections
+        .iter()
+        .flat_map(|sel| Self::find_text_object(sel, &captures[..], true))
+        .collect(),
     };
 
     Ok(sels)
   }
 
-  /// Find the next text-object for a given selection. If found, return a new [`Sel`].
-  fn find_next_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
+  /// Search the next text-object for a given selection.
+  fn search_next_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
     let p = sel.anchor.max(sel.cursor);
 
     // tree-sitter API here is HORRIBLE as it mutates in-place on Iterator::next(); we can’t collect();
@@ -138,8 +143,8 @@ impl TreeState {
     Some(sel.replace(&start, &end))
   }
 
-  /// Find the prev text-object for a given selection. If found, return a new [`Sel`].
-  fn find_prev_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
+  /// Search the prev text-object for a given selection.
+  fn search_prev_text_object(sel: &Sel, captures: &[QueryCapture]) -> Option<Sel> {
     let p = sel.anchor.min(sel.cursor);
 
     // same shit as previously
@@ -155,5 +160,40 @@ impl TreeState {
     end.col -= 1;
 
     Some(sel.replace(&start, &end))
+  }
+
+  /// Find the next/prev text-object for a given selection.
+  fn find_text_object(sel: &Sel, captures: &[QueryCapture], is_prev: bool) -> Option<Sel> {
+    let node = if is_prev {
+      Self::node_before(&sel.cursor, captures)?
+    } else {
+      Self::node_after(&sel.cursor, captures)?
+    };
+    let cursor = node.node.start_position().into();
+    let anchor = sel.cursor;
+
+    Some(Sel { anchor, cursor })
+  }
+
+  /// Get the next node after given position.
+  fn node_after<'a>(p: &Pos, captures: &[QueryCapture<'a>]) -> Option<QueryCapture<'a>> {
+    let mut candidates = captures.iter()
+      .filter(|c| &Pos::from(c.node.start_position()) > p)
+      .map(|qc| qc.to_owned()) // related to the problem explained above
+      .collect::<Vec<_>>();
+
+    candidates.sort_by_key(|c| c.node.start_byte());
+    candidates.first().cloned()
+  }
+
+  /// Get the previous node before a given position.
+  fn node_before<'a>(p: &Pos, captures: &[QueryCapture<'a>]) -> Option<QueryCapture<'a>> {
+    let mut candidates = captures.iter()
+      .filter(|c| &Pos::from(c.node.start_position()) < p)
+      .map(|qc| qc.to_owned()) // related to the problem explained above
+      .collect::<Vec<_>>();
+
+    candidates.sort_by_key(|c| c.node.start_byte());
+    candidates.last().cloned()
   }
 }

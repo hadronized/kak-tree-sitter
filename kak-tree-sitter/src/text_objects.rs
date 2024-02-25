@@ -16,20 +16,22 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 pub enum OperationMode {
   /// Search for the next text-object.
+  ///
+  /// Similar to `/`.
   SearchNext,
 
   /// Search for the previous text-object.
+  ///
+  /// Similar to `<a-/>`.
   SearchPrev,
 
-  /// Select the enclosing text-object (inside).
-  Inside,
+  /// Find the next text-object.
+  ///
+  /// Similar to `f`.
+  FindNext,
 
-  /// Select the enclosing text-object (around)
-  Around,
-
-  /// Select text-objects inside the selection.
-  Select,
-
-  /// Split with text-objects inside the selection.
-  Split,
+  /// Find the previous text-object.
+  ///
+  /// Similar to `<a-f>`.
+  FindPrev,
 }
