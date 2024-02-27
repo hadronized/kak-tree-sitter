@@ -40,4 +40,13 @@ pub struct Cli {
   /// for trace logs.
   #[arg(short, long, action = clap::ArgAction::Count)]
   pub verbose: u8,
+
+  /// Insert Kakoune commands, user modes and mappings related to text-objects.
+  ///
+  /// Those are default and completely optional. It is advised to start with those and if further customization is
+  /// needed, you shall not use this flag and craft your own user modes and mappings.
+  ///
+  /// Text-objects user-modes will be available via the 'tree-sitter' user-mode.
+  #[arg(long)]
+  pub with_text_objects: bool,
 }

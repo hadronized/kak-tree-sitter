@@ -45,6 +45,11 @@ fn start() -> Result<(), OhNo> {
     println!("{}", rc::static_kak());
   }
 
+  // inject a default text-object setup if requested
+  if cli.with_text_objects {
+    println!("{}", rc::text_objects_kak());
+  }
+
   // server logic implies short-circuiting the rest; hence why we have to pass it &cli to check some stuff once the
   // server is started, like whether we started from Kakoune / the session name / etc.
   if cli.server {
