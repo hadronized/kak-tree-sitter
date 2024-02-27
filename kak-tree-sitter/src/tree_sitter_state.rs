@@ -265,7 +265,7 @@ impl TreeState {
   ) -> Option<Sel> {
     // FIXME: this is probably wrong, as we should instead look for the enclosing object, not the previous one, but it’s
     // fine for the heck of testing
-    let capture = Self::node_before(&sel.cursor, captures)?;
+    let capture = Self::narrowest_enclosing_node(&sel.cursor, captures)?;
 
     match mode {
       // extend only moves the cursor
@@ -332,6 +332,25 @@ impl TreeState {
     // - <https://github.com/tree-sitter/tree-sitter/issues/608>
     let mut candidates = captures.iter()
       .filter(|c| &Pos::from(c.node.start_position()) < p)
+      .map(|qc| qc.to_owned()) // related to the problem explained above
+      .collect::<Vec<_>>();
+
+    candidates.sort_by_key(|c| c.node.start_byte());
+    candidates.last().cloned()
+  }
+
+  /// Get the narrowest enclosing node of a given position.
+  fn narrowest_enclosing_node<'a>(
+    p: &Pos,
+    captures: &[QueryCapture<'a>],
+  ) -> Option<QueryCapture<'a>> {
+    // tree-sitter API here is HORRIBLE as it mutates in-place on Iterator::next(); we can’t collect();
+    //
+    // Related discussions:
+    // - <https://github.com/tree-sitter/tree-sitter/issues/2265>
+    // - <https://github.com/tree-sitter/tree-sitter/issues/608>
+    let mut candidates = captures.iter()
+      .filter(|c| &Pos::from(c.node.start_position()) < p && &Pos::from(c.node.end_position()) > p)
       .map(|qc| qc.to_owned()) // related to the problem explained above
       .collect::<Vec<_>>();
 
