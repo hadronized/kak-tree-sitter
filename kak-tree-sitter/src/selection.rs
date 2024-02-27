@@ -58,7 +58,7 @@ impl Sel {
     s.split_whitespace().flat_map(Self::parse_kak_str).collect()
   }
 
-  /// Kakoune string representatio.
+  /// Kakoune string representation.
   ///
   /// The anchor always come first; then the cursor.
   pub fn to_kak_str(&self) -> String {
