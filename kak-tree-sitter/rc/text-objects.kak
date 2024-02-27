@@ -57,3 +57,8 @@ map global tree-sitter-find-extend-rev f ':kak-tree-sitter-req-text-objects func
 map global tree-sitter-find-extend-rev a ':kak-tree-sitter-req-text-objects parameter.around extend_prev<ret>' -docstring 'parameter'
 map global tree-sitter-find-extend-rev t ':kak-tree-sitter-req-text-objects class.around extend_prev<ret>' -docstring 'class'
 map global tree-sitter-find-extend-rev T ':kak-tree-sitter-req-text-objects test.around extend_prev<ret>' -docstring 'test'
+
+map global object f '<a-;>kak-tree-sitter-req-object-text-objects function<ret>' -docstring 'function (tree-sitter)'
+map global object t '<a-;>kak-tree-sitter-req-object-text-objects class<ret>' -docstring 'type (tree-sitter)'
+map global object a '<a-;>kak-tree-sitter-req-object-text-objects parameter<ret>' -docstring 'argument (tree-sitter)'
+map global object T '<a-;>kak-tree-sitter-req-object-text-objects test<ret>' -docstring 'test (tree-sitter)'

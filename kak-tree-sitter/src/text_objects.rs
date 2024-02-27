@@ -8,11 +8,13 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::selection::SelectMode;
+
 /// Text-objects can be manipulated in two different ways:
 ///
 /// - In object mode, to expand selections or replace them.
 /// - To shrink selections via selecting or splitting, as in `s`, `S`, etc.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum OperationMode {
   /// Search for the next text-object.
@@ -54,4 +56,62 @@ pub enum OperationMode {
   ///
   /// Similar to `<a-F>`.
   ExtendPrev,
+  /// Object mode.
+  ///
+  /// This combines select mode with object flags.
+  Object { mode: SelectMode, flags: String },
+}
+
+#[cfg(test)]
+mod tests {
+  use crate::selection::SelectMode;
+
+  use super::OperationMode;
+
+  #[test]
+  fn deser() {
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"search_next\"").unwrap(),
+      OperationMode::SearchNext
+    );
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"search_prev\"").unwrap(),
+      OperationMode::SearchPrev
+    );
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"search_extend_next\"").unwrap(),
+      OperationMode::SearchExtendNext
+    );
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"search_extend_prev\"").unwrap(),
+      OperationMode::SearchExtendPrev
+    );
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"find_next\"").unwrap(),
+      OperationMode::FindNext
+    );
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"find_prev\"").unwrap(),
+      OperationMode::FindPrev
+    );
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"extend_next\"").unwrap(),
+      OperationMode::ExtendNext
+    );
+    assert_eq!(
+      serde_json::from_str::<OperationMode>("\"extend_prev\"").unwrap(),
+      OperationMode::ExtendPrev
+    );
+
+    assert_eq!(
+      serde_json::from_str::<OperationMode>(
+        r#"{ "object": { "mode": "replace", "flags": "to_begin|to_end|inner" }}"#
+      )
+      .unwrap(),
+      OperationMode::Object {
+        mode: SelectMode::Replace,
+        flags: "to_begin|to_end|inner".to_owned()
+      }
+    );
+  }
 }

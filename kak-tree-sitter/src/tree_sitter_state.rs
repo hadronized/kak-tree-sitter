@@ -6,7 +6,7 @@ use crate::{
   error::OhNo,
   highlighting::KakHighlightRange,
   languages::Language,
-  selection::{Pos, Sel},
+  selection::{ObjectFlags, Pos, Sel, SelectMode},
   text_objects,
 };
 
@@ -80,61 +80,104 @@ impl TreeState {
       .textobject_query
       .as_ref()
       .ok_or_else(|| OhNo::UnsupportedTextObjects)?;
-    let capture_index =
-      query
-        .capture_index_for_name(pattern)
-        .ok_or(OhNo::UnknownTextObjectQuery {
-          pattern: pattern.to_owned(),
-        })?;
 
-    // run the query via a query cursor
-    let mut cursor = QueryCursor::new();
-    let captures: Vec<_> = cursor
-      .captures(query, self.tree.root_node(), buf.as_bytes())
-      .flat_map(|(cm, _)| cm.captures.iter().cloned())
-      .filter(|cq| cq.index == capture_index)
-      .collect();
+    // get captures for the given pattern; this is a function because the pattern might be dynamically recomputed (e.g.
+    // object mode)
+    let get_captures = |pattern| {
+      let capture_index =
+        query
+          .capture_index_for_name(pattern)
+          .ok_or(OhNo::UnknownTextObjectQuery {
+            pattern: pattern.to_owned(),
+          })?;
+      let mut cursor = QueryCursor::new();
+      let captures: Vec<_> = cursor
+        .captures(query, self.tree.root_node(), buf.as_bytes())
+        .flat_map(|(cm, _)| cm.captures.iter().cloned())
+        .filter(|cq| cq.index == capture_index)
+        .collect();
+      <Result<_, OhNo>>::Ok(captures)
+    };
 
     let sels = match mode {
-      text_objects::OperationMode::SearchNext => selections
-        .iter()
-        .flat_map(|sel| Self::search_next_text_object(sel, &captures[..]))
-        .collect(),
+      text_objects::OperationMode::SearchNext => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::search_next_text_object(sel, &captures[..]))
+          .collect()
+      }
 
-      text_objects::OperationMode::SearchPrev => selections
-        .iter()
-        .flat_map(|sel| Self::search_prev_text_object(sel, &captures[..]))
-        .collect(),
+      text_objects::OperationMode::SearchPrev => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::search_prev_text_object(sel, &captures[..]))
+          .collect()
+      }
 
-      text_objects::OperationMode::SearchExtendNext => selections
-        .iter()
-        .flat_map(|sel| Self::search_extend_next_text_object(sel, &captures[..]))
-        .collect(),
+      text_objects::OperationMode::SearchExtendNext => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::search_extend_next_text_object(sel, &captures[..]))
+          .collect()
+      }
 
-      text_objects::OperationMode::SearchExtendPrev => selections
-        .iter()
-        .flat_map(|sel| Self::search_extend_prev_text_object(sel, &captures[..]))
-        .collect(),
+      text_objects::OperationMode::SearchExtendPrev => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::search_extend_prev_text_object(sel, &captures[..]))
+          .collect()
+      }
 
-      text_objects::OperationMode::FindNext => selections
-        .iter()
-        .flat_map(|sel| Self::find_text_object(sel, &captures[..], false))
-        .collect(),
+      text_objects::OperationMode::FindNext => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::find_text_object(sel, &captures[..], false))
+          .collect()
+      }
 
-      text_objects::OperationMode::FindPrev => selections
-        .iter()
-        .flat_map(|sel| Self::find_text_object(sel, &captures[..], true))
-        .collect(),
+      text_objects::OperationMode::FindPrev => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::find_text_object(sel, &captures[..], true))
+          .collect()
+      }
 
-      text_objects::OperationMode::ExtendNext => selections
-        .iter()
-        .flat_map(|sel| Self::extend_text_object(sel, &captures[..], false))
-        .collect(),
+      text_objects::OperationMode::ExtendNext => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::extend_text_object(sel, &captures[..], false))
+          .collect()
+      }
 
-      text_objects::OperationMode::ExtendPrev => selections
-        .iter()
-        .flat_map(|sel| Self::extend_text_object(sel, &captures[..], true))
-        .collect(),
+      text_objects::OperationMode::ExtendPrev => {
+        let captures = get_captures(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::extend_text_object(sel, &captures[..], true))
+          .collect()
+      }
+
+      text_objects::OperationMode::Object { mode, flags } => {
+        let flags = ObjectFlags::parse_kak_str(flags);
+
+        let pattern = format!(
+          "{pattern}.{}",
+          if flags.inner { "inside" } else { "around" }
+        );
+        let captures = get_captures(&pattern)?;
+
+        selections
+          .iter()
+          .flat_map(|sel| Self::object_text_object(sel, &captures[..], *mode, flags))
+          .collect()
+      }
     };
 
     Ok(sels)
@@ -208,6 +251,60 @@ impl TreeState {
     let anchor = sel.anchor;
 
     Some(Sel { anchor, cursor })
+  }
+
+  /// Object-mode text-objects.
+  ///
+  /// Object-mode is a special in Kakoune aggregating many features, allowing to match inner / whole objects. The
+  /// tree-sitter version enhances the mode with all possible tree-sitter capture groups.
+  fn object_text_object(
+    sel: &Sel,
+    captures: &[QueryCapture],
+    mode: SelectMode,
+    flags: ObjectFlags,
+  ) -> Option<Sel> {
+    // FIXME: this is probably wrong, as we should instead look for the enclosing object, not the previous one, but it’s
+    // fine for the heck of testing
+    let capture = Self::node_before(&sel.cursor, captures)?;
+
+    match mode {
+      // extend only moves the cursor
+      SelectMode::Extend => {
+        let anchor = sel.anchor;
+        let cursor = if flags.to_begin {
+          Pos::from(capture.node.start_position())
+        } else if flags.to_end {
+          let mut p = Pos::from(capture.node.end_position());
+          p.col -= 1;
+          p
+        } else {
+          return None;
+        };
+
+        Some(Sel { anchor, cursor })
+      }
+
+      SelectMode::Replace => {
+        // brute force but eh it works lol
+        if flags.to_begin && !flags.to_end {
+          let anchor = sel.cursor;
+          let cursor = Pos::from(capture.node.start_position());
+          Some(Sel { anchor, cursor })
+        } else if !flags.to_begin && flags.to_end {
+          let anchor = sel.cursor;
+          let mut cursor = Pos::from(capture.node.end_position());
+          cursor.col -= 1;
+          Some(Sel { anchor, cursor })
+        } else if flags.to_begin && flags.to_end {
+          let anchor = Pos::from(capture.node.start_position());
+          let mut cursor = Pos::from(capture.node.end_position());
+          cursor.col -= 1;
+          Some(Sel { anchor, cursor })
+        } else {
+          None
+        }
+      }
+    }
   }
 
   /// Get the next node after given position.

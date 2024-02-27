@@ -837,7 +837,7 @@ impl FifoHandler {
           lang: lang.clone(),
           pattern: pattern.clone(),
           selections,
-          mode: *mode,
+          mode: mode.clone(),
         };
 
         Ok(None)

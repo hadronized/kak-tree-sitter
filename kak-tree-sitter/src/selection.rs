@@ -1,5 +1,6 @@
 //! Selections as recognized by Kakoune, as well as associated types and functions.
 
+use serde::{Deserialize, Serialize};
 use tree_sitter::Point;
 
 /// A single position in a buffer.
@@ -123,6 +124,13 @@ impl ObjectFlags {
     self.inner = true;
     self
   }
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SelectMode {
+  Replace,
+  Extend,
 }
 
 #[cfg(test)]

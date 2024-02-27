@@ -7,7 +7,7 @@
 declare-option str kts_cmd_fifo_path /dev/null
 
 # FIFO buffer path; this is used by Kakoune to write the content of buffers to be highlighted / analyzed by KTS for the
-# current session. 
+# current session.
 declare-option str kts_buf_fifo_path /dev/null
 
 # Highlight ranges used when highlighting buffers.
@@ -95,6 +95,8 @@ define-command kak-tree-sitter-req-highlight-buffer -docstring 'Highlight the cu
 }
 
 # Send a single request to modify selections with text-objects.
+#
+# The pattern must be full; e.g. 'function.inside'.
 define-command kak-tree-sitter-req-text-objects -params 2 %{
   evaluate-commands -no-hooks %{
     echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""pattern"": ""%arg{1}"", ""selections"": ""%val{selections_desc}"", ""mode"": ""%arg{2}"" }"
@@ -102,8 +104,18 @@ define-command kak-tree-sitter-req-text-objects -params 2 %{
   }
 }
 
+# Send a single request to modify selections with text-objects in object-mode.
+#
+# The pattern must be expressed without the level — e.g. 'function' — as the level is deduced from %val{object_flags}.
+define-command kak-tree-sitter-req-object-text-objects -params 1 %{
+  evaluate-commands -no-hooks %{
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""text_objects"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""pattern"": ""%arg{1}"", ""selections"": ""%val{selections_desc}"", ""mode"": { ""object"": { ""mode"": ""%val{select_mode}"", ""flags"": ""%val{object_flags}"" } } }"
+    write %opt{kts_buf_fifo_path}
+  }
+}
+
 # Enable highlighting for the current buffer.
-# 
+#
 # This command does a couple of things, among removing the « default » highlighting (Kakoune based) of the buffer and
 # installing some hooks to automatically highlight the buffer.
 define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-sitter highlighting for this buffer' %{
