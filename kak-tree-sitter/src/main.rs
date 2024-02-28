@@ -1,3 +1,4 @@
+mod buffer;
 mod cli;
 mod error;
 mod handler;
@@ -8,8 +9,11 @@ mod queries;
 mod rc;
 mod request;
 mod response;
+mod selection;
 mod server;
 mod session;
+mod text_objects;
+mod tree_sitter_state;
 
 use clap::Parser;
 use cli::Cli;
@@ -39,6 +43,11 @@ fn start() -> Result<(), OhNo> {
   // inject static.kak if we are starting from Kakoune
   if cli.kakoune {
     println!("{}", rc::static_kak());
+  }
+
+  // inject a default text-object setup if requested
+  if cli.with_text_objects {
+    println!("{}", rc::text_objects_kak());
   }
 
   // server logic implies short-circuiting the rest; hence why we have to pass it &cli to check some stuff once the

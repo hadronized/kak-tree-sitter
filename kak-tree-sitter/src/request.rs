@@ -4,6 +4,8 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
+use crate::text_objects;
+
 /// Unidentified request (i.e. not linked to a given session).
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
@@ -59,6 +61,16 @@ pub enum Request {
     lang: String,
     timestamp: u64,
   },
+
+  /// TODO
+  TextObjects {
+    client: String,
+    buffer: String,
+    lang: String,
+    pattern: String,
+    selections: String,
+    mode: text_objects::OperationMode,
+  },
 }
 
 impl Request {
@@ -66,6 +78,7 @@ impl Request {
     match self {
       Request::TryEnableHighlight { client, .. } => Some(client.as_str()),
       Request::Highlight { client, .. } => Some(client.as_str()),
+      Request::TextObjects { client, .. } => Some(client.as_str()),
     }
   }
 }

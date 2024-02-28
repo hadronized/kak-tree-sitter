@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use itertools::Itertools;
 
-use crate::highlighting::KakHighlightRange;
+use crate::{highlighting::KakHighlightRange, selection::Sel};
 
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]
@@ -38,6 +38,11 @@ pub enum Response {
     timestamp: u64,
     ranges: Vec<KakHighlightRange>,
   },
+
+  /// Selections.
+  ///
+  /// These selections are typically returned when the user asked to perform text-objects queries.
+  Selections { sels: Vec<Sel> },
 }
 
 impl Response {
@@ -100,6 +105,11 @@ impl Response {
           "{range_specs} {timestamp} {ranges_str}",
           range_specs = "set buffer kts_highlighter_ranges",
         )
+      }
+
+      Response::Selections { sels } => {
+        let sels_str = sels.iter().map(|sel| sel.to_kak_str()).join(" ");
+        format!("select {sels_str}")
       }
     };
 
