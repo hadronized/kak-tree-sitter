@@ -162,7 +162,6 @@ where
 
 #[cfg(test)]
 mod tests {
-  use tree_sitter_highlight::{Highlight, HighlightConfiguration, HighlightEvent, Highlighter};
   use unicode_segmentation::UnicodeSegmentation;
 
   use super::ByteLineColMapper;
@@ -279,111 +278,112 @@ mod tests {
     assert_eq!(mapper.col_byte(), 0);
   }
 
-  #[test]
-  fn kak_hl_ranges_from_iter() {
-    let source = "fn foo(a: i32, b: /* ® */ impl Into<Option<String>>) {}";
-    let hl_names = vec![
-      "constant",
-      "function",
-      "keyword",
-      "variable",
-      "punctuation",
-      "type",
-      "comment",
-    ];
+  // #250: disabled for now
+  // #[test]
+  // fn kak_hl_ranges_from_iter() {
+  //   let source = "fn foo(a: i32, b: /* ® */ impl Into<Option<String>>) {}";
+  //   let hl_names = vec![
+  //     "constant",
+  //     "function",
+  //     "keyword",
+  //     "variable",
+  //     "punctuation",
+  //     "type",
+  //     "comment",
+  //   ];
 
-    let mut hl_conf = HighlightConfiguration::new(
-      tree_sitter_rust::language(),
-      tree_sitter_rust::HIGHLIGHT_QUERY,
-      tree_sitter_rust::INJECTIONS_QUERY,
-      "",
-    )
-    .unwrap();
-    hl_conf.configure(&hl_names);
+  //   let mut hl_conf = HighlightConfiguration::new(
+  //     tree_sitter_rust::language(),
+  //     tree_sitter_rust::HIGHLIGHT_QUERY,
+  //     tree_sitter_rust::INJECTIONS_QUERY,
+  //     "",
+  //   )
+  //   .unwrap();
+  //   hl_conf.configure(&hl_names);
 
-    let mut hl = Highlighter::new();
-    let events: Vec<_> = hl
-      .highlight(&hl_conf, source.as_bytes(), None, |_| None)
-      .unwrap()
-      .flatten()
-      .collect();
+  //   let mut hl = Highlighter::new();
+  //   let events: Vec<_> = hl
+  //     .highlight(&hl_conf, source.as_bytes(), None, |_| None)
+  //     .unwrap()
+  //     .flatten()
+  //     .collect();
 
-    assert_eq!(events.len(), 70);
+  //   assert_eq!(events.len(), 70);
 
-    assert!(matches!(
-      events[..],
-      [
-        HighlightEvent::HighlightStart(Highlight(2)),
-        HighlightEvent::Source { start: 0, end: 2 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::Source { start: 2, end: 3 },
-        HighlightEvent::HighlightStart(Highlight(1)),
-        HighlightEvent::Source { start: 3, end: 6 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 6, end: 7 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(3)),
-        HighlightEvent::Source { start: 7, end: 8 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 8, end: 9 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::Source { start: 9, end: 10 },
-        HighlightEvent::HighlightStart(Highlight(5)),
-        HighlightEvent::Source { start: 10, end: 13 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 13, end: 14 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::Source { start: 14, end: 15 },
-        HighlightEvent::HighlightStart(Highlight(3)),
-        HighlightEvent::Source { start: 15, end: 16 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 16, end: 17 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::Source { start: 17, end: 18 },
-        HighlightEvent::HighlightStart(Highlight(6)),
-        HighlightEvent::Source { start: 18, end: 26 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::Source { start: 26, end: 27 },
-        HighlightEvent::HighlightStart(Highlight(2)),
-        HighlightEvent::Source { start: 27, end: 31 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::Source { start: 31, end: 32 },
-        HighlightEvent::HighlightStart(Highlight(5)),
-        HighlightEvent::Source { start: 32, end: 36 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 36, end: 37 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(5)),
-        HighlightEvent::Source { start: 37, end: 43 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 43, end: 44 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(5)),
-        HighlightEvent::Source { start: 44, end: 50 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 50, end: 51 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 51, end: 52 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 52, end: 53 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::Source { start: 53, end: 54 },
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 54, end: 55 },
-        HighlightEvent::HighlightEnd,
-        HighlightEvent::HighlightStart(Highlight(4)),
-        HighlightEvent::Source { start: 55, end: 56 },
-        HighlightEvent::HighlightEnd
-      ]
-    ));
-  }
+  //   assert!(matches!(
+  //     events[..],
+  //     [
+  //       HighlightEvent::HighlightStart(Highlight(2)),
+  //       HighlightEvent::Source { start: 0, end: 2 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::Source { start: 2, end: 3 },
+  //       HighlightEvent::HighlightStart(Highlight(1)),
+  //       HighlightEvent::Source { start: 3, end: 6 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 6, end: 7 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(3)),
+  //       HighlightEvent::Source { start: 7, end: 8 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 8, end: 9 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::Source { start: 9, end: 10 },
+  //       HighlightEvent::HighlightStart(Highlight(5)),
+  //       HighlightEvent::Source { start: 10, end: 13 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 13, end: 14 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::Source { start: 14, end: 15 },
+  //       HighlightEvent::HighlightStart(Highlight(3)),
+  //       HighlightEvent::Source { start: 15, end: 16 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 16, end: 17 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::Source { start: 17, end: 18 },
+  //       HighlightEvent::HighlightStart(Highlight(6)),
+  //       HighlightEvent::Source { start: 18, end: 26 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::Source { start: 26, end: 27 },
+  //       HighlightEvent::HighlightStart(Highlight(2)),
+  //       HighlightEvent::Source { start: 27, end: 31 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::Source { start: 31, end: 32 },
+  //       HighlightEvent::HighlightStart(Highlight(5)),
+  //       HighlightEvent::Source { start: 32, end: 36 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 36, end: 37 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(5)),
+  //       HighlightEvent::Source { start: 37, end: 43 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 43, end: 44 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(5)),
+  //       HighlightEvent::Source { start: 44, end: 50 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 50, end: 51 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 51, end: 52 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 52, end: 53 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::Source { start: 53, end: 54 },
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 54, end: 55 },
+  //       HighlightEvent::HighlightEnd,
+  //       HighlightEvent::HighlightStart(Highlight(4)),
+  //       HighlightEvent::Source { start: 55, end: 56 },
+  //       HighlightEvent::HighlightEnd
+  //     ]
+  //   ));
+  // }
 }

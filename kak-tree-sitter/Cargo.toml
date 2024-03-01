@@ -27,9 +27,10 @@ serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
 simple_logger = "4.3.3"
 thiserror = "1.0.57"
-tree-sitter = "0.20.10"
-tree-sitter-highlight = "0.20.1"
+tree-sitter = "0.21"
+tree-sitter-highlight = "0.21"
 unicode-segmentation = "1.11.0"
 
-[dev-dependencies]
-tree-sitter-rust = "0.20.4"
+# #250: disabled for now as tree-sitter-rust hasn’t updated to tree-sitter-0.21 just yet
+#[dev-dependencies]
+#tree-sitter-rust = "0.20.4"
