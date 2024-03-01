@@ -1,7 +1,7 @@
 # How to contribute
 
 Everyone is welcome to contribute. There is no small contributions. Have a look at the
-[issue tracker](https://github.com/phaazon/kak-tree-sitter/issues), comment on it that you would like to work on the
+[issue tracker](https://github.com/hadronized/kak-tree-sitter/issues), comment on it that you would like to work on the
 topic and open a PR linking to the issue once you are ready to get your work merged.
 
 ## Contributing language support

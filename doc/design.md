@@ -87,7 +87,7 @@ fetch grammars and queries) is completely arbritrary. We default to
 obligation.
 
 The end goal is to make `ktsctl` always target
-[https://github.com/phaazon/kak-tree-sitter](https://github.com/phaazon/kak-tree-sitter) for both grammars and queries,
+[https://github.com/hadronized/kak-tree-sitter](https://github.com/hadronized/kak-tree-sitter) for both grammars and queries,
 but that will require adding support for the languages manually / hand-crafting a bit.
 
 ## Colorschemes
