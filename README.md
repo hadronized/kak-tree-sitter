@@ -39,11 +39,9 @@ See the wiki section about [how to install](https://github.com/hadronized/kak-tr
 
 See the wiki part about [the usage](https://github.com/hadronized/kak-tree-sitter/wiki/Usage).
 
-## Alternatives
-
-- [tree-sitter.kak](https://github.com/enricozb/tree-sitter.kak): a similar project, with the same motivations. It’s
-  currently the only viable alternative with both features (semantic highlighting / selections).
-
 ## Credits
 
-This program was heavily inspired by [kak-tree](https://github.com/ul/kak-tree), by [@ul](https://github.com/ul).
+This program was inspired by:
+
+- [Helix](https://helix-editor.com)
+- [kak-tree](https://github.com/ul/kak-tree)
