@@ -29,15 +29,15 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 
 ## Roadmap
 
-See [the milestones](https://github.com/phaazon/kak-tree-sitter/milestones).
+See [the milestones](https://github.com/hadronized/kak-tree-sitter/milestones).
 
 ## Install
 
-See the wiki section about [how to install](https://github.com/phaazon/kak-tree-sitter/wiki/Install).
+See the wiki section about [how to install](https://github.com/hadronized/kak-tree-sitter/wiki/Install).
 
 ## Usage
 
-See the wiki part about [the usage](https://github.com/phaazon/kak-tree-sitter/wiki/Usage).
+See the wiki part about [the usage](https://github.com/hadronized/kak-tree-sitter/wiki/Usage).
 
 ## Alternatives
 
