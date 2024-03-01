@@ -8,7 +8,6 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 - [Features](#features)
 - [Install](#install)
 - [Usage](#usage)
-- [Design](#design)
 - [Alternatives](#alternatives)
 - [Credits](#credits)
 
@@ -18,7 +17,7 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
   - Automatically detects whether a buffer language type can be highlighted.
   - Removes any default highlighter and replaces them with a tree-sitter based.
 - [ ] Theming
-- [ ] Semantic selections (types, functions, parameters, comments, tests, etc.)
+- [x] Semantic selections (types, functions, parameters, comments, tests, etc.)
   - Similar features to `f`, `?`, `<a-/>`, etc.
   - Full _object_ mode support (i.e. `<a-i>`, `{`, `<a-]>`, etc.)
 - [x] Fetch, compile and install grammars / queries with ease (via the use of the `ktsctl` controller companion)
