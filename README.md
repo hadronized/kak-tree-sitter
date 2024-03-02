@@ -8,7 +8,7 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 - [Features](#features)
 - [Install](#install)
 - [Usage](#usage)
-- [Alternatives](#alternatives)
+- [Contributing](#contributing)
 - [Credits](#credits)
 
 ## Features
@@ -38,6 +38,11 @@ See the wiki section about [how to install](https://github.com/hadronized/kak-tr
 ## Usage
 
 See the wiki part about [the usage](https://github.com/hadronized/kak-tree-sitter/wiki/Usage).
+
+## Contributing
+
+Whether you want to fix a bug, make a feature request, help improving something or add support for a new language by
+changing the default configuration, you should read the [CONTRIBUTING.md](./CONTRIBUTING.md) file.
 
 ## Credits
 
