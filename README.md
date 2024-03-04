@@ -3,6 +3,9 @@
 This is a binary server that interfaces [tree-sitter](https://tree-sitter.github.io/) with
 [kakoune](https://kakoune.org/).
 
+> Important note: by default, no colorscheme supporting tree-sitter is set for you. You have to pick one or write your
+> own. See [this section from the wiki](https://github.com/hadronized/kak-tree-sitter/wiki/Colorscheme) for further information.
+
 [![asciicast](https://asciinema.org/a/606062.svg)](https://asciinema.org/a/606062)
 
 - [Features](#features)
@@ -37,7 +40,9 @@ See the wiki section about [how to install](https://github.com/hadronized/kak-tr
 
 ## Usage
 
-See the wiki part about [the usage](https://github.com/hadronized/kak-tree-sitter/wiki/Usage).
+Everything you need to know can be found [here](https://github.com/hadronized/kak-tree-sitter/wiki/Usage). Especially,
+**you will want to read the [colorscheme section](https://github.com/hadronized/kak-tree-sitter/wiki/Colorscheme) and
+the [text-objects section](https://github.com/hadronized/kak-tree-sitter/wiki/Text-objects).
 
 ## Contributing
 
