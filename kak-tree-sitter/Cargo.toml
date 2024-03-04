@@ -21,7 +21,7 @@ itertools = "0.12.1"
 kak-tree-sitter-config = { version = "0.4.0-dev", path = "../kak-tree-sitter-config" }
 libc = "0.2.153"
 libloading = "0.8.2"
-log = "0.4.20"
+log = "0.4.21"
 mio = { version = "0.8.11", features = ["net", "os-ext", "os-poll"] }
 serde = { version = "1.0.197", features = ["derive"] }
 serde_json = "1.0.114"
