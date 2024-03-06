@@ -1,5 +1,8 @@
 # Overall design
 
+> Disclaimer: this document is about v0.*, and the design has heavily evolved ever since. The content of this document
+> is then probably not up to date.
+
 `kak-tree-sitter` implements a client/server architecture. The idea is that a single instance of `kak-tree-sitter`
 should run as a server for a machine. Then, every Kakoune session can connect to the server and send requests. Whenever
 the server has computed the response for the request, it provides it back to Kakoune via the socket interface (`kak -p`)
