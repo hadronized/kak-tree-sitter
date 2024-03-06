@@ -93,9 +93,16 @@ impl Server {
       }
     }
 
-    // ensure that the runtime directory exists
-    fs::create_dir_all(&runtime_dir).map_err(|err| OhNo::CannotCreateDir {
-      dir: runtime_dir.clone(),
+    // ensure that the runtime directory exists, along with commands and buffers subdirectory
+    let commands_dir = runtime_dir.join("commands");
+    fs::create_dir_all(&commands_dir).map_err(|err| OhNo::CannotCreateDir {
+      dir: commands_dir,
+      err,
+    })?;
+
+    let buffers_dir = runtime_dir.join("buffers");
+    fs::create_dir_all(&buffers_dir).map_err(|err| OhNo::CannotCreateDir {
+      dir: buffers_dir,
       err,
     })?;
 
