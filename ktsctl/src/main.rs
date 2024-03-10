@@ -93,7 +93,7 @@ fn kak_tree_sitter_data_dir() -> Result<PathBuf, AppError> {
 
 fn start() -> Result<(), AppError> {
   let cli = Cli::parse();
-  let config = Config::load_from_xdg()?;
+  let config = Config::load_default_user()?;
 
   // check the runtime dir exists
   let dir = runtime_dir()?;

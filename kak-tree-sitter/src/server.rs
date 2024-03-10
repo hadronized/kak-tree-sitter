@@ -55,14 +55,14 @@ impl Server {
   pub fn bootstrap(config: &Config, cli: &Cli) -> Result<(), OhNo> {
     // find a runtime directory to write in
     let runtime_dir = ServerState::runtime_dir()?;
-    eprintln!("running in {}", runtime_dir.display());
+    log::info!("running in {}", runtime_dir.display());
 
     let pid_file = runtime_dir.join("pid");
 
     // check whether a pid file exists and can be read
     if let Ok(pid) = std::fs::read_to_string(&pid_file) {
       let pid = pid.trim();
-      eprintln!("checking whether PID {pid} is still up…");
+      log::debug!("checking whether PID {pid} is still up…");
 
       // if the contained pid corresponds to a running process, stop right away
       // otherwise, remove the previous PID and socket files
@@ -71,10 +71,10 @@ impl Server {
         .output()
         .is_ok_and(|o| o.status.success())
       {
-        eprintln!("kak-tree-sitter already running; not starting a new server");
+        log::debug!("kak-tree-sitter already running; not starting a new server");
         return Ok(());
       } else {
-        eprintln!("removing previous PID file");
+        log::debug!("removing previous PID file");
         std::fs::remove_file(&pid_file).map_err(|err| OhNo::CannotStartDaemon {
           err: format!(
             "cannot remove previous PID file {path}: {err}",
@@ -82,7 +82,7 @@ impl Server {
           ),
         })?;
 
-        eprintln!("removing previous socket file");
+        log::debug!("removing previous socket file");
         let socket_file = runtime_dir.join("socket");
         std::fs::remove_file(&socket_file).map_err(|err| OhNo::CannotStartDaemon {
           err: format!(
@@ -156,7 +156,7 @@ impl Server {
       err: err.to_string(),
     })?;
 
-    eprintln!("sending unidentified request {req:?}");
+    log::debug!("sending request {req:?}");
 
     // connect and send the request to the daemon
     UnixStream::connect(ServerState::runtime_dir()?.join("socket"))
@@ -699,7 +699,7 @@ impl UnixHandler {
   }
 
   fn reload(&mut self, fifo_handler: &mut FifoHandler) {
-    let config = match Config::load_from_xdg() {
+    let config = match Config::load_default_user() {
       Ok(config) => config,
       Err(err) => {
         log::error!("reloading config failed: {err}");
