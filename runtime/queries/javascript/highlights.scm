@@ -55,7 +55,7 @@
 ; javascript and typescript grammars without conflicts.
 (arrow_function
   parameter: (identifier) @variable.parameter)
-  
+
 ; Function and method calls
 ;--------------------------
 
@@ -234,7 +234,7 @@
 [
   "import"
   "export"
-] @keyword.control.import 
+] @keyword.control.import
 
 [
   "return"
@@ -257,7 +257,7 @@
 ; language instead of ecma.
 
 ; (p)
-(formal_parameters 
+(formal_parameters
   (identifier) @variable.parameter)
 
 ; (...p)

@@ -99,7 +99,7 @@
 ] @keyword.operator
 
 [
-  "class"  
+  "class"
   "namespace"
   "typename"
   "template"

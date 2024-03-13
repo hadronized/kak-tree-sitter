@@ -184,7 +184,7 @@ set-face global ts_keyword_storage              ts_keyword
 set-face global ts_keyword_storage_modifier     ts_keyword_storage
 set-face global ts_keyword_storage_modifier_mut ts_keyword_storage_modifier
 set-face global ts_keyword_storage_modifier_ref ts_keyword_storage_modifier
-set-face global ts_keyword_storage_type         ts_keyword_storage 
+set-face global ts_keyword_storage_type         ts_keyword_storage
 set-face global ts_label                        default
 set-face global ts_markup_bold                  default
 set-face global ts_markup_heading               default
