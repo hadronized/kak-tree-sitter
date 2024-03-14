@@ -55,7 +55,7 @@
 ; javascript and typescript grammars without conflicts.
 (arrow_function
   parameter: (identifier) @variable.parameter)
-  
+
 ; Function and method calls
 ;--------------------------
 
@@ -234,7 +234,7 @@
 [
   "import"
   "export"
-] @keyword.control.import 
+] @keyword.control.import
 
 [
   "return"
@@ -310,7 +310,7 @@
 
 ; (p: t)
 ; (p: t = 1)
-(required_parameter 
+(required_parameter
   (identifier) @variable.parameter)
 
 ; (...p: t)
@@ -336,7 +336,7 @@
 
 ; (p?: t)
 ; (p?: t = 1) // Invalid but still posible to hihglight.
-(optional_parameter 
+(optional_parameter
   (identifier) @variable.parameter)
 
 ; (...p?: t) // Invalid but still posible to hihglight.
