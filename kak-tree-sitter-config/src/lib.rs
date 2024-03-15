@@ -33,7 +33,7 @@ impl ConfigError {
 /// Configuration object used in the server and controller.
 ///
 /// User configuration being opt-in for every option, a different type is used, [`UserConfig`].
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
   pub highlight: HighlightConfig,
 
@@ -97,7 +97,7 @@ impl Config {
 /// Highlight configuration.
 ///
 /// This is a set of capture groups that can be found in various queries.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct HighlightConfig {
   pub groups: HashSet<String>,
 }
@@ -111,7 +111,7 @@ impl HighlightConfig {
 /// Languages configuration.
 ///
 /// This is akin to a map from the language name and the language config ([`LanguageConfig`]).
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LanguagesConfig {
   pub language: HashMap<String, LanguageConfig>,
 }
@@ -159,7 +159,7 @@ impl LanguagesConfig {
 /// Specific language configuration.
 ///
 /// It is possible to configure the grammar and queries part of a language, as well as some specific Kakoune options.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LanguageConfig {
   pub grammar: LanguageGrammarConfig,
   pub queries: LanguageQueriesConfig,
@@ -205,7 +205,7 @@ impl TryFrom<UserLanguageConfig> for LanguageConfig {
 /// Grammar configuration.
 ///
 /// Most of the options are used by the controller only.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LanguageGrammarConfig {
   /// URL to fetch the language grammar from.
   pub url: String,
@@ -324,7 +324,7 @@ impl TryFrom<UserLanguageGrammarConfig> for LanguageGrammarConfig {
 /// Queries configuration.
 ///
 /// Most of the options are used by the controller only.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LanguageQueriesConfig {
   /// URL to fetch the language queries from.
   ///
@@ -447,12 +447,14 @@ mod tests {
 
   use crate::{
     Config, HighlightConfig, LanguageConfig, LanguageGrammarConfig, LanguageQueriesConfig,
-    LanguagesConfig,
+    LanguagesConfig, UserConfig, UserLanguageConfig, UserLanguageGrammarConfig,
+    UserLanguagesConfig,
   };
 
   #[test]
-  fn default_user_merge() {
-    let mut config = Config {
+  fn user_merge() {
+    // we have a config and see that we can alter it by merging with a user config
+    let main_config = Config {
       highlight: HighlightConfig {
         groups: ["foo".to_owned(), "bar".to_owned(), "zoo".to_owned()]
           .into_iter()
@@ -460,7 +462,7 @@ mod tests {
       },
       languages: LanguagesConfig {
         language: [(
-          "rust",
+          "rust".to_owned(),
           LanguageConfig {
             grammar: LanguageGrammarConfig {
               url: "file:///hello".to_owned(),
@@ -475,15 +477,61 @@ mod tests {
             },
             queries: LanguageQueriesConfig {
               url: None,
-              pin: todo!(),
-              path: todo!(),
+              pin: None,
+              path: PathBuf::from("runtime/queries/rust"),
             },
-            remove_default_highlighter: todo!(),
+            remove_default_highlighter: true,
           },
         )]
         .into_iter()
         .collect(),
       },
     };
+
+    // merging a default user config to a config shouldn’t change anything
+    {
+      let mut config = main_config.clone();
+      let user_config = UserConfig::default();
+      assert!(config.merge_user_config(user_config).is_ok());
+      assert_eq!(main_config, config);
+    }
+
+    // deeply changing some config for Rust
+    {
+      let mut config = main_config.clone();
+      let user_config = UserConfig {
+        highlight: None,
+        languages: Some(UserLanguagesConfig {
+          language: [(
+            "rust".to_owned(),
+            UserLanguageConfig {
+              grammar: Some(UserLanguageGrammarConfig {
+                pin: Some("pin".to_owned()),
+                path: Some(PathBuf::from("le-path")),
+                link_args: Some(vec!["link".to_owned(), "args".to_owned()]),
+                ..Default::default()
+              }),
+              ..Default::default()
+            },
+          )]
+          .into_iter()
+          .collect(),
+        }),
+      };
+      assert!(config.merge_user_config(user_config).is_ok());
+
+      let prev_rust_config = main_config.languages.get_lang_conf("rust").unwrap();
+      let new_rust_config = config.languages.get_lang_conf("rust").unwrap();
+
+      assert_eq!(prev_rust_config.queries, new_rust_config.queries);
+
+      assert_eq!(new_rust_config.grammar.url, prev_rust_config.grammar.url);
+      assert_eq!(new_rust_config.grammar.pin.as_deref(), Some("pin"));
+      assert_eq!(new_rust_config.grammar.path, PathBuf::from("le-path"));
+      assert_eq!(
+        new_rust_config.grammar.link_args,
+        vec!["link".to_owned(), "args".to_owned()]
+      );
+    }
   }
 }
