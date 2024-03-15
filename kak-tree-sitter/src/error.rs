@@ -1,5 +1,6 @@
 use std::{io, path::PathBuf};
 
+use kak_tree_sitter_config::ConfigError;
 use log::SetLoggerError;
 use thiserror::Error;
 use tree_sitter::{LanguageError, QueryError};
@@ -16,6 +17,12 @@ pub enum OhNo {
   LoggerInit {
     #[from]
     err: SetLoggerError,
+  },
+
+  #[error("configuration error: {err}")]
+  ConfigError {
+    #[from]
+    err: ConfigError,
   },
 
   #[error("cannot create directory {dir}: {err}")]

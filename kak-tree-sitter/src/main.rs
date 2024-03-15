@@ -23,6 +23,8 @@ use logging::Verbosity;
 use request::UnixRequest;
 use server::Server;
 
+use crate::logging::KakouneLogger;
+
 fn main() {
   if let Err(err) = start() {
     log::error!("{err}");
@@ -32,32 +34,23 @@ fn main() {
 
 fn start() -> Result<(), OhNo> {
   let cli = Cli::parse();
-  let config = match Config::load_from_xdg() {
-    Ok(config) => config,
-    Err(err) => {
-      eprintln!("configuration error; will be using empty configuration: {err}");
-      Config::default()
-    }
-  };
 
-  // inject static.kak if we are starting from Kakoune
-  if cli.kakoune {
-    println!("{}", rc::static_kak());
+  if let Some(level) = Verbosity::from_count(cli.verbose).to_level() {
+    if cli.kakoune {
+      KakouneLogger::new(level).register()?;
+      println!("{}", rc::static_kak());
+    } else {
+      simple_logger::init_with_level(level)?;
+    }
   }
 
-  // inject a default text-object setup if requested
   if cli.with_text_objects {
     println!("{}", rc::text_objects_kak());
   }
 
-  // server logic implies short-circuiting the rest; hence why we have to pass it &cli to check some stuff once the
-  // server is started, like whether we started from Kakoune / the session name / etc.
   if cli.server {
-    // server code has logging enabled, so we need to enable it first
-    if let Some(level) = Verbosity::from_count(cli.verbose).to_level() {
-      simple_logger::init_with_level(level)?;
-    }
-
+    let config = Config::load_default_user()?;
+    log::trace!("running with configuration:\n{config:#?}");
     return Server::bootstrap(&config, &cli);
   }
 
