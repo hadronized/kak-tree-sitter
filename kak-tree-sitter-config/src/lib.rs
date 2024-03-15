@@ -59,6 +59,8 @@ impl Config {
   const DEFAULT_CONFIG_CONTENT: &'static str = include_str!("../../default-config.toml");
 
   pub fn load_default_config() -> Result<Self, ConfigError> {
+    log::debug!("loading default configuration");
+
     toml::from_str(Self::DEFAULT_CONFIG_CONTENT).map_err(|err| ConfigError::CannotParseConfig {
       err: err.to_string(),
     })
@@ -156,6 +158,27 @@ impl LanguagesConfig {
   }
 }
 
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+pub struct RemoveDefaultHighlighter(pub bool);
+
+impl Default for RemoveDefaultHighlighter {
+  fn default() -> Self {
+    Self(true)
+  }
+}
+
+impl From<bool> for RemoveDefaultHighlighter {
+  fn from(value: bool) -> Self {
+    Self(value)
+  }
+}
+
+impl From<RemoveDefaultHighlighter> for bool {
+  fn from(RemoveDefaultHighlighter(value): RemoveDefaultHighlighter) -> Self {
+    value
+  }
+}
+
 /// Specific language configuration.
 ///
 /// It is possible to configure the grammar and queries part of a language, as well as some specific Kakoune options.
@@ -165,7 +188,7 @@ pub struct LanguageConfig {
   pub queries: LanguageQueriesConfig,
 
   #[serde(default)]
-  pub remove_default_highlighter: bool,
+  pub remove_default_highlighter: RemoveDefaultHighlighter,
 }
 
 impl LanguageConfig {
@@ -179,7 +202,8 @@ impl LanguageConfig {
 
     self.remove_default_highlighter = user_config
       .remove_default_highlighter
-      .unwrap_or(self.remove_default_highlighter);
+      .unwrap_or(self.remove_default_highlighter.0)
+      .into();
   }
 }
 
@@ -197,7 +221,10 @@ impl TryFrom<UserLanguageConfig> for LanguageConfig {
     Ok(Self {
       grammar: LanguageGrammarConfig::try_from(grammar)?,
       queries: LanguageQueriesConfig::try_from(queries)?,
-      remove_default_highlighter: user_config.remove_default_highlighter.unwrap_or(true),
+      remove_default_highlighter: user_config
+        .remove_default_highlighter
+        .unwrap_or(true)
+        .into(),
     })
   }
 }
@@ -385,6 +412,8 @@ pub struct UserConfig {
 impl UserConfig {
   /// Load the config from the default user location (XDG).
   pub fn load_from_xdg() -> Result<Self, ConfigError> {
+    log::debug!("loading user configuration");
+
     let dir = dirs::config_dir().ok_or(ConfigError::NoConfigDir)?;
     let path = dir.join("kak-tree-sitter/config.toml");
     Self::load(path)
@@ -393,6 +422,9 @@ impl UserConfig {
   /// Load the configuration from a given path.
   fn load(path: impl AsRef<Path>) -> Result<Self, ConfigError> {
     let path = path.as_ref();
+
+    log::debug!("loading configuration at {path}", path = path.display());
+
     let content = fs::read_to_string(path).map_err(|err| ConfigError::CannotReadConfig {
       path: path.to_owned(),
       err,
@@ -480,7 +512,7 @@ mod tests {
               pin: None,
               path: PathBuf::from("runtime/queries/rust"),
             },
-            remove_default_highlighter: true,
+            remove_default_highlighter: true.into(),
           },
         )]
         .into_iter()

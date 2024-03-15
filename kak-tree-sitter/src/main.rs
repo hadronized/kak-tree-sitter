@@ -50,6 +50,7 @@ fn start() -> Result<(), OhNo> {
 
   if cli.server {
     let config = Config::load_default_user()?;
+    log::trace!("running with configuration:\n{config:#?}");
     return Server::bootstrap(&config, &cli);
   }
 

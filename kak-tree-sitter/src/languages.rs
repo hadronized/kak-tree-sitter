@@ -97,7 +97,7 @@ impl Languages {
           let hl_names: Vec<_> = config.highlight.groups.iter().cloned().collect();
           hl_config.configure(&hl_names);
 
-          let remove_default_highlighter = lang_config.remove_default_highlighter;
+          let remove_default_highlighter = lang_config.remove_default_highlighter.into();
 
           let textobject_query = queries
             .text_objects
