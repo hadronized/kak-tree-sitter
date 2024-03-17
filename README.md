@@ -34,15 +34,9 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 
 See [the milestones](https://github.com/hadronized/kak-tree-sitter/milestones).
 
-## Install
+## User manual
 
-See the wiki section about [how to install](https://github.com/hadronized/kak-tree-sitter/wiki/Install).
-
-## Usage
-
-Everything you need to know can be found [here](https://github.com/hadronized/kak-tree-sitter/wiki/Usage). Especially,
-**you will want to read the [colorscheme section](https://github.com/hadronized/kak-tree-sitter/wiki/Colorscheme) and
-the [text-objects section](https://github.com/hadronized/kak-tree-sitter/wiki/Text-objects).
+See the [User manual](docs/man) to know how to install, use, configure and get runtime resources.
 
 ## Contributing
 
