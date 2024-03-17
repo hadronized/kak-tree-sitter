@@ -1,6 +1,6 @@
 # Tweaking
 
-If you are using the [provided config.toml](https://github.com/phaazon/kak-tree-sitter/blob/master/config.toml), some
+If you are using the [provided config.toml](https://github.com/hadronized/kak-tree-sitter/blob/master/config.toml), some
 languages might require more setup. They are listed in this section.
 
 - [JSX](#jsx]

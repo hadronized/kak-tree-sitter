@@ -5,7 +5,7 @@ reuse datasets from other projects, such as the GitHub repositories of the gramm
 Whatever you decide to use, you need to update the [config.toml](Configuration) file according to the languages,
 grammars and queries. **However**, as explained in the linked section, 99% of people will just be satisfied with the
 default settings shipped with `kak-tree-sitter`’s `config.toml`, which you can find at the root of the repository;
-[here](https://github.com/phaazon/kak-tree-sitter/blob/master/config.toml).
+[here](https://github.com/hadronized/kak-tree-sitter/blob/master/config.toml).
 
 This file is not included with the releases of `kak-tree-sitter` nor `ktsctl`, which means that you need to keep it in
 sync if you want to add support for new languages or fix grammars and queries you have already installed

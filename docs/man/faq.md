@@ -9,7 +9,7 @@ ktsctl -fci yaml
 ## How do I install all the languages at once?
 
 This is currently, unfortunately, not supported. You will have to run `ktsctl -fci` for all the languages you want.
-See [#30](https://github.com/phaazon/kak-tree-sitter/issues/30).
+See [#30](https://github.com/hadronized/kak-tree-sitter/issues/30).
 
 ## Something broke and there is no highlighting anymore
 
