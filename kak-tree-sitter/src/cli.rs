@@ -41,6 +41,12 @@ pub struct Cli {
   #[arg(short, long, action = clap::ArgAction::Count)]
   pub verbose: u8,
 
+  /// Insert Kakoune code related to highlighting.
+  ///
+  /// Highlighting is supported mainly via hooks and commands that ping-ping between Kakoune and KTS.
+  #[arg(long)]
+  pub with_highlighting: bool,
+
   /// Insert Kakoune commands, user modes and mappings related to text-objects.
   ///
   /// Those are default and completely optional. It is advised to start with those and if further customization is
