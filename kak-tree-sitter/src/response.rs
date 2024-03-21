@@ -16,6 +16,7 @@ pub enum Response {
   Init {
     cmd_fifo_path: PathBuf,
     buf_fifo_path: PathBuf,
+    with_highlighting: bool,
   },
 
   /// Explicit deinit response when the daemon exits.
@@ -61,19 +62,24 @@ impl Response {
       Response::Init {
         cmd_fifo_path,
         buf_fifo_path,
-      } => [
-        format!(
-          "set-option global kts_cmd_fifo_path {path}",
-          path = cmd_fifo_path.display()
-        ),
-        format!(
-          "set-option global kts_buf_fifo_path {path}",
-          path = buf_fifo_path.display()
-        ),
-        // enable if we were already looking at a buffer
-        "try kak-tree-sitter-req-enable".to_owned(),
-      ]
-      .join("\n"),
+        with_highlighting,
+      } => {
+        let mut resp = format!(
+          "set-option global kts_cmd_fifo_path {cmd}\n
+           set-option global kts_buf_fifo_path {buf}",
+          cmd = cmd_fifo_path.display(),
+          buf = buf_fifo_path.display(),
+        );
+
+        if *with_highlighting {
+          resp.push_str(&format!(
+            "\nkak-tree-sitter-enable-highlighting\n
+               kak-tree-sitter-req-enable"
+          ));
+        }
+
+        resp
+      }
 
       Response::Deinit => "kak-tree-sitter-deinit".to_owned(),
 

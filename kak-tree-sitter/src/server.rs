@@ -46,8 +46,8 @@ pub struct Server {
 }
 
 impl Server {
-  fn new(config: &Config, is_standalone: bool) -> Result<Self, OhNo> {
-    let server_state = ServerState::new(config, is_standalone)?;
+  fn new(config: &Config, is_standalone: bool, with_highlighting: bool) -> Result<Self, OhNo> {
+    let server_state = ServerState::new(config, is_standalone, with_highlighting)?;
     Ok(Self { server_state })
   }
 
@@ -136,7 +136,7 @@ impl Server {
       })?;
     }
 
-    Server::new(config, !cli.kakoune)?.start()?;
+    Server::new(config, !cli.kakoune, cli.with_highlighting)?.start()?;
 
     Ok(())
   }
@@ -237,7 +237,7 @@ pub struct ServerState {
 }
 
 impl ServerState {
-  pub fn new(config: &Config, is_standalone: bool) -> Result<Self, OhNo> {
+  pub fn new(config: &Config, is_standalone: bool, with_highlighting: bool) -> Result<Self, OhNo> {
     let resources = ServerResources::new(Self::runtime_dir()?);
     let mut poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
     let waker = Arc::new(
@@ -247,6 +247,7 @@ impl ServerState {
     let (resp_queue, resp_sender) = ResponseQueue::new();
     let mut unix_handler = UnixHandler::new(
       is_standalone,
+      with_highlighting,
       resources.clone(),
       ServerState::socket_path()?,
       resp_sender.clone(),
@@ -446,6 +447,7 @@ impl ServerState {
 #[derive(Debug)]
 struct UnixHandler {
   is_standalone: bool,
+  with_highlighting: bool,
   resources: ServerResources,
   unix_listener: UnixListener,
   resp_sender: Sender<ConnectedResponse>,
@@ -454,6 +456,7 @@ struct UnixHandler {
 impl UnixHandler {
   fn new(
     is_standalone: bool,
+    with_highlighting: bool,
     resources: ServerResources,
     socket_path: impl AsRef<Path>,
     resp_sender: Sender<ConnectedResponse>,
@@ -463,6 +466,7 @@ impl UnixHandler {
 
     Ok(Self {
       is_standalone,
+      with_highlighting,
       resources,
       unix_listener,
       resp_sender,
@@ -532,6 +536,7 @@ impl UnixHandler {
         let resp = Response::Init {
           cmd_fifo_path,
           buf_fifo_path,
+          with_highlighting: self.with_highlighting,
         };
 
         let conn_resp = ConnectedResponse::new(name, client, resp);

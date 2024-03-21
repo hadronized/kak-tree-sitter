@@ -13,9 +13,7 @@ declare-option str kts_buf_fifo_path /dev/null
 # Highlight ranges used when highlighting buffers.
 declare-option range-specs kts_highlighter_ranges
 
-# Tree-sitter language to use to highlight buffers’ content.
-#
-# This option will expand its content.
+# Tree-sitter language to use to parse buffers’ content with tree-sitter.
 declare-option str kts_lang
 
 # Mark the session as non-active.
@@ -119,21 +117,24 @@ define-command kak-tree-sitter-req-enable -docstring 'Send request to enable tre
 
 # Initiate request.
 #
-# This is used to ask the server to tell us where to write commands and other various data.
+# This is used to ask the server to tell us where to write commands and other various data. It’s also where the server
+# returns additional code, depending on enabled features.
 define-command -hidden kak-tree-sitter-req-init %{
   nop %sh{
     kak-tree-sitter -r "{ \"type\": \"register_session\", \"name\": \"$kak_session\", \"client\": \"$kak_client\" }"
   }
 }
 
-# Wait to have a client and then ask the server to initiate.
-hook -group kak-tree-sitter global -once ClientCreate .* %{
-  kak-tree-sitter-req-init
-
-  # Enable tree-sitter once we open a new window.
+# Command inserting highlighting hook.
+define-command -hidden kak-tree-sitter-enable-highlighting %{
   hook -group kak-tree-sitter global WinCreate .* %{
     hook -group kak-tree-sitter buffer -once WinDisplay .* kak-tree-sitter-req-enable
   }
+}
+
+# Wait to have a client and then ask the server to initiate.
+hook -group kak-tree-sitter global -once ClientCreate .* %{
+  kak-tree-sitter-req-init
 
   # Make kak-tree-sitter know the session has ended whenever we end it.
   hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-req-end-session
