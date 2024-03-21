@@ -38,10 +38,13 @@ fn start() -> Result<(), OhNo> {
   if let Some(level) = Verbosity::from_count(cli.verbose).to_level() {
     if cli.kakoune {
       KakouneLogger::new(level).register()?;
-      println!("{}", rc::static_kak());
     } else {
       simple_logger::init_with_level(level)?;
     }
+  }
+
+  if cli.kakoune {
+    println!("{}", rc::static_kak());
   }
 
   if cli.with_text_objects {
