@@ -1,5 +1,7 @@
 use std::{
-  env, fs, io,
+  env,
+  fmt::Display,
+  fs, io,
   path::{Path, PathBuf},
   process::Command,
 };
@@ -72,7 +74,7 @@ fn main() {
   }
 }
 
-fn info(msg: impl AsRef<str>) {
+fn msg(msg: impl AsRef<str>) {
   println!("{}", msg.as_ref().blue().bold());
 }
 
@@ -96,20 +98,39 @@ fn start() -> Result<(), AppError> {
   let config = Config::load_default_user()?;
 
   // check the runtime dir exists
-  let dir = runtime_dir()?;
-  fs::create_dir_all(&dir).map_err(|err| AppError::CannotCreateDir {
-    dir: dir.clone(),
+  let runtime_dir = runtime_dir()?;
+  fs::create_dir_all(&runtime_dir).map_err(|err| AppError::CannotCreateDir {
+    dir: runtime_dir.clone(),
     err,
   })?;
 
   // check the kak-tree-sitter data dir exists
-  let kak_data_dir = kak_tree_sitter_data_dir()?;
-  fs::create_dir_all(&kak_data_dir).map_err(|err| AppError::CannotCreateDir {
-    dir: kak_data_dir.clone(),
+  let install_dir = kak_tree_sitter_data_dir()?;
+  fs::create_dir_all(&install_dir).map_err(|err| AppError::CannotCreateDir {
+    dir: install_dir.clone(),
     err,
   })?;
 
-  let lang = cli.lang;
+  match cli.cmd {
+    cli::Cmd::Manage {
+      fetch,
+      compile,
+      install,
+      lang,
+    } => manage(&config, &runtime_dir, fetch, compile, install, lang),
+    cli::Cmd::Info { has, all } => info(&config, &install_dir, has, all),
+  }
+}
+
+/// Manage mode.
+fn manage(
+  config: &Config,
+  runtime_dir: &Path,
+  fetch: bool,
+  compile: bool,
+  install: bool,
+  lang: String,
+) -> Result<(), AppError> {
   let lang_config =
     config
       .languages
@@ -118,46 +139,21 @@ fn start() -> Result<(), AppError> {
         lang: lang.to_owned(),
       })?;
 
-  let grammar_fetch_path = dir.join(format!("grammars/{lang}"));
+  let grammar_fetch_path = runtime_dir.join(format!("grammars/{lang}"));
   let queries_fetch_path = if lang_config.queries.url.is_some() {
-    dir.join(format!("queries/{lang}"))
+    runtime_dir.join(format!("queries/{lang}"))
   } else {
     grammar_fetch_path.clone()
   };
 
-  if cli.has {
-    let grammars_path = kak_data_dir.join(format!("grammars/{lang}.so"));
-    let grammar = if let Ok(true) = grammars_path.try_exists() {
-      "".green()
-    } else {
-      "".red()
-    };
-
-    let queries_path = kak_data_dir.join(format!("queries/{lang}"));
-    let queries = if let Ok(true) = queries_path.try_exists() {
-      "".green()
-    } else {
-      "".red()
-    };
-
-    println!(
-      "{grammar} {lang} grammar {}",
-      grammars_path.display().to_string().black()
-    );
-    println!(
-      "{queries} {lang} queries {}",
-      queries_path.display().to_string().black()
-    );
-  }
-
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
-  if cli.fetch {
-    info(format!("fetching grammar for language {lang}",));
+  if fetch {
+    msg(format!("fetching grammar for language {lang}",));
     fetch_grammar(lang_config, &grammar_fetch_path, &lang)?;
 
     // if cli.queries is passed, fetch the queries; otherwise, reuse the grammar path
     if let Some(ref url) = lang_config.queries.url {
-      info(format!("fetching queries for language {lang}"));
+      msg(format!("fetching queries for language {lang}"));
       fetch_via_git(
         url,
         lang_config.queries.pin.as_deref(),
@@ -167,25 +163,25 @@ fn start() -> Result<(), AppError> {
     }
   }
 
-  let lang_build_dir = dir.join(format!(
+  let lang_build_dir = runtime_dir.join(format!(
     "{fetch_path}/{src_path}/build",
     fetch_path = grammar_fetch_path.display(),
     src_path = lang_config.grammar.path.display()
   ));
 
-  if cli.compile {
-    info(format!("compiling grammar for language {lang}"));
+  if compile {
+    msg(format!("compiling grammar for language {lang}"));
 
     // ensure the build dir exists
     fs::create_dir_all(&lang_build_dir).map_err(|err| AppError::CannotCreateDir {
       dir: lang_build_dir.clone(),
       err,
     })?;
-    compile(lang_config, &lang_build_dir, &lang)?;
+    do_compile(lang_config, &lang_build_dir, &lang)?;
   }
 
-  if cli.install {
-    info(format!("installing grammar for language {lang}"));
+  if install {
+    msg(format!("installing grammar for language {lang}"));
 
     // ensure the build dir exists
     fs::create_dir_all(&lang_build_dir).map_err(|err| AppError::CannotCreateDir {
@@ -195,11 +191,153 @@ fn start() -> Result<(), AppError> {
     install_grammar(&lang_build_dir, &lang)?;
 
     // install the queries
-    info(format!("installing queries for language {lang}"));
+    msg(format!("installing queries for language {lang}"));
     install_queries(&queries_fetch_path.join(&lang_config.queries.path), &lang)?;
   }
 
   Ok(())
+}
+
+/// Info mode.
+fn info(
+  config: &Config,
+  install_dir: &Path,
+  has: Option<String>,
+  all: bool,
+) -> Result<(), AppError> {
+  if let Some(lang) = has {
+    display_lang_info(config, install_dir, &lang)?;
+  } else if all {
+    unimplemented!();
+  }
+
+  Ok(())
+}
+
+/// Display information about a given language.
+fn display_lang_info(config: &Config, install_dir: &Path, lang: &str) -> Result<(), AppError> {
+  // first, display the config
+  let Some(lang_config) = config.languages.get_lang_conf(lang) else {
+    return Err(AppError::MissingLangConfig {
+      lang: lang.to_owned(),
+    });
+  };
+
+  let lang_info = get_lang_info(lang_config);
+  let lang_install_info = get_lang_install_info(install_dir, lang);
+  println!(
+    r#"{lang_info}
+{lang_install_info}"#
+  );
+
+  Ok(())
+}
+
+fn config_section(section: impl Display) -> impl Display {
+  format!("-> {section}").blue()
+}
+
+fn config_field(field: impl Display) -> impl Display {
+  format!("{field}").magenta()
+}
+
+fn get_lang_info(config: &LanguageConfig) -> String {
+  let mut out = String::new();
+
+  // grammar first
+  let grammar = &config.grammar;
+  out.push_str(&format!(
+    r#"{section}
+   {url_field}: {url}{pin}
+   {path_field}: {path}
+   {compile_field}: {compile} {compile_args:?}
+   {compile_flags_field}: {compile_flags:?}
+   {link_field}: {link} {link_args:?}
+   {link_flags_field}: {link_flags:?}
+"#,
+    section = config_section("Grammar configuration"),
+    url_field = config_field("URL"),
+    url = grammar.url,
+    pin = if let Some(ref pin) = grammar.pin {
+      format!(" {pin}")
+    } else {
+      String::default()
+    },
+    path_field = config_field("Path"),
+    path = grammar.path.display(),
+    compile_field = config_field("Compilation command"),
+    compile = grammar.compile,
+    compile_args = grammar.compile_args,
+    compile_flags_field = config_field("Compilation flags"),
+    compile_flags = grammar.compile_flags,
+    link_field = config_field("Link command"),
+    link = grammar.link,
+    link_args = grammar.link_args,
+    link_flags_field = config_field("Link flags"),
+    link_flags = grammar.link_flags,
+  ));
+
+  // then queries
+  let queries = &config.queries;
+  out.push_str(&format!(
+    r#"{section}
+{url}   {path_field}: {path}
+"#,
+    section = config_section("Queries configuration"),
+    url = if let Some(ref url) = queries.url {
+      let url_field = config_field("URL");
+
+      if let Some(ref pin) = queries.pin {
+        format!("   {url_field}: {url} {pin}\n")
+      } else {
+        format!("   URL: {url}\n")
+      }
+    } else {
+      String::default()
+    },
+    path_field = config_field("Path"),
+    path = queries.path.display()
+  ));
+
+  // then the rest
+  out.push_str(&format!(
+    "{section}: {remove:?}\n",
+    section = config_section("Remove default highlighter"),
+    remove = bool::from(config.remove_default_highlighter)
+  ));
+
+  out
+}
+
+fn get_lang_install_info(install_dir: &Path, lang: &str) -> String {
+  let grammar_path = install_dir.join(format!("grammars/{lang}.so"));
+  let grammar_installed = if let Ok(true) = grammar_path.try_exists() {
+    format!(
+      " {lang} grammar installed: {path}",
+      path = grammar_path.display()
+    )
+    .green()
+  } else {
+    format!(" {lang} grammar not installed").red()
+  };
+
+  let queries_path = install_dir.join(format!("queries/{lang}"));
+  let queries_installed = if let Ok(true) = queries_path.try_exists() {
+    format!(
+      " {lang} queries installed: {path}",
+      path = queries_path.display()
+    )
+    .green()
+  } else {
+    format!(" {lang} queries not installed").red()
+  };
+
+  format!(
+    r#"{section}
+   {grammar_installed}
+   {queries_installed}"#,
+    section = config_section("Install stats"),
+  )
 }
 
 /// Fetch an URL via git, and support pinning.
@@ -285,7 +423,7 @@ fn fetch_grammar(
 }
 
 /// Compile and link the grammar.
-fn compile(
+fn do_compile(
   lang_config: &LanguageConfig,
   lang_build_dir: &Path,
   lang: &str,
