@@ -1,5 +1,7 @@
 //! Configuration for both the daemon and client.
 
+pub mod source;
+
 use std::{
   collections::{HashMap, HashSet},
   fs, io,
@@ -7,6 +9,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
+use source::Source;
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -234,11 +237,8 @@ impl TryFrom<UserLanguageConfig> for LanguageConfig {
 /// Most of the options are used by the controller only.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LanguageGrammarConfig {
-  /// URL to fetch the language grammar from.
-  pub url: String,
-
-  /// Pin to use. Can be a commit, a branch, etc.
-  pub pin: Option<String>,
+  /// Source from where to get the grammar.
+  pub source: Source,
 
   /// Path to find the grammar source inside the downloaded content.
   pub path: PathBuf,
@@ -272,12 +272,8 @@ pub struct LanguageGrammarConfig {
 
 impl LanguageGrammarConfig {
   fn merge_user_config(&mut self, user_config: UserLanguageGrammarConfig) {
-    if let Some(url) = user_config.url {
-      self.url = url;
-    }
-
-    if let Some(pin) = user_config.pin {
-      self.pin = Some(pin);
+    if let Some(source) = user_config.source {
+      self.source = source;
     }
 
     if let Some(path) = user_config.path {
@@ -314,16 +310,15 @@ impl TryFrom<UserLanguageGrammarConfig> for LanguageGrammarConfig {
   type Error = ConfigError;
 
   fn try_from(user_config: UserLanguageGrammarConfig) -> Result<Self, Self::Error> {
-    let Some(url) = user_config.url else {
-      return Err(ConfigError::missing_opt("url"));
+    let Some(source) = user_config.source else {
+      return Err(ConfigError::missing_opt("source"));
     };
     let Some(link_args) = user_config.link_args else {
       return Err(ConfigError::missing_opt("link_args"));
     };
 
     Ok(Self {
-      url,
-      pin: user_config.pin,
+      source,
       path: user_config.path.unwrap_or_else(|| PathBuf::from("src")),
       compile: user_config.compile.unwrap_or_else(|| "cc".to_owned()),
       compile_args: user_config.compile_args.unwrap_or_else(|| {
@@ -353,17 +348,8 @@ impl TryFrom<UserLanguageGrammarConfig> for LanguageGrammarConfig {
 /// Most of the options are used by the controller only.
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct LanguageQueriesConfig {
-  /// URL to fetch the language queries from.
-  ///
-  /// If set to [`None`], the URL used will be the same as the one for the grammar and no fetch will be done (the
-  /// grammar is required).
-  pub url: Option<String>,
-
-  /// Pin to use. Can be a commit, a branch, etc.
-  ///
-  /// If `url` is provided, the cloned repository will be checked out with this `pin`. If `url` was not provided, the
-  /// grammar content will be checked out with this `pin`.
-  pub pin: Option<String>,
+  /// Source from where to get the queries.
+  pub source: Option<Source>,
 
   /// Path to go to where to find the queries directory.
   pub path: PathBuf,
@@ -371,16 +357,8 @@ pub struct LanguageQueriesConfig {
 
 impl LanguageQueriesConfig {
   fn merge_user_config(&mut self, user_config: UserLanguageQueriesConfig) {
-    if let Some(url) = user_config.url {
-      self.url = Some(url);
-    }
-
-    if let Some(pin) = user_config.pin {
-      self.pin = Some(pin);
-    }
-
-    if let Some(path) = user_config.path {
-      self.path = path;
+    if let Some(source) = user_config.source {
+      self.source = Some(source);
     }
   }
 }
@@ -394,8 +372,7 @@ impl TryFrom<UserLanguageQueriesConfig> for LanguageQueriesConfig {
     };
 
     Ok(Self {
-      url: user_config.url,
-      pin: user_config.pin,
+      source: user_config.source,
       path,
     })
   }
@@ -455,8 +432,7 @@ pub struct UserLanguageConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserLanguageGrammarConfig {
-  pub url: Option<String>,
-  pub pin: Option<String>,
+  pub source: Option<Source>,
   pub path: Option<PathBuf>,
   pub compile: Option<String>,
   pub compile_args: Option<Vec<String>>,
@@ -468,8 +444,7 @@ pub struct UserLanguageGrammarConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserLanguageQueriesConfig {
-  pub url: Option<String>,
-  pub pin: Option<String>,
+  pub source: Option<Source>,
   pub path: Option<PathBuf>,
 }
 
@@ -478,9 +453,9 @@ mod tests {
   use std::path::PathBuf;
 
   use crate::{
-    Config, HighlightConfig, LanguageConfig, LanguageGrammarConfig, LanguageQueriesConfig,
-    LanguagesConfig, UserConfig, UserLanguageConfig, UserLanguageGrammarConfig,
-    UserLanguagesConfig,
+    source::Source, Config, HighlightConfig, LanguageConfig, LanguageGrammarConfig,
+    LanguageQueriesConfig, LanguagesConfig, UserConfig, UserLanguageConfig,
+    UserLanguageGrammarConfig, UserLanguagesConfig,
   };
 
   #[test]
@@ -497,8 +472,7 @@ mod tests {
           "rust".to_owned(),
           LanguageConfig {
             grammar: LanguageGrammarConfig {
-              url: "file:///hello".to_owned(),
-              pin: None,
+              source: Source::path("file://hello"),
               path: PathBuf::from("src"),
               compile: "".to_owned(),
               compile_args: Vec::default(),
@@ -508,8 +482,7 @@ mod tests {
               link_flags: Vec::default(),
             },
             queries: LanguageQueriesConfig {
-              url: None,
-              pin: None,
+              source: None,
               path: PathBuf::from("runtime/queries/rust"),
             },
             remove_default_highlighter: true.into(),
@@ -538,8 +511,7 @@ mod tests {
             "rust".to_owned(),
             UserLanguageConfig {
               grammar: Some(UserLanguageGrammarConfig {
-                pin: Some("pin".to_owned()),
-                path: Some(PathBuf::from("le-path")),
+                source: Some(Source::git("git_source", "pin".to_owned())),
                 link_args: Some(vec!["link".to_owned(), "args".to_owned()]),
                 ..Default::default()
               }),
@@ -557,9 +529,14 @@ mod tests {
 
       assert_eq!(prev_rust_config.queries, new_rust_config.queries);
 
-      assert_eq!(new_rust_config.grammar.url, prev_rust_config.grammar.url);
-      assert_eq!(new_rust_config.grammar.pin.as_deref(), Some("pin"));
-      assert_eq!(new_rust_config.grammar.path, PathBuf::from("le-path"));
+      assert_eq!(
+        new_rust_config.grammar.source,
+        Source::git("git_source", "pin".to_owned())
+      );
+      assert_eq!(
+        new_rust_config.grammar.source,
+        Source::git("git_source", "pin".to_owned())
+      );
       assert_eq!(
         new_rust_config.grammar.link_args,
         vec!["link".to_owned(), "args".to_owned()]
