@@ -276,7 +276,7 @@ link_flags = ["-O3", "-lstdc++"]
 
 [language.cpp.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
-pin = "bf5fbfcd2eee7f26d632607a2046f460aa392a8c"
+pin = "b0ecb0d376c94d2fa4814816b41986bf5d735384"
 
 [language.cpp.queries]
 path = "runtime/queries/cpp"
@@ -1110,7 +1110,7 @@ link_flags = ["-O3"]
 
 [language.tsx.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
-pin = "bf5fbfcd2eee7f26d632607a2046f460aa392a8c"
+pin = "b0ecb0d376c94d2fa4814816b41986bf5d735384"
 
 [language.tsx.queries]
 path = "runtime/queries/tsx"
@@ -1134,7 +1134,7 @@ link_flags = ["-O3"]
 
 [language.typescript.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
-pin = "bf5fbfcd2eee7f26d632607a2046f460aa392a8c"
+pin = "b0ecb0d376c94d2fa4814816b41986bf5d735384"
 
 [language.typescript.queries]
 path = "runtime/queries/typescript"
