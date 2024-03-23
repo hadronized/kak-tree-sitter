@@ -9,7 +9,7 @@ use std::{
 use clap::Parser;
 use cli::Cli;
 use colored::Colorize;
-use kak_tree_sitter_config::{Config, LanguageConfig};
+use kak_tree_sitter_config::{source::Source, Config, LanguageConfig};
 use thiserror::Error;
 
 mod cli;
@@ -67,6 +67,24 @@ pub enum AppError {
   },
 }
 
+/// Flags taken out from the CLI to fetch, compile and/or install resources.
+#[derive(Debug)]
+struct ManageFlags {
+  fetch: bool,
+  compile: bool,
+  install: bool,
+}
+
+impl ManageFlags {
+  fn new(fetch: bool, compile: bool, install: bool) -> Self {
+    Self {
+      fetch,
+      compile,
+      install,
+    }
+  }
+}
+
 fn main() {
   if let Err(err) = start() {
     eprintln!("{}", err.to_string().red());
@@ -117,7 +135,14 @@ fn start() -> Result<(), AppError> {
       compile,
       install,
       lang,
-    } => manage(&config, &runtime_dir, fetch, compile, install, lang),
+    } => manage(
+      &config,
+      &runtime_dir,
+      &install_dir,
+      ManageFlags::new(fetch, compile, install),
+      lang,
+    ),
+
     cli::Cmd::Info { has, all } => info(&config, &install_dir, has, all),
   }
 }
@@ -126,9 +151,8 @@ fn start() -> Result<(), AppError> {
 fn manage(
   config: &Config,
   runtime_dir: &Path,
-  fetch: bool,
-  compile: bool,
-  install: bool,
+  install_dir: &Path,
+  manage_flags: ManageFlags,
   lang: String,
 ) -> Result<(), AppError> {
   let lang_config =
@@ -139,28 +163,70 @@ fn manage(
         lang: lang.to_owned(),
       })?;
 
+  // grammar
+  match lang_config.grammar.source {
+    Source::Path { ref dir } => {
+      msg(format!(
+        "using local grammar {lang} at {dir}",
+        dir = dir.display()
+      ));
+    }
+
+    Source::Git { ref url, ref pin } => manage_git_grammar(
+      lang_config,
+      runtime_dir,
+      install_dir,
+      url,
+      pin.as_deref(),
+      &manage_flags,
+      &lang,
+    )?,
+  }
+
+  // queries
+  match lang_config.queries.source {
+    Some(Source::Path { ref dir }) => {
+      msg(format!(
+        "using local queries {lang} at {dir}",
+        dir = dir.display()
+      ));
+    }
+
+    Some(Source::Git { ref url, ref pin }) => manage_git_queries(
+      runtime_dir,
+      install_dir,
+      url,
+      pin.as_deref(),
+      &manage_flags,
+      &lang,
+    )?,
+
+    None => msg(format!(
+      "no query configuration for {lang}; will be using the grammar directory"
+    )),
+  }
+
+  Ok(())
+}
+
+/// Manage a git grammar.
+///
+/// For git repositories, we have to fetch, compile, link and install grammars.
+fn manage_git_grammar(
+  lang_config: &LanguageConfig,
+  runtime_dir: &Path,
+  install_dir: &Path,
+  url: &str,
+  pin: Option<&str>,
+  manage_flags: &ManageFlags,
+  lang: &str,
+) -> Result<(), AppError> {
   let grammar_fetch_path = runtime_dir.join(format!("grammars/{lang}"));
-  let queries_fetch_path = if lang_config.queries.url.is_some() {
-    runtime_dir.join(format!("queries/{lang}"))
-  } else {
-    grammar_fetch_path.clone()
-  };
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
-  if fetch {
-    msg(format!("fetching grammar for language {lang}",));
-    fetch_grammar(lang_config, &grammar_fetch_path, &lang)?;
-
-    // if cli.queries is passed, fetch the queries; otherwise, reuse the grammar path
-    if let Some(ref url) = lang_config.queries.url {
-      msg(format!("fetching queries for language {lang}"));
-      fetch_via_git(
-        url,
-        lang_config.queries.pin.as_deref(),
-        &queries_fetch_path,
-        &lang,
-      )?;
-    }
+  if manage_flags.fetch {
+    msg(format!("fetching grammar for language {lang}"));
+    fetch_via_git(url, pin, &grammar_fetch_path, lang)?;
   }
 
   let lang_build_dir = runtime_dir.join(format!(
@@ -169,7 +235,7 @@ fn manage(
     src_path = lang_config.grammar.path.display()
   ));
 
-  if compile {
+  if manage_flags.compile {
     msg(format!("compiling grammar for language {lang}"));
 
     // ensure the build dir exists
@@ -177,22 +243,40 @@ fn manage(
       dir: lang_build_dir.clone(),
       err,
     })?;
-    do_compile(lang_config, &lang_build_dir, &lang)?;
+
+    do_compile(lang_config, &lang_build_dir, lang)?;
   }
 
-  if install {
+  if manage_flags.install {
     msg(format!("installing grammar for language {lang}"));
+    install_grammar(install_dir, &lang_build_dir, lang)?;
+  }
 
-    // ensure the build dir exists
-    fs::create_dir_all(&lang_build_dir).map_err(|err| AppError::CannotCreateDir {
-      dir: lang_build_dir.clone(),
-      err,
-    })?;
-    install_grammar(&lang_build_dir, &lang)?;
+  Ok(())
+}
 
-    // install the queries
-    msg(format!("installing queries for language {lang}"));
-    install_queries(&queries_fetch_path.join(&lang_config.queries.path), &lang)?;
+/// Manage git-based queries.
+///
+/// For git repositories, we have to fetch, compile, link and install queries.
+fn manage_git_queries(
+  runtime_dir: &Path,
+  install_dir: &Path,
+  url: &str,
+  pin: Option<&str>,
+  manage_flags: &ManageFlags,
+  lang: &str,
+) -> Result<(), AppError> {
+  let queries_fetch_path = runtime_dir.join(format!("queries/{lang}"));
+
+  // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
+  if manage_flags.fetch {
+    msg(format!("fetching queries for {lang}"));
+    fetch_via_git(url, pin, &queries_fetch_path, lang)?;
+  }
+
+  if manage_flags.install {
+    msg(format!("installing queries for {lang}"));
+    install_queries(install_dir, &queries_fetch_path, lang)?;
   }
 
   Ok(())
@@ -248,7 +332,7 @@ fn get_lang_info(config: &LanguageConfig) -> String {
   let grammar = &config.grammar;
   out.push_str(&format!(
     r#"{section}
-   {url_field}: {url}{pin}
+   {source_field}: {source:?}
    {path_field}: {path}
    {compile_field}: {compile} {compile_args:?}
    {compile_flags_field}: {compile_flags:?}
@@ -256,13 +340,8 @@ fn get_lang_info(config: &LanguageConfig) -> String {
    {link_flags_field}: {link_flags:?}
 "#,
     section = config_section("Grammar configuration"),
-    url_field = config_field("URL"),
-    url = grammar.url,
-    pin = if let Some(ref pin) = grammar.pin {
-      format!(" {pin}")
-    } else {
-      String::default()
-    },
+    source_field = config_field("Source"),
+    source = grammar.source,
     path_field = config_field("Path"),
     path = grammar.path.display(),
     compile_field = config_field("Compilation command"),
@@ -281,17 +360,12 @@ fn get_lang_info(config: &LanguageConfig) -> String {
   let queries = &config.queries;
   out.push_str(&format!(
     r#"{section}
-{url}   {path_field}: {path}
+{source}   {path_field}: {path}
 "#,
     section = config_section("Queries configuration"),
-    url = if let Some(ref url) = queries.url {
+    source = if let Some(ref source) = queries.source {
       let url_field = config_field("URL");
-
-      if let Some(ref pin) = queries.pin {
-        format!("   {url_field}: {url} {pin}\n")
-      } else {
-        format!("   URL: {url}\n")
-      }
+      format!("   {url_field}: {source:?}\n")
     } else {
       String::default()
     },
@@ -411,17 +485,6 @@ fn fetch_via_git(
   Ok(())
 }
 
-fn fetch_grammar(
-  lang_config: &LanguageConfig,
-  fetch_path: &Path,
-  lang: &str,
-) -> Result<(), AppError> {
-  let url = lang_config.grammar.url.replace("{lang}", lang);
-  let pin = lang_config.grammar.pin.as_ref();
-
-  fetch_via_git(&url, pin.map(|pin| pin.as_str()), fetch_path, lang)
-}
-
 /// Compile and link the grammar.
 fn do_compile(
   lang_config: &LanguageConfig,
@@ -472,10 +535,10 @@ fn do_compile(
     })
 }
 
-fn install_grammar(lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
+fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
   let lang_so = format!("{lang}.so");
   let source_path = lang_build_dir.join(&lang_so);
-  let grammar_dir = kak_tree_sitter_data_dir()?.join("grammars");
+  let grammar_dir = install_dir.join("grammars");
   let install_path = grammar_dir.join(lang_so);
 
   // ensure the grammars directory exists
@@ -492,9 +555,9 @@ fn install_grammar(lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
   Ok(())
 }
 
-fn install_queries(query_dir: &Path, lang: &str) -> Result<(), AppError> {
+fn install_queries(install_dir: &Path, query_dir: &Path, lang: &str) -> Result<(), AppError> {
   // ensure the queries directory exists
-  let install_path = kak_tree_sitter_data_dir()?.join(format!("queries/{lang}"));
+  let install_path = install_dir.join(format!("queries/{lang}"));
   fs::create_dir_all(&install_path).map_err(|err| AppError::CannotCreateDir {
     dir: install_path.clone(),
     err,
