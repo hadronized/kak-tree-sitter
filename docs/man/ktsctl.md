@@ -13,24 +13,41 @@ You can configure it via the [configuration file](configuration.md).
 > - `git`, to download resources.
 > - Some tree-sitter grammars require C++, so you will need to have the `libstd++` library installed.
 
-Usage: `ktsctl [OPTIONS] <LANG>`
+Usage: `ktsctl <COMMAND>`. Commands can be:
 
-- `--help` should provide enough information on how to get started.
-- `-f, --fetch` will make `ktsctl` cleanup fetch directory and download any resources required by the other commands. You
-  can decide to first fetch resources for a given language, and then call the other commands later without fetching
-  anymore; or you can combine everything at once.
+- `manage`, used to manage runtime resources, such as grammar and queries. Use this command to fetch, compile, link
+  and install resources.
+- `info`, used to get information about the languages configuration, installed resources, etc.
+
+### Managing resources
+
+`ktsctl manage --help` will provide more than enough help for you to get started, but here’s some more:
+
+- A typical one-liner to install a language is `ktsctl manage -fci <LANG>`.
+- `-f, --fetch` will make `ktsctl` fetch and download grammars and queries. You can decide to first fetch resources for
+  a given language, and then call the other commands later without fetching anymore; or you can combine everything at
+  once.
 - `-c, --compile` compiles and link grammars.
 - `-i, --install` installs grammars and queries into `$XDG_DATA_HOME/kak-tree-sitter`. The install path can change
   depending on the operating system (for instance, it might be `$HOME/Library/Application\ Support` for macOS).
 - `<LANG>` is the name of the language to install.
 
-The list of language names you can instal can be found in your configuration file — e.g. `language.<LANG>`.
+> The list of language names you can installed can be found with the [info command](#getting-information).
 
-For instance, to fetch, compile and install the grammars for the Rust programming language:
+For instance, to fetch, compile and install the grammar and queries for the Rust programming language:
 
 ```sh
-ktsctl -fci rust
+ktsctl manage -fci rust
 ```
+
+### Getting information
+
+The `info` command allows to get information about tree-sitter resources. As with `manage`, you can use `--help` to know
+what you can do, but here are some useful commands:
+
+- `ktsctl info --has rust` will provide information about a specific language (here Rust). It will print out various
+  configuration options, as well as whether the grammar and queries are installed, and for each of them will display
+  which one are available.
 
 ## By-passing `ktsctl` and using your own runtime resources
 
