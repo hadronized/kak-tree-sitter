@@ -1,4 +1,5 @@
 use std::{
+  collections::HashSet,
   env,
   fmt::Display,
   fs, io,
@@ -307,38 +308,31 @@ fn display_lang_info(config: &Config, install_dir: &Path, lang: &str) -> Result<
     });
   };
 
-  let lang_info = get_lang_info(lang_config);
-  let lang_install_info = get_lang_install_info(install_dir, lang);
-  println!(
-    r#"{lang_info}
-{lang_install_info}"#
-  );
+  display_lang_config(lang_config);
+  display_lang_install_stats(install_dir, lang);
 
   Ok(())
 }
 
 fn config_section(section: impl Display) -> impl Display {
-  format!("-> {section}").blue()
+  format!("-- {section} --").blue()
 }
 
 fn config_field(field: impl Display) -> impl Display {
-  format!("{field}").magenta()
+  format!("{field}").cyan()
 }
 
-fn get_lang_info(config: &LanguageConfig) -> String {
-  let mut out = String::new();
-
+fn display_lang_config(config: &LanguageConfig) {
   // grammar first
   let grammar = &config.grammar;
-  out.push_str(&format!(
+  println!(
     r#"{section}
    {source_field}: {source:?}
    {path_field}: {path}
    {compile_field}: {compile} {compile_args:?}
    {compile_flags_field}: {compile_flags:?}
    {link_field}: {link} {link_args:?}
-   {link_flags_field}: {link_flags:?}
-"#,
+   {link_flags_field}: {link_flags:?}"#,
     section = config_section("Grammar configuration"),
     source_field = config_field("Source"),
     source = grammar.source,
@@ -354,14 +348,13 @@ fn get_lang_info(config: &LanguageConfig) -> String {
     link_args = grammar.link_args,
     link_flags_field = config_field("Link flags"),
     link_flags = grammar.link_flags,
-  ));
+  );
 
   // then queries
   let queries = &config.queries;
-  out.push_str(&format!(
+  println!(
     r#"{section}
-{source}   {path_field}: {path}
-"#,
+{source}   {path_field}: {path}"#,
     section = config_section("Queries configuration"),
     source = if let Some(ref source) = queries.source {
       let url_field = config_field("URL");
@@ -371,47 +364,111 @@ fn get_lang_info(config: &LanguageConfig) -> String {
     },
     path_field = config_field("Path"),
     path = queries.path.display()
-  ));
+  );
 
   // then the rest
-  out.push_str(&format!(
-    "{section}: {remove:?}\n",
+  println!(
+    r#"{section}
+   {field}: {remove:?}"#,
     section = config_section("Remove default highlighter"),
+    field = config_field("Value"),
     remove = bool::from(config.remove_default_highlighter)
-  ));
-
-  out
+  );
 }
 
-fn get_lang_install_info(install_dir: &Path, lang: &str) -> String {
+fn check_sign() -> impl Display {
+  "".green()
+}
+
+fn warn_sign() -> impl Display {
+  "".yellow()
+}
+
+fn no_sign() -> impl Display {
+  "".red()
+}
+
+fn display_lang_install_stats(install_dir: &Path, lang: &str) {
+  println!("{section}", section = config_section("Install stats"));
+
   let grammar_path = install_dir.join(format!("grammars/{lang}.so"));
-  let grammar_installed = if let Ok(true) = grammar_path.try_exists() {
-    format!(
-      " {lang} grammar installed: {path}",
+  if let Ok(true) = grammar_path.try_exists() {
+    println!(
+      "   {sign} {lang} grammar: {path}",
+      sign = check_sign(),
       path = grammar_path.display()
-    )
-    .green()
+    );
   } else {
-    format!(" {lang} grammar not installed").red()
+    println!(
+      "   {sign} {lang} grammar missing; install with {help}",
+      sign = no_sign(),
+      help = format!("ktsctl manage -fci {lang}").bold()
+    );
   };
 
   let queries_path = install_dir.join(format!("queries/{lang}"));
-  let queries_installed = if let Ok(true) = queries_path.try_exists() {
-    format!(
-      " {lang} queries installed: {path}",
-      path = queries_path.display()
-    )
-    .green()
-  } else {
-    format!(" {lang} queries not installed").red()
-  };
+  display_queries_info(&queries_path, lang);
+}
 
-  format!(
-    r#"{section}
-   {grammar_installed}
-   {queries_installed}"#,
-    section = config_section("Install stats"),
-  )
+/// Check installed queries and report status.
+fn display_queries_info(path: &Path, lang: &str) {
+  if let Ok(true) = path.try_exists() {
+    let scm_files: HashSet<_> = path
+      .read_dir()
+      .into_iter()
+      .flatten()
+      .flatten()
+      .flat_map(|dir| dir.file_name().into_string())
+      .collect();
+
+    let mut scm_count = 0;
+    let mut prefix_mark = |s, desc| {
+      if scm_files.contains(s) {
+        scm_count += 1;
+        format!("     {sign} {desc}", sign = check_sign())
+      } else {
+        format!("     {sign} {desc}", sign = no_sign())
+      }
+    };
+
+    let queries = [
+      prefix_mark("highlights.scm", "highlights"),
+      prefix_mark("indents.scm", "indents"),
+      prefix_mark("injections.scm", "injections"),
+      prefix_mark("locals.scm", "locals"),
+      prefix_mark("textobjects.scm", "text-objects"),
+    ];
+
+    if scm_count == scm_files.len() {
+      println!(
+        "   {sign} {lang} queries installed: {path}",
+        sign = check_sign(),
+        path = path.display()
+      );
+    } else if scm_count > 0 {
+      println!(
+        "   {sign} {lang} queries partially installed: {path}",
+        sign = warn_sign(),
+        path = path.display()
+      );
+    } else {
+      println!(
+        "   {sign} {lang} queries missing; install with {help}",
+        sign = no_sign(),
+        help = format!("ktsctl manage -fci {lang}").bold()
+      );
+    }
+
+    for q in queries {
+      println!("{q}");
+    }
+  } else {
+    println!(
+      "   {sign} {lang} queries missing; install with {help}",
+      sign = no_sign(),
+      help = format!("ktsctl manage -fci {lang}").bold()
+    );
+  }
 }
 
 /// Fetch an URL via git, and support pinning.
