@@ -108,9 +108,11 @@ highlight.groups = [
 # TODO
 
 # awk
-[language.awk.grammar]
+[language.awk.grammar.source.git]
 url = "https://github.com/Beaglefoot/tree-sitter-awk"
 pin = "8eaa762d05cc67c0e2cc53a0a71750b3c16733c2"
+
+[language.awk.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -119,15 +121,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "awk.so"]
 link_flags = ["-O3"]
 
-[language.awk.queries]
+[language.awk.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.awk.queries]
 path = "runtime/queries/awk"
 
 # bash
-[language.bash.grammar]
+[language.bash.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-bash"
 pin = "275effdfc0edce774acf7d481f9ea195c6c403cd"
+
+[language.bash.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
@@ -136,9 +142,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "bash.so"]
 link_flags = ["-O3", "-lstdc++"]
 
-[language.bash.queries]
+[language.bash.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.bash.queries]
 path = "runtime/queries/bash"
 
 # bass
@@ -148,9 +156,11 @@ path = "runtime/queries/bash"
 # TODO
 
 # bibtex
-[language.bibtex.grammar]
+[language.bibtex.grammar.source.git]
 url = "https://github.com/latex-lsp/tree-sitter-bibtex"
 pin = "ccfd77db0ed799b6c22c214fe9d2937f47bc8b34"
+
+[language.bibtex.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -159,18 +169,22 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "bibtex.so"]
 link_flags = ["-O3"]
 
-[language.bibtex.queries]
+[language.bibtex.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.bibtex.queries]
 path = "runtime/queries/bibtex"
 
 # bicep
 # TODO
 
 # c
-[language.c.grammar]
+[language.c.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-c"
 pin = "7175a6dd5fc1cee660dce6fe23f6043d75af424a"
+
+[language.c.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -179,9 +193,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "c.so"]
 link_flags = ["-O3"]
 
-[language.c.queries]
+[language.c.queries.git.source]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.c.queries]
 path = "runtime/queries/c"
 
 # cabal
@@ -197,9 +213,11 @@ path = "runtime/queries/c"
 # TODO
 
 # cmake
-[language.cmake.grammar]
+[language.cmake.grammar.source.git]
 url = "https://github.com/uyha/tree-sitter-cmake"
 pin = "6e51463ef3052dd3b328322c22172eda093727ad"
+
+[language.cmake.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "../scanner.cc", "-I", ".."]
@@ -208,15 +226,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "cmake.so"]
 link_flags = ["-O3", "-lstdc++", "-flto=auto"]
 
-[language.cmake.queries]
+[language.cmake.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.cmake.queries]
 path = "runtime/queries/cmake"
 
 # comment
-[language.comment.grammar]
+[language.comment.grammar.source.git]
 url = "https://github.com/stsewd/tree-sitter-comment"
 pin = "94c99a66bb5051d8321b5900aee92b76450c50ce"
+
+[language.comment.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -225,9 +247,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "comment.so"]
 link_flags = ["-O3"]
 
-[language.comment.queries]
+[language.comment.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.comment.queries]
 path = "runtime/queries/comment"
 
 # common-lisp
@@ -237,9 +261,11 @@ path = "runtime/queries/comment"
 # TODO
 
 # cpp
-[language.cpp.grammar]
+[language.cpp.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-cpp"
 pin = "670404d7c689be1c868a46f919ba2a3912f2b7ef"
+
+[language.cpp.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
@@ -248,9 +274,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "cpp.so"]
 link_flags = ["-O3", "-lstdc++"]
 
-[language.cpp.queries]
+[language.cpp.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "bf5fbfcd2eee7f26d632607a2046f460aa392a8c"
+
+[language.cpp.queries]
 path = "runtime/queries/cpp"
 
 # crystal
@@ -260,9 +288,11 @@ path = "runtime/queries/cpp"
 # TODO
 
 # css
-[language.css.grammar]
+[language.css.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-css"
 pin = "769203d0f9abe1a9a691ac2b9fe4bb4397a73c51"
+
+[language.css.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -271,9 +301,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "css.so"]
 link_flags = ["-O3"]
 
-[language.css.queries]
+[language.css.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.css.queries]
 path = "runtime/queries/css"
 
 # cue
@@ -292,9 +324,11 @@ path = "runtime/queries/css"
 # TODO
 
 # diff
-[language.diff.grammar]
+[language.diff.grammar.source.git]
 url = "https://github.com/the-mikedavis/tree-sitter-diff"
 pin = "fd74c78fa88a20085dbc7bbeaba066f4d1692b63"
+
+[language.diff.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -303,9 +337,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "diff.so"]
 link_flags = ["-O3"]
 
-[language.diff.queries]
+[language.diff.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.diff.queries]
 path = "runtime/queries/diff"
 
 # dockerfile
@@ -351,9 +387,11 @@ path = "runtime/queries/diff"
 # TODO
 
 # fish
-[language.fish.grammar]
+[language.fish.grammar.source.git]
 url = "https://github.com/ram02z/tree-sitter-fish"
 pin = "84436cf24c2b3176bfbb220922a0fdbd0141e406"
+
+[language.fish.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
@@ -362,9 +400,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "fish.so"]
 link_flags = ["-O3", "-flto=auto"]
 
-[language.fish.queries]
+[language.fish.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.fish.queries]
 path = "runtime/queries/fish"
 
 # fortran
@@ -377,9 +417,11 @@ path = "runtime/queries/fish"
 # TODO
 
 # git-commit
-[language.git-commit.grammar]
+[language.git-commit.grammar.source.git]
 url = "https://github.com/the-mikedavis/tree-sitter-git-commit"
 pin = "db88cffa3952dd2328b741af5d0fc69bdb76704f"
+
+[language.git-commit.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -388,9 +430,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "git-commit.so"]
 link_flags = ["-O3"]
 
-[language.git-commit.queries]
+[language.git-commit.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.git-commit.queries]
 path = "runtime/queries/git-commit"
 
 # git-config
@@ -409,9 +453,11 @@ path = "runtime/queries/git-commit"
 # TODO
 
 # go
-[language.go.grammar]
+[language.go.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-go"
 pin = "64457ea6b73ef5422ed1687178d4545c3e91334a"
+
+[language.go.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -420,11 +466,12 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "go.so"]
 link_flags = ["-O3"]
 
-[language.go.queries]
+[language.go.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
-path = "runtime/queries/go"
 
+[language.go.queries]
+path = "runtime/queries/go"
 
 # godot-resource
 # TODO
@@ -445,9 +492,11 @@ path = "runtime/queries/go"
 # TODO
 
 # haskell
-[language.haskell.grammar]
+[language.haskell.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-haskell"
 pin = "98fc7f59049aeb713ab9b72a8ff25dcaaef81087"
+
+[language.haskell.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
@@ -456,9 +505,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "haskell.so"]
 link_flags = ["-O3"]
 
-[language.haskell.queries]
+[language.haskell.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.haskell.queries]
 path = "runtime/queries/haskell"
 
 # hcl
@@ -471,9 +522,11 @@ path = "runtime/queries/haskell"
 # TODO
 
 # html
-[language.html.grammar]
+[language.html.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-html"
 pin = "86c253e675e7fdd1c0482efe0706f24bafbc3a7d"
+
+[language.html.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "../scanner.cc", "-I", ".."]
@@ -482,9 +535,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "html.so"]
 link_flags = ["-O3", "-lstdc++"]
 
-[language.html.queries]
+[language.html.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.html.queries]
 path = "runtime/queries/html"
 
 # hurl
@@ -497,9 +552,11 @@ path = "runtime/queries/html"
 # TODO
 
 # java
-[language.java.grammar]
+[language.java.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-java"
 pin = "09d650def6cdf7f479f4b78f595e9ef5b58ce31e"
+
+[language.java.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -508,15 +565,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "java.so"]
 link_flags = ["-O3"]
 
-[language.java.queries]
+[language.java.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.java.queries]
 path = "runtime/queries/java"
 
 # javascript
-[language.javascript.grammar]
+[language.javascript.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-javascript"
 pin = "f1e5a09b8d02f8209a68249c93f0ad647b228e6e"
+
+[language.javascript.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -525,17 +586,22 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "javascript.so"]
 link_flags = ["-O3"]
 
-[language.javascript.queries]
+[language.javascript.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
+pin = "834d348b85868fbe9033231e72f29be361346aeb"
+
+[language.javascript.queries]
 path = "runtime/queries/javascript"
 
 # jsdoc
 # TODO
 
 # json
-[language.json.grammar]
+[language.json.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-json"
 pin = "73076754005a460947cafe8e03a8cf5fa4fa2938"
+
+[language.json.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -544,18 +610,22 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "json.so"]
 link_flags = ["-O3"]
 
-[language.json.queries]
+[language.json.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.json.queries]
 path = "runtime/queries/json"
 
 # jsonnet
 # TODO
 
 # jsx
-[language.jsx.grammar]
+[language.jsx.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-javascript"
 pin = "f1e5a09b8d02f8209a68249c93f0ad647b228e6e"
+
+[language.jsx.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -564,14 +634,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "jsx.so"]
 link_flags = ["-O3"]
 
-[language.jsx.queries]
+[language.jsx.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
+pin = "834d348b85868fbe9033231e72f29be361346aeb"
+
+[language.jsx.queries]
 path = "runtime/queries/jsx"
 
 # julia
-[language.julia.grammar]
+[language.julia.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-julia"
 pin = "2f885efd38a6a6abfefc81d53ecdd99812dcde69"
+
+[language.julia.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "-flto=auto", "../parser.c", "../scanner.c", "-I", ".."]
@@ -580,9 +655,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "-flto=auto", "parser.o", "scanner.o", "-o", "julia.so"]
 link_flags = ["-O3"]
 
-[language.julia.queries]
+[language.julia.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.julia.queries]
 path = "runtime/queries/julia"
 
 # just
@@ -592,9 +669,11 @@ path = "runtime/queries/julia"
 # TODO
 
 # kotlin
-[language.kotlin.grammar]
+[language.kotlin.grammar.source.git]
 url = "https://github.com/fwcd/tree-sitter-kotlin"
 pin = "a4f71eb9b8c9b19ded3e0e9470be4b1b77c2b569"
+
+[language.kotlin.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -603,15 +682,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "kotlin.so"]
 link_flags = ["-O3"]
 
-[language.kotlin.queries]
+[language.kotlin.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "f73e9a8d15fd5a87d472a49808baf42ba403f9bf"
+
+[language.kotlin.queries]
 path = "runtime/queries/kotlin"
 
 # latex
-[language.latex.grammar]
+[language.latex.grammar.source.git]
 url = "https://github.com/latex-lsp/tree-sitter-latex"
 pin = "dfe891922ccd2e7cef52eccb2775e1b576727165"
+
+[language.latex.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -620,9 +703,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "latex.so"]
 link_flags = ["-O3"]
 
-[language.latex.queries]
+[language.latex.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.latex.queries]
 path = "runtime/queries/latex"
 
 # lean
@@ -644,9 +729,11 @@ path = "runtime/queries/latex"
 # TODO
 
 # make
-[language.make.grammar]
+[language.make.grammar.source.git]
 url = "https://github.com/alemuller/tree-sitter-make"
 pin = "a4b9187417d6be349ee5fd4b6e77b4172c6827dd"
+
+[language.make.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -655,18 +742,22 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "make.so"]
 link_flags = ["-O3"]
 
-[language.make.queries]
+[language.make.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.make.queries]
 path = "runtime/queries/make"
 
 # markdoc
 # TODO
 
 # markdown
-[language.markdown.grammar]
+[language.markdown.grammar.source.git]
 url = "https://github.com/MDeiml/tree-sitter-markdown"
 pin = "aaf76797aa8ecd9a5e78e0ec3681941de6c945ee"
+
+[language.markdown.grammar]
 path = "tree-sitter-markdown/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -675,15 +766,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown.so"]
 link_flags = ["-O3"]
 
-[language.markdown.queries]
+[language.markdown.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "d2d9761f309d6204a8f4480dc23f10558a165e29"
+
+[language.markdown.queries]
 path = "runtime/queries/markdown"
 
 # markdown.inline
-[language."markdown.inline".grammar]
+[language."markdown.inline".grammar.source.git]
 url = "https://github.com/MDeiml/tree-sitter-markdown"
 pin = "aaf76797aa8ecd9a5e78e0ec3681941de6c945ee"
+
+[language."markdown.inline".grammar]
 path = "tree-sitter-markdown-inline/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -692,9 +787,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown.inline.so"]
 link_flags = ["-O3"]
 
-[language."markdown.inline".queries]
+[language."markdown.inline".queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "56ccaedffbb8011e36012278e2a4861a8d435a60"
+
+[language."markdown.inline".queries]
 path = "runtime/queries/markdown.inline"
 
 # matlab
@@ -722,9 +819,11 @@ path = "runtime/queries/markdown.inline"
 # TODO
 
 # nu
-[language.nu.grammar]
+[language.nu.grammar.source.git ]
 url = "https://github.com/nushell/tree-sitter-nu"
 pin = "786689b0562b9799ce53e824cb45a1a2a04dc673"
+
+[language.nu.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -733,9 +832,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "nu.so"]
 link_flags = ["-O3"]
 
-[language.nu.queries]
+[language.nu.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "107763083405868f3679d8e12476ed0688896f87"
+
+[language.nu.queries]
 path = "runtime/queries/nu"
 
 # ocaml
@@ -787,9 +888,11 @@ path = "runtime/queries/nu"
 # TODO
 
 # purescript
-[language.purescript.grammar]
+[language.purescript.grammar.source.git]
 url = "https://github.com/postsolar/tree-sitter-purescript/"
 pin = "1615ac3b9c3b572259bce7a30c14cb06d6c2f2ff"
+
+[language.purescript.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "../scanner.c", "-I", ".."]
@@ -798,15 +901,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "scanner.o", "-o", "purescript.so"]
 link_flags = ["-O3"]
 
-[language.purescript.queries]
+[language.purescript.queries.source.git]
 url = "https://github.com/postsolar/tree-sitter-purescript"
 pin = "1615ac3b9c3b572259bce7a30c14cb06d6c2f2ff"
+
+[language.purescript.queries]
 path = "queries"
 
 # python
-[language.python.grammar]
+[language.python.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-python"
 pin = "de221eccf9a221f5b85474a553474a69b4b5784d"
+
+[language.python.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
@@ -815,9 +922,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "python.so"]
 link_flags = ["-O3", "-lstdc++"]
 
-[language.python.queries]
+[language.python.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.python.queries]
 path = "runtime/queries/python"
 
 # qml
@@ -851,9 +960,11 @@ path = "runtime/queries/python"
 # TODO
 
 # ruby
-[language.ruby.grammar]
+[language.ruby.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-ruby"
 pin = "206c7077164372c596ffa8eaadb9435c28941364"
+
+[language.ruby.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
@@ -862,15 +973,19 @@ link = "c++"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "ruby.so"]
 link_flags = ["-O3", "-lstdc++"]
 
-[language.ruby.queries]
+[language.ruby.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.ruby.queries]
 path = "runtime/queries/ruby"
 
 # rust
-[language.rust.grammar]
+[language.rust.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-rust"
 pin = "0431a2c60828731f27491ee9fdefe25e250ce9c9"
+
+[language.rust.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -879,9 +994,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "rust.so"]
 link_flags = ["-O3"]
 
-[language.rust.queries]
+[language.rust.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "3e963b3c1b5eb4b5cd7f33b8ef6d6642de210a9b"
+
+[language.rust.queries]
 path = "runtime/queries/rust"
 
 # sage
@@ -891,9 +1008,11 @@ path = "runtime/queries/rust"
 # TODO
 
 # scheme
-[language.scheme.grammar]
+[language.scheme.grammar.source.git]
 url = "https://github.com/6cdh/tree-sitter-scheme"
 pin = "c0741320bfca6b7b5b7a13b5171275951e96a842"
+
+[language.scheme.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -902,9 +1021,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "scheme.so"]
 link_flags = ["-O3"]
 
-[language.scheme.queries]
+[language.scheme.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.scheme.queries]
 path = "runtime/queries/scheme"
 
 # scss
@@ -950,9 +1071,11 @@ path = "runtime/queries/scheme"
 # TODO
 
 # toml
-[language.toml.grammar]
+[language.toml.grammar.source.git]
 url = "https://github.com/ikatyang/tree-sitter-toml"
 pin = "8bd2056818b21860e3d756b5a58c4f6e05fb744e"
+
+[language.toml.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -961,18 +1084,22 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "toml.so"]
 link_flags = ["-O3"]
 
-[language.toml.queries]
+[language.toml.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.toml.queries]
 path = "runtime/queries/toml"
 
 # tsq
 # TODO
 
 # tsx
-[language.tsx.grammar]
+[language.tsx.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-typescript"
 pin = "b1bf4825d9eaa0f3bdeb1e52f099533328acfbdf"
+
+[language.tsx.grammar]
 path = "tsx/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -981,17 +1108,22 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "tsx.so"]
 link_flags = ["-O3"]
 
-[language.tsx.queries]
+[language.tsx.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
+pin = "bf5fbfcd2eee7f26d632607a2046f460aa392a8c"
+
+[language.tsx.queries]
 path = "runtime/queries/tsx"
 
 # twig
 # TODO
 
 # typescript
-[language.typescript.grammar]
+[language.typescript.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-typescript"
 pin = "b1bf4825d9eaa0f3bdeb1e52f099533328acfbdf"
+
+[language.typescript.grammar]
 path = "typescript/src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
@@ -1000,8 +1132,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "typescript.so"]
 link_flags = ["-O3"]
 
-[language.typescript.queries]
+[language.typescript.queries.source.git]
 url = "https://github.com/hadronized/kak-tree-sitter"
+pin = "bf5fbfcd2eee7f26d632607a2046f460aa392a8c"
+
+[language.typescript.queries]
 path = "runtime/queries/typescript"
 
 # ungrammar
@@ -1017,9 +1152,11 @@ path = "runtime/queries/typescript"
 # TODO
 
 # verilog
-[language.verilog.grammar]
+[language.verilog.grammar.source.git]
 url = "https://github.com/tree-sitter/tree-sitter-verilog"
 pin = "902031343056bc0b11f3e47b33f036a9cf59f58d"
+
+[language.verilog.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -1028,8 +1165,10 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "verilog.so"]
 link_flags = ["-O3"]
 
-[language.verilog.queries]
+[language.verilog.queries.source.git]
 url = "https://github.com/helix-editor/helix"
+
+[language.verilog.queries]
 path = "runtime/queries/verilog"
 
 # vhdl
@@ -1057,9 +1196,11 @@ path = "runtime/queries/verilog"
 # TODO
 
 # xml
-[language.xml.grammar]
+[language.xml.grammar.source.git]
 url = "https://github.com/RenjiSann/tree-sitter-xml"
 pin = "48a7c2b6fb9d515577e115e6788937e837815651"
+
+[language.xml.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
@@ -1068,15 +1209,19 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "xml.so"]
 link_flags = ["-O3"]
 
-[language.xml.queries]
+[language.xml.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.xml.queries]
 path = "runtime/queries/xml"
 
 # yaml
-[language.yaml.grammar]
+[language.yaml.grammar.source.git]
 url = "https://github.com/ikatyang/tree-sitter-yaml"
 pin = "0e36bed171768908f331ff7dff9d956bae016efb"
+
+[language.yaml.grammar]
 path = "src"
 compile = "cc"
 compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
@@ -1085,9 +1230,11 @@ link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "yaml.so"]
 link_flags = ["-O3", "-lstdc++"]
 
-[language.yaml.queries]
+[language.yaml.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
+
+[language.yaml.queries]
 path = "runtime/queries/yaml"
 
 # yuck
