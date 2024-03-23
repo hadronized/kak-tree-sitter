@@ -198,6 +198,7 @@ fn manage(
       install_dir,
       url,
       pin.as_deref(),
+      &lang_config.queries.path,
       &manage_flags,
       &lang,
     )?,
@@ -264,6 +265,7 @@ fn manage_git_queries(
   install_dir: &Path,
   url: &str,
   pin: Option<&str>,
+  path: &Path,
   manage_flags: &ManageFlags,
   lang: &str,
 ) -> Result<(), AppError> {
@@ -277,7 +279,7 @@ fn manage_git_queries(
 
   if manage_flags.install {
     msg(format!("installing queries for {lang}"));
-    install_queries(install_dir, &queries_fetch_path, lang)?;
+    install_queries(install_dir, &queries_fetch_path.join(path), lang)?;
   }
 
   Ok(())
