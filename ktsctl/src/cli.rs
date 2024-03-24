@@ -36,9 +36,9 @@ pub enum Cmd {
 
   /// Get information on installed resources.
   Info {
-    /// Check whether a language has resources and if so, display information about them.
-    #[clap(long, value_name = "lang")]
-    has: Option<String>,
+    /// Get information about a specific language.
+    #[clap(long)]
+    lang: Option<String>,
 
     /// List all known languages and display information about them.
     #[clap(short, long)]
