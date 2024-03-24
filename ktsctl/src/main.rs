@@ -424,7 +424,10 @@ fn display_queries_info(path: &Path, lang: &str) {
       .collect();
 
     let mut scm_count = 0;
+    let mut scm_expected_count = 0;
     let mut prefix_mark = |s, desc| {
+      scm_expected_count += 1;
+
       if scm_files.contains(s) {
         scm_count += 1;
         format!("     {sign} {desc}", sign = check_sign())
@@ -441,7 +444,7 @@ fn display_queries_info(path: &Path, lang: &str) {
       prefix_mark("textobjects.scm", "text-objects"),
     ];
 
-    if scm_count == scm_files.len() {
+    if scm_count == scm_expected_count {
       println!(
         "   {sign} {lang} queries installed: {path}",
         sign = check_sign(),
