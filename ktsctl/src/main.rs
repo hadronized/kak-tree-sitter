@@ -2,9 +2,10 @@ use std::{
   collections::HashSet,
   env,
   fmt::Display,
-  fs, io,
+  fs,
+  io::{self, stdout, Write},
   path::{Path, PathBuf},
-  process::Command,
+  process::{Command, Stdio},
 };
 
 use clap::Parser;
@@ -93,8 +94,57 @@ fn main() {
   }
 }
 
-fn msg(msg: impl AsRef<str>) {
-  println!("{}", msg.as_ref().blue().bold());
+#[derive(Debug)]
+struct Report;
+
+impl Report {
+  fn new(icon: ReportIcon, msg: impl AsRef<str>) -> Self {
+    print!("\x1b[?7l");
+    Self::to_stdout(icon, msg);
+    Self
+  }
+
+  fn to_stdout(icon: ReportIcon, msg: impl AsRef<str>) {
+    print!("{} {msg}", icon, msg = msg.as_ref());
+    stdout().flush().unwrap();
+  }
+
+  fn report(&self, icon: ReportIcon, msg: impl AsRef<str>) {
+    print!("\x1b[2K\r");
+    Self::to_stdout(icon, msg);
+  }
+}
+
+impl Drop for Report {
+  fn drop(&mut self) {
+    println!("\x1b[?7h");
+    stdout().flush().unwrap();
+  }
+}
+
+#[derive(Debug)]
+enum ReportIcon {
+  Fetch,
+  Compile,
+  Link,
+  Install,
+  Success,
+  Error,
+  Info,
+}
+
+impl Display for ReportIcon {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    match self {
+      ReportIcon::Fetch => write!(f, "{}", "".magenta()),
+      ReportIcon::Compile => write!(f, "{}", "".cyan()),
+      ReportIcon::Link => write!(f, "{}", "".cyan()),
+      ReportIcon::Install => write!(f, "{}", "".cyan()),
+      ReportIcon::Success => write!(f, "{}", "".green()),
+      ReportIcon::Error => write!(f, "{}", "".red()),
+      ReportIcon::Info => write!(f, "{}", "󰈅".blue()),
+    }
+  }
 }
 
 fn runtime_dir() -> Result<PathBuf, AppError> {
@@ -167,10 +217,10 @@ fn manage(
   // grammar
   match lang_config.grammar.source {
     Source::Path { ref dir } => {
-      msg(format!(
-        "using local grammar {lang} at {dir}",
-        dir = dir.display()
-      ));
+      Report::new(
+        ReportIcon::Info,
+        format!("using local grammar {lang} at {dir}", dir = dir.display()),
+      );
     }
 
     Source::Git { ref url, ref pin } => manage_git_grammar(
@@ -187,10 +237,10 @@ fn manage(
   // queries
   match lang_config.queries.source {
     Some(Source::Path { ref dir }) => {
-      msg(format!(
-        "using local queries {lang} at {dir}",
-        dir = dir.display()
-      ));
+      Report::new(
+        ReportIcon::Info,
+        format!("using local queries {lang} at {dir}", dir = dir.display()),
+      );
     }
 
     Some(Source::Git { ref url, ref pin }) => manage_git_queries(
@@ -203,9 +253,12 @@ fn manage(
       &lang,
     )?,
 
-    None => msg(format!(
-      "no query configuration for {lang}; will be using the grammar directory"
-    )),
+    None => {
+      Report::new(
+        ReportIcon::Error,
+        format!("no query configuration for {lang}; will be using the grammar directory"),
+      );
+    }
   }
 
   Ok(())
@@ -227,8 +280,9 @@ fn manage_git_grammar(
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if manage_flags.fetch {
-    msg(format!("fetching grammar for language {lang}"));
-    fetch_via_git(url, pin, &grammar_fetch_path, lang)?;
+    let report = Report::new(ReportIcon::Fetch, format!("fetching {lang} grammar…"));
+    fetch_via_git(&report, url, pin, &grammar_fetch_path, lang)?;
+    report.report(ReportIcon::Success, format!("fetched {lang} grammar"));
   }
 
   let lang_build_dir = runtime_dir.join(format!(
@@ -238,8 +292,6 @@ fn manage_git_grammar(
   ));
 
   if manage_flags.compile {
-    msg(format!("compiling grammar for language {lang}"));
-
     // ensure the build dir exists
     fs::create_dir_all(&lang_build_dir).map_err(|err| AppError::CannotCreateDir {
       dir: lang_build_dir.clone(),
@@ -250,7 +302,6 @@ fn manage_git_grammar(
   }
 
   if manage_flags.install {
-    msg(format!("installing grammar for language {lang}"));
     install_grammar(install_dir, &lang_build_dir, lang)?;
   }
 
@@ -273,12 +324,12 @@ fn manage_git_queries(
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if manage_flags.fetch {
-    msg(format!("fetching queries for {lang}"));
-    fetch_via_git(url, pin, &queries_fetch_path, lang)?;
+    let report = Report::new(ReportIcon::Fetch, format!("fetching {lang} queries"));
+    fetch_via_git(&report, url, pin, &queries_fetch_path, lang)?;
+    report.report(ReportIcon::Success, format!("fetched {lang} queries"));
   }
 
   if manage_flags.install {
-    msg(format!("installing queries for {lang}"));
     install_queries(install_dir, &queries_fetch_path.join(path), lang)?;
   }
 
@@ -537,6 +588,7 @@ fn display_queries_info(path: &Path, lang: &str) {
 
 /// Fetch an URL via git, and support pinning.
 fn fetch_via_git(
+  report: &Report,
   url: &str,
   pin: Option<&str>,
   fetch_path: &Path,
@@ -544,6 +596,7 @@ fn fetch_via_git(
 ) -> Result<(), AppError> {
   // cleanup / remove the {runtime_dir}/{lang} directory, if exists
   if let Ok(true) = fetch_path.try_exists() {
+    report.report(ReportIcon::Info, "removing previously downloaded content");
     fs::remove_dir_all(fetch_path).map_err(|err| AppError::CannotRemoveDir {
       dir: fetch_path.to_owned(),
       err,
@@ -572,8 +625,12 @@ fn fetch_via_git(
         .ok_or_else(|| AppError::BadPath)?,
     ]
   };
+
+  report.report(ReportIcon::Fetch, format!("cloning {url}"));
   Command::new("git")
     .args(git_clone_args)
+    .stdout(Stdio::null())
+    .stderr(Stdio::null())
     .spawn()
     .map_err(|err| AppError::FetchError {
       lang: lang.to_owned(),
@@ -587,9 +644,13 @@ fn fetch_via_git(
     })?;
 
   if let Some(pin) = pin {
+    report.report(ReportIcon::Info, format!("checking out {pin}"));
+
     Command::new("git")
       .args(["reset", "--hard", pin])
       .current_dir(fetch_path)
+      .stdout(Stdio::null())
+      .stderr(Stdio::null())
       .spawn()
       .map_err(|err| AppError::FetchError {
         lang: lang.to_owned(),
@@ -619,6 +680,14 @@ fn do_compile(
     .iter()
     .map(|arg| arg.replace("{lang}", lang))
     .chain(lang_config.grammar.compile_flags.clone());
+
+  let report = Report::new(
+    ReportIcon::Compile,
+    format!(
+      "compiling {lang} grammar: {} {args:?}",
+      lang_config.grammar.compile
+    ),
+  );
   Command::new(&lang_config.grammar.compile)
     .args(args)
     .current_dir(lang_build_dir)
@@ -633,6 +702,9 @@ fn do_compile(
       err,
     })?;
 
+  report.report(ReportIcon::Success, format!("compiled {lang} grammar"));
+  drop(report);
+
   // link into {lang}.so
   let args = lang_config
     .grammar
@@ -640,6 +712,13 @@ fn do_compile(
     .iter()
     .map(|arg| arg.replace("{lang}", lang))
     .chain(lang_config.grammar.link_flags.clone());
+  let report = Report::new(
+    ReportIcon::Link,
+    format!(
+      "linking {lang} grammar: {} {args:?}",
+      lang_config.grammar.link,
+    ),
+  );
   Command::new(&lang_config.grammar.link)
     .args(args)
     .current_dir(lang_build_dir)
@@ -653,7 +732,11 @@ fn do_compile(
     .map_err(|err| AppError::ErrorWhileWaitingForProcess {
       process: "git".to_owned(),
       err,
-    })
+    })?;
+
+  report.report(ReportIcon::Success, format!("linked {lang} grammar"));
+
+  Ok(())
 }
 
 fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
@@ -661,6 +744,7 @@ fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Res
   let source_path = lang_build_dir.join(&lang_so);
   let grammar_dir = install_dir.join("grammars");
   let install_path = grammar_dir.join(lang_so);
+  let report = Report::new(ReportIcon::Install, format!("installing {lang} grammar"));
 
   // ensure the grammars directory exists
   fs::create_dir_all(&grammar_dir).map_err(|err| AppError::CannotCreateDir {
@@ -673,12 +757,16 @@ fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Res
     err,
   })?;
 
+  report.report(ReportIcon::Success, format!("installed {lang} grammar"));
+
   Ok(())
 }
 
 fn install_queries(install_dir: &Path, query_dir: &Path, lang: &str) -> Result<(), AppError> {
   // ensure the queries directory exists
   let install_path = install_dir.join(format!("queries/{lang}"));
+  let report = Report::new(ReportIcon::Install, format!("installing {lang} queries"));
+
   fs::create_dir_all(&install_path).map_err(|err| AppError::CannotCreateDir {
     dir: install_path.clone(),
     err,
@@ -688,7 +776,11 @@ fn install_queries(install_dir: &Path, query_dir: &Path, lang: &str) -> Result<(
     src: query_dir.to_owned(),
     dest: install_path,
     err,
-  })
+  })?;
+
+  report.report(ReportIcon::Success, format!("installed {lang} queries"));
+
+  Ok(())
 }
 
 fn copy_dir(from: &Path, to: &Path) -> Result<(), io::Error> {
