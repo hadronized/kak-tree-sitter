@@ -144,7 +144,7 @@ fn start() -> Result<(), AppError> {
       lang,
     ),
 
-    cli::Cmd::Info { has, all } => info(&config, &install_dir, has, all),
+    cli::Cmd::Info { lang, all } => info(&config, &install_dir, lang, all),
   }
 }
 
@@ -289,10 +289,10 @@ fn manage_git_queries(
 fn info(
   config: &Config,
   install_dir: &Path,
-  has: Option<String>,
+  lang: Option<String>,
   all: bool,
 ) -> Result<(), AppError> {
-  if let Some(lang) = has {
+  if let Some(lang) = lang {
     display_lang_info(config, install_dir, &lang)?;
   } else if all {
     unimplemented!();
