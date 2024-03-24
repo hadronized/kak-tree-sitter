@@ -317,64 +317,113 @@ fn display_lang_info(config: &Config, install_dir: &Path, lang: &str) -> Result<
 }
 
 fn config_section(section: impl Display) -> impl Display {
-  format!("-- {section} --").blue()
+  format!("· {section}").bold()
 }
 
 fn config_field(field: impl Display) -> impl Display {
-  format!("{field}").cyan()
+  format!("{field}{}", delim(":")).blue()
+}
+
+fn delim(d: impl Display) -> impl Display {
+  format!("{d}").black()
+}
+
+fn display_source(source: &Source) {
+  match source {
+    Source::Path { dir } => {
+      println!(
+        "  {} {}",
+        config_field("Source (path)"),
+        format!("{}", dir.display()).green()
+      );
+    }
+
+    Source::Git { url, pin } => {
+      print!("  {} {}", config_field("Source (git)"), url.green());
+
+      if let Some(pin) = pin {
+        let pin = format!("{}{}{}", "(".black(), pin.red(), ")".black());
+        print!(" {pin}");
+      }
+
+      println!();
+    }
+  }
+}
+
+fn display_list(list: &[impl AsRef<str>]) {
+  print!("{}", delim("["));
+
+  if !list.is_empty() {
+    print!("{}", list[0].as_ref().green());
+
+    for elem in &list[1..] {
+      print!("{} {}", delim(","), elem.as_ref().green());
+    }
+  }
+
+  println!("{}", delim("]"));
 }
 
 fn display_lang_config(config: &LanguageConfig) {
   // grammar first
   let grammar = &config.grammar;
+  println!("{}", config_section("Grammar configuration"));
+  display_source(&grammar.source);
+
+  // path
   println!(
-    r#"{section}
-   {source_field}: {source:?}
-   {path_field}: {path}
-   {compile_field}: {compile} {compile_args:?}
-   {compile_flags_field}: {compile_flags:?}
-   {link_field}: {link} {link_args:?}
-   {link_flags_field}: {link_flags:?}"#,
-    section = config_section("Grammar configuration"),
-    source_field = config_field("Source"),
-    source = grammar.source,
-    path_field = config_field("Path"),
-    path = grammar.path.display(),
-    compile_field = config_field("Compilation command"),
-    compile = grammar.compile,
-    compile_args = grammar.compile_args,
-    compile_flags_field = config_field("Compilation flags"),
-    compile_flags = grammar.compile_flags,
-    link_field = config_field("Link command"),
-    link = grammar.link,
-    link_args = grammar.link_args,
-    link_flags_field = config_field("Link flags"),
-    link_flags = grammar.link_flags,
+    "  {} {} ",
+    config_field("Path"),
+    format!("{}", grammar.path.display()).green()
   );
+
+  // compilation arguments
+  print!(
+    "  {} {} ",
+    config_field("Compilation command"),
+    grammar.compile.green()
+  );
+  display_list(&grammar.compile_args);
+
+  // compilation flags
+  print!("  {} ", config_field("Compilation flags"));
+  display_list(&grammar.compile_flags);
+
+  // link arguments
+  print!(
+    "  {} {} ",
+    config_field("Link command"),
+    grammar.link.green()
+  );
+  display_list(&grammar.link_args);
+
+  // link flags
+  print!("  {} ", config_field("Link flags"));
+  display_list(&grammar.link_flags);
 
   // then queries
   let queries = &config.queries;
+  println!("{}", config_section("Queries configuration"));
+
+  if let Some(ref source) = queries.source {
+    display_source(source);
+  }
+
   println!(
-    r#"{section}
-{source}   {path_field}: {path}"#,
-    section = config_section("Queries configuration"),
-    source = if let Some(ref source) = queries.source {
-      let url_field = config_field("URL");
-      format!("   {url_field}: {source:?}\n")
-    } else {
-      String::default()
-    },
+    "  {path_field} {path}",
     path_field = config_field("Path"),
-    path = queries.path.display()
+    path = format!("{}", queries.path.display()).green(),
   );
 
   // then the rest
+  println!("{}", config_section("Remove default highlighter"));
   println!(
-    r#"{section}
-   {field}: {remove:?}"#,
-    section = config_section("Remove default highlighter"),
+    "  {field} {remove}",
     field = config_field("Value"),
     remove = bool::from(config.remove_default_highlighter)
+      .to_string()
+      .green()
   );
 }
 
@@ -396,9 +445,11 @@ fn display_lang_install_stats(install_dir: &Path, lang: &str) {
   let grammar_path = install_dir.join(format!("grammars/{lang}.so"));
   if let Ok(true) = grammar_path.try_exists() {
     println!(
-      "   {sign} {lang} grammar: {path}",
+      "   {sign} {grammar}{delim} {path}",
       sign = check_sign(),
-      path = grammar_path.display()
+      grammar = format!("{lang} grammar").blue(),
+      delim = delim(":"),
+      path = format!("{}", grammar_path.display()).green()
     );
   } else {
     println!(
@@ -425,14 +476,18 @@ fn display_queries_info(path: &Path, lang: &str) {
 
     let mut scm_count = 0;
     let mut scm_expected_count = 0;
-    let mut prefix_mark = |s, desc| {
+    let mut prefix_mark = |s: &str, desc: &str| {
       scm_expected_count += 1;
 
       if scm_files.contains(s) {
         scm_count += 1;
-        format!("     {sign} {desc}", sign = check_sign())
+        format!(
+          "     {sign} {desc}",
+          sign = check_sign(),
+          desc = desc.blue()
+        )
       } else {
-        format!("     {sign} {desc}", sign = no_sign())
+        format!("     {sign} {desc}", sign = no_sign(), desc = desc.blue())
       }
     };
 
@@ -446,14 +501,18 @@ fn display_queries_info(path: &Path, lang: &str) {
 
     if scm_count == scm_expected_count {
       println!(
-        "   {sign} {lang} queries installed: {path}",
+        "   {sign} {queries}{delim} {path}",
         sign = check_sign(),
-        path = path.display()
+        queries = format!("{lang} queries").blue(),
+        delim = delim(":"),
+        path = format!("{}", path.display()).green(),
       );
     } else if scm_count > 0 {
       println!(
-        "   {sign} {lang} queries partially installed: {path}",
+        "   {sign} {queries}{delim} {path}",
         sign = warn_sign(),
+        queries = format!("{lang} queries").blue(),
+        delim = delim(":"),
         path = path.display()
       );
     } else {
