@@ -270,6 +270,19 @@ fn manage(
   Ok(())
 }
 
+/// Generate a source directory for a given URL.
+fn sources_dir(runtime_dir: &Path, url: &str) -> Result<PathBuf, AppError> {
+  let url_dir = PathBuf::from(
+    url
+      .trim_start_matches("http")
+      .trim_start_matches("s")
+      .trim_start_matches("://"),
+  );
+  let path = runtime_dir.join("sources").join(url_dir);
+
+  Ok(path)
+}
+
 /// Manage a git grammar.
 ///
 /// For git repositories, we have to fetch, compile, link and install grammars.
@@ -282,18 +295,35 @@ fn manage_git_grammar(
   manage_flags: &ManageFlags,
   lang: &str,
 ) -> Result<(), AppError> {
-  let grammar_fetch_path = runtime_dir.join(format!("grammars/{lang}"));
+  let sources_path = sources_dir(runtime_dir, url)?;
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if manage_flags.fetch {
     let report = Report::new(ReportIcon::Fetch, format!("fetching {lang} grammar…"));
-    fetch_via_git(&report, url, pin, &grammar_fetch_path, lang)?;
-    report.report(ReportIcon::Success, format!("fetched {lang} grammar"));
+    let fetched = fetch_via_git(&report, url, pin, &sources_path, lang)?;
+
+    if fetched {
+      report.report(
+        ReportIcon::Success,
+        format!(
+          "fetched {lang} grammar at {path}",
+          path = sources_path.display(),
+        ),
+      );
+    } else {
+      report.report(
+        ReportIcon::Success,
+        format!(
+          "already fetched {lang} grammar at {path} (cached)",
+          path = sources_path.display(),
+        ),
+      );
+    }
   }
 
   let lang_build_dir = runtime_dir.join(format!(
     "{fetch_path}/{src_path}/build",
-    fetch_path = grammar_fetch_path.display(),
+    fetch_path = sources_path.display(),
     src_path = lang_config.grammar.path.display()
   ));
 
@@ -326,17 +356,34 @@ fn manage_git_queries(
   manage_flags: &ManageFlags,
   lang: &str,
 ) -> Result<(), AppError> {
-  let queries_fetch_path = runtime_dir.join(format!("queries/{lang}"));
+  let sources_path = sources_dir(runtime_dir, url)?;
 
   // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
   if manage_flags.fetch {
-    let report = Report::new(ReportIcon::Fetch, format!("fetching {lang} queries"));
-    fetch_via_git(&report, url, pin, &queries_fetch_path, lang)?;
-    report.report(ReportIcon::Success, format!("fetched {lang} queries"));
+    let report = Report::new(ReportIcon::Fetch, format!("fetching {lang} queries",));
+    let fetched = fetch_via_git(&report, url, pin, &sources_path, lang)?;
+
+    if fetched {
+      report.report(
+        ReportIcon::Success,
+        format!(
+          "fetched {lang} queries at {path}",
+          path = sources_path.display(),
+        ),
+      );
+    } else {
+      report.report(
+        ReportIcon::Success,
+        format!(
+          "already fetched {lang} queries at {path} (cached)",
+          path = sources_path.display(),
+        ),
+      );
+    }
   }
 
   if manage_flags.install {
-    install_queries(install_dir, &queries_fetch_path.join(path), lang)?;
+    install_queries(install_dir, &sources_path.join(path), lang)?;
   }
 
   Ok(())
@@ -593,21 +640,25 @@ fn display_queries_info(path: &Path, lang: &str) {
 }
 
 /// Fetch an URL via git, and support pinning.
+///
+/// Return `Ok(true)` if something was fetched; `Ok(false)` if it was already there.
 fn fetch_via_git(
   report: &Report,
   url: &str,
   pin: Option<&str>,
   fetch_path: &Path,
   lang: &str,
-) -> Result<(), AppError> {
+) -> Result<bool, AppError> {
+  // check if the fetch path already exists; if so, we abort
   // cleanup / remove the {runtime_dir}/{lang} directory, if exists
   if let Ok(true) = fetch_path.try_exists() {
-    report.report(ReportIcon::Info, "removing previously downloaded content");
-    fs::remove_dir_all(fetch_path).map_err(|err| AppError::CannotRemoveDir {
-      dir: fetch_path.to_owned(),
-      err,
-    })?;
+    return Ok(false);
   }
+
+  fs::create_dir_all(&fetch_path).map_err(|err| AppError::CannotCreateDir {
+    dir: fetch_path.to_owned(),
+    err,
+  })?;
 
   let git_clone_args = if pin.is_some() {
     vec![
@@ -670,7 +721,7 @@ fn fetch_via_git(
       })?;
   }
 
-  Ok(())
+  Ok(true)
 }
 
 /// Compile and link the grammar.
@@ -687,13 +738,7 @@ fn do_compile(
     .map(|arg| arg.replace("{lang}", lang))
     .chain(lang_config.grammar.compile_flags.clone());
 
-  let report = Report::new(
-    ReportIcon::Compile,
-    format!(
-      "compiling {lang} grammar: {} {args:?}",
-      lang_config.grammar.compile
-    ),
-  );
+  let report = Report::new(ReportIcon::Compile, format!("compiling {lang} grammar"));
   Command::new(&lang_config.grammar.compile)
     .args(args)
     .current_dir(lang_build_dir)
@@ -718,13 +763,7 @@ fn do_compile(
     .iter()
     .map(|arg| arg.replace("{lang}", lang))
     .chain(lang_config.grammar.link_flags.clone());
-  let report = Report::new(
-    ReportIcon::Link,
-    format!(
-      "linking {lang} grammar: {} {args:?}",
-      lang_config.grammar.link,
-    ),
-  );
+  let report = Report::new(ReportIcon::Link, format!("linking {lang} grammar",));
   Command::new(&lang_config.grammar.link)
     .args(args)
     .current_dir(lang_build_dir)
