@@ -8,14 +8,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Source {
-  Path { dir: PathBuf },
+  Local { path: PathBuf },
   Git { url: String, pin: Option<String> },
 }
 
 impl Source {
-  pub fn path(dir: impl Into<PathBuf>) -> Self {
-    let dir = dir.into();
-    Self::Path { dir }
+  pub fn local(path: impl Into<PathBuf>) -> Self {
+    let path = path.into();
+    Self::Local { path }
   }
 
   pub fn git(url: impl Into<String>, pin: impl Into<Option<String>>) -> Self {

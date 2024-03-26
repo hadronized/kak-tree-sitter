@@ -67,7 +67,7 @@ This section provides the required data to know how to fetch queries.
 
 Sources are a way to provide information from where runtime resources come from. We currently support two sources:
 
-- Local paths (`path`).
+- Local paths (`local.path`).
 - And Git repositories (`git`), which is an object containing the following fields:
   - `url`: the URL to fetch from. Will use `git clone`.
   - `pin`: _pin ref_, such as a commit, branch name or tag. **Highly recommended** to prevent breakage.
@@ -80,10 +80,10 @@ If you decide to use a `git` source:
 - When you decide to install a “language”, both the grammars and queries might be fetched, compiled and installed if
   the configuration requires both to be. Hence, a single CLI command should basically do everything for you.
 
-If you decide to use a `path` source, **`ktsctl` will do nothing for you** and will simply display a message explaining
+If you decide to use a `local` source, **`ktsctl` will do nothing for you** and will simply display a message explaining
 that it will use a path. Nothing will be fetched, compiled nor installed. It’s up to you to do so.
 
 For users installing `ktsctl` by using a binary release or compiling it themselves, the default configuration (which
 uses mainly `git` sources) is enough. However, if you ship with a distributed set of grammars and queries, you might
-want to override the languages’ configurations and use `path` sources. You can also mix them: a `git` source for the
-grammar, and a `path` one for the queries. It’s up to you.
+want to override the languages’ configurations and use `local` sources. You can also mix them: a `git` source for the
+grammar, and a `local` one for the queries. It’s up to you.

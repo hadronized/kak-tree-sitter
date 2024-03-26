@@ -216,10 +216,13 @@ fn manage(
 
   // grammar
   match lang_config.grammar.source {
-    Source::Path { ref dir } => {
+    Source::Local { ref path } => {
       Report::new(
         ReportIcon::Info,
-        format!("using local grammar {lang} at {dir}", dir = dir.display()),
+        format!(
+          "using local grammar {lang} at {path}",
+          path = path.display()
+        ),
       );
     }
 
@@ -236,10 +239,13 @@ fn manage(
 
   // queries
   match lang_config.queries.source {
-    Some(Source::Path { ref dir }) => {
+    Some(Source::Local { ref path }) => {
       Report::new(
         ReportIcon::Info,
-        format!("using local queries {lang} at {dir}", dir = dir.display()),
+        format!(
+          "using local queries {lang} at {path}",
+          path = path.display()
+        ),
       );
     }
 
@@ -381,11 +387,11 @@ fn delim(d: impl Display) -> impl Display {
 
 fn display_source(source: &Source) {
   match source {
-    Source::Path { dir } => {
+    Source::Local { path } => {
       println!(
         "  {} {}",
         config_field("Source (path)"),
-        format!("{}", dir.display()).green()
+        format!("{}", path.display()).green()
       );
     }
 

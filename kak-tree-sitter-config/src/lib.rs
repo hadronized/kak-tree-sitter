@@ -149,15 +149,27 @@ impl LanguagesConfig {
   }
 
   /// Get the grammar path for a given language.
-  pub fn get_grammar_path(lang: impl AsRef<str>) -> Option<PathBuf> {
-    let lang = lang.as_ref();
-    dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
+  pub fn get_grammar_path(lang_config: &LanguageConfig, lang: impl AsRef<str>) -> Option<PathBuf> {
+    match lang_config.grammar.source {
+      Source::Local { path: ref dir } => Some(dir.clone()),
+
+      Source::Git { .. } => {
+        let lang = lang.as_ref();
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
+      }
+    }
   }
 
   /// Get the queries directory for a given language.
-  pub fn get_queries_dir(lang: impl AsRef<str>) -> Option<PathBuf> {
-    let lang = lang.as_ref();
-    dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
+  pub fn get_queries_dir(lang_config: &LanguageConfig, lang: impl AsRef<str>) -> Option<PathBuf> {
+    match lang_config.queries.source {
+      Some(Source::Local { path: ref dir }) => Some(dir.clone()),
+
+      _ => {
+        let lang = lang.as_ref();
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
+      }
+    }
   }
 }
 
@@ -472,7 +484,7 @@ mod tests {
           "rust".to_owned(),
           LanguageConfig {
             grammar: LanguageGrammarConfig {
-              source: Source::path("file://hello"),
+              source: Source::local("file://hello"),
               path: PathBuf::from("src"),
               compile: "".to_owned(),
               compile_args: Vec::default(),
