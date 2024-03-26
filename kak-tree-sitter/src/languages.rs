@@ -69,7 +69,7 @@ impl Languages {
     for (lang_name, lang_config) in &config.languages.language {
       log::info!("loading configuration for {lang_name}");
 
-      if let Some(grammar_path) = LanguagesConfig::get_grammar_path(lang_name) {
+      if let Some(grammar_path) = LanguagesConfig::get_grammar_path(lang_config, lang_name) {
         log::info!("  grammar path: {}", grammar_path.display());
 
         let (ts_lib, ts_lang) = match Self::load_grammar(lang_name, &grammar_path) {
@@ -80,7 +80,7 @@ impl Languages {
           }
         };
 
-        if let Some(queries_dir) = LanguagesConfig::get_queries_dir(lang_name) {
+        if let Some(queries_dir) = LanguagesConfig::get_queries_dir(lang_config, lang_name) {
           log::info!("  queries directory: {}", queries_dir.display());
 
           let queries = Queries::load_from_dir(queries_dir);
