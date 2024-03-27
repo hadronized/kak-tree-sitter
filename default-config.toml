@@ -1254,7 +1254,25 @@ path = "runtime/queries/verilog"
 # TODO
 
 # vue
-# TODO
+[language.vue.grammar.source.git]
+url = "https://github.com/ikatyang/tree-sitter-vue"
+pin = "91fe2754796cd8fba5f229505a23fa08f3546c06"
+
+[language.vue.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "vue.so"]
+link_flags = ["-O3", "-lstdc++"]
+
+[language.vue.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.vue.queries]
+path = "runtime/queries/vue"
 
 # wast
 # TODO
