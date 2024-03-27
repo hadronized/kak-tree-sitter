@@ -231,7 +231,7 @@ fn manage(
       runtime_dir,
       install_dir,
       url,
-      pin.as_deref(),
+      pin,
       &manage_flags,
       &lang,
     )?,
@@ -253,7 +253,7 @@ fn manage(
       runtime_dir,
       install_dir,
       url,
-      pin.as_deref(),
+      pin,
       &lang_config.queries.path,
       &manage_flags,
       &lang,
@@ -275,7 +275,7 @@ fn sources_dir(runtime_dir: &Path, url: &str) -> Result<PathBuf, AppError> {
   let url_dir = PathBuf::from(
     url
       .trim_start_matches("http")
-      .trim_start_matches("s")
+      .trim_start_matches('s')
       .trim_start_matches("://"),
   );
   let path = runtime_dir.join("sources").join(url_dir);
@@ -291,7 +291,7 @@ fn manage_git_grammar(
   runtime_dir: &Path,
   install_dir: &Path,
   url: &str,
-  pin: Option<&str>,
+  pin: &str,
   manage_flags: &ManageFlags,
   lang: &str,
 ) -> Result<(), AppError> {
@@ -351,7 +351,7 @@ fn manage_git_queries(
   runtime_dir: &Path,
   install_dir: &Path,
   url: &str,
-  pin: Option<&str>,
+  pin: &str,
   path: &Path,
   manage_flags: &ManageFlags,
   lang: &str,
@@ -443,14 +443,14 @@ fn display_source(source: &Source) {
     }
 
     Source::Git { url, pin } => {
-      print!("  {} {}", config_field("Source (git)"), url.green());
-
-      if let Some(pin) = pin {
-        let pin = format!("{}{}{}", "(".black(), pin.red(), ")".black());
-        print!(" {pin}");
-      }
-
-      println!();
+      println!(
+        "  {} {} {}{}{}",
+        config_field("Source (git)"),
+        url.green(),
+        "(".black(),
+        pin.red(),
+        ")".black()
+      );
     }
   }
 }
@@ -645,7 +645,7 @@ fn display_queries_info(path: &Path, lang: &str) {
 fn fetch_via_git(
   report: &Report,
   url: &str,
-  pin: Option<&str>,
+  pin: &str,
   fetch_path: &Path,
   lang: &str,
 ) -> Result<bool, AppError> {
@@ -655,33 +655,20 @@ fn fetch_via_git(
     return Ok(false);
   }
 
-  fs::create_dir_all(&fetch_path).map_err(|err| AppError::CannotCreateDir {
+  fs::create_dir_all(fetch_path).map_err(|err| AppError::CannotCreateDir {
     dir: fetch_path.to_owned(),
     err,
   })?;
 
-  let git_clone_args = if pin.is_some() {
-    vec![
-      "clone",
-      url,
-      "-n",
-      fetch_path
-        .as_os_str()
-        .to_str()
-        .ok_or_else(|| AppError::BadPath)?,
-    ]
-  } else {
-    vec![
-      "clone",
-      url,
-      "--depth",
-      "1",
-      fetch_path
-        .as_os_str()
-        .to_str()
-        .ok_or_else(|| AppError::BadPath)?,
-    ]
-  };
+  let git_clone_args = vec![
+    "clone",
+    url,
+    "-n",
+    fetch_path
+      .as_os_str()
+      .to_str()
+      .ok_or_else(|| AppError::BadPath)?,
+  ];
 
   report.report(ReportIcon::Fetch, format!("cloning {url}"));
   Command::new("git")
@@ -700,26 +687,23 @@ fn fetch_via_git(
       err,
     })?;
 
-  if let Some(pin) = pin {
-    report.report(ReportIcon::Info, format!("checking out {pin}"));
-
-    Command::new("git")
-      .args(["reset", "--hard", pin])
-      .current_dir(fetch_path)
-      .stdout(Stdio::null())
-      .stderr(Stdio::null())
-      .spawn()
-      .map_err(|err| AppError::FetchError {
-        lang: lang.to_owned(),
-        err,
-      })?
-      .wait()
-      .map(|_| ())
-      .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-        process: "git reset".to_owned(),
-        err,
-      })?;
-  }
+  report.report(ReportIcon::Info, format!("checking out {pin}"));
+  Command::new("git")
+    .args(["reset", "--hard", pin])
+    .current_dir(fetch_path)
+    .stdout(Stdio::null())
+    .stderr(Stdio::null())
+    .spawn()
+    .map_err(|err| AppError::FetchError {
+      lang: lang.to_owned(),
+      err,
+    })?
+    .wait()
+    .map(|_| ())
+    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
+      process: "git reset".to_owned(),
+      err,
+    })?;
 
   Ok(true)
 }

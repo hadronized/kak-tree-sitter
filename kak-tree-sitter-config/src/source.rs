@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 pub enum Source {
   Local { path: PathBuf },
-  Git { url: String, pin: Option<String> },
+  Git { url: String, pin: String },
 }
 
 impl Source {
@@ -18,7 +18,7 @@ impl Source {
     Self::Local { path }
   }
 
-  pub fn git(url: impl Into<String>, pin: impl Into<Option<String>>) -> Self {
+  pub fn git(url: impl Into<String>, pin: impl Into<String>) -> Self {
     let url = url.into();
     let pin = pin.into();
     Self::Git { url, pin }
