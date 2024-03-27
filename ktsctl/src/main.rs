@@ -338,7 +338,7 @@ fn manage_git_grammar(
   }
 
   if manage_flags.install {
-    install_grammar(install_dir, &lang_build_dir, lang)?;
+    install_grammar(install_dir, &lang_build_dir, lang, pin)?;
   }
 
   Ok(())
@@ -383,7 +383,7 @@ fn manage_git_queries(
   }
 
   if manage_flags.install {
-    install_queries(install_dir, &sources_path.join(path), lang)?;
+    install_queries(install_dir, &sources_path.join(path), lang, pin)?;
   }
 
   Ok(())
@@ -768,11 +768,16 @@ fn do_compile(
   Ok(())
 }
 
-fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
+fn install_grammar(
+  install_dir: &Path,
+  lang_build_dir: &Path,
+  lang: &str,
+  pin: &str,
+) -> Result<(), AppError> {
   let lang_so = format!("{lang}.so");
-  let source_path = lang_build_dir.join(&lang_so);
-  let grammar_dir = install_dir.join("grammars");
-  let install_path = grammar_dir.join(lang_so);
+  let source_path = lang_build_dir.join(lang_so);
+  let grammar_dir = install_dir.join(format!("grammars/{lang}"));
+  let install_path = grammar_dir.join(format!("{pin}.so"));
   let report = Report::new(ReportIcon::Install, format!("installing {lang} grammar"));
 
   // ensure the grammars directory exists
@@ -791,9 +796,14 @@ fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Res
   Ok(())
 }
 
-fn install_queries(install_dir: &Path, query_dir: &Path, lang: &str) -> Result<(), AppError> {
+fn install_queries(
+  install_dir: &Path,
+  query_dir: &Path,
+  lang: &str,
+  pin: &str,
+) -> Result<(), AppError> {
   // ensure the queries directory exists
-  let install_path = install_dir.join(format!("queries/{lang}"));
+  let install_path = install_dir.join(format!("queries/{lang}/{pin}"));
   let report = Report::new(ReportIcon::Install, format!("installing {lang} queries"));
 
   fs::create_dir_all(&install_path).map_err(|err| AppError::CannotCreateDir {

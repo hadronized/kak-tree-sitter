@@ -151,11 +151,11 @@ impl LanguagesConfig {
   /// Get the grammar path for a given language.
   pub fn get_grammar_path(lang_config: &LanguageConfig, lang: impl AsRef<str>) -> Option<PathBuf> {
     match lang_config.grammar.source {
-      Source::Local { path: ref dir } => Some(dir.clone()),
+      Source::Local { ref path } => Some(path.clone()),
 
-      Source::Git { .. } => {
+      Source::Git { ref pin, .. } => {
         let lang = lang.as_ref();
-        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}/{pin}.so")))
       }
     }
   }
@@ -163,11 +163,16 @@ impl LanguagesConfig {
   /// Get the queries directory for a given language.
   pub fn get_queries_dir(lang_config: &LanguageConfig, lang: impl AsRef<str>) -> Option<PathBuf> {
     match lang_config.queries.source {
-      Some(Source::Local { path: ref dir }) => Some(dir.clone()),
+      Some(Source::Local { ref path }) => Some(path.clone()),
 
-      _ => {
+      Some(Source::Git { ref pin, .. }) => {
         let lang = lang.as_ref();
-        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}/{pin}")))
+      }
+
+      None => {
+        // FIXME: not sure this is wanted?
+        None
       }
     }
   }
