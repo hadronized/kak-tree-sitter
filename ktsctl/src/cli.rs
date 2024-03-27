@@ -8,6 +8,9 @@ use clap::{Parser, Subcommand};
   about = "CLI controler for kak-tree-sitter"
 )]
 pub struct Cli {
+  #[clap(long)]
+  pub verbose: bool,
+
   #[clap(subcommand)]
   pub cmd: Cmd,
 }
