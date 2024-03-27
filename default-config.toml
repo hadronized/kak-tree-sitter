@@ -366,7 +366,25 @@ path = "runtime/queries/diff"
 # TODO
 
 # elixir
-# TODO
+[language.elixir.grammar.source.git]
+url = "https://github.com/elixir-lang/tree-sitter-elixir"
+pin = "511ea5e0088779e4bdd76e12963ab9a5fe99983a"
+
+[language.elixir.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "elixir.so"]
+link_flags = ["-O3"]
+
+[language.elixir.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.elixir.queries]
+path = "runtime/queries/elixir"
 
 # elm
 # TODO
