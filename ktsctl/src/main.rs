@@ -83,14 +83,16 @@ struct ManageFlags {
   fetch: bool,
   compile: bool,
   install: bool,
+  sync: bool,
 }
 
 impl ManageFlags {
-  fn new(fetch: bool, compile: bool, install: bool) -> Self {
+  fn new(fetch: bool, compile: bool, install: bool, sync: bool) -> Self {
     Self {
       fetch,
       compile,
       install,
+      sync,
     }
   }
 }
@@ -133,6 +135,7 @@ impl Drop for Report {
 #[derive(Debug)]
 enum ReportIcon {
   Fetch,
+  Sync,
   Compile,
   Link,
   Install,
@@ -145,6 +148,7 @@ impl Display for ReportIcon {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       ReportIcon::Fetch => write!(f, "{}", "".magenta()),
+      ReportIcon::Sync => write!(f, "{}", "".magenta()),
       ReportIcon::Compile => write!(f, "{}", "".cyan()),
       ReportIcon::Link => write!(f, "{}", "".cyan()),
       ReportIcon::Install => write!(f, "{}", "".cyan()),
@@ -199,12 +203,13 @@ fn start() -> Result<(), AppError> {
       fetch,
       compile,
       install,
+      sync,
       lang,
     } => manage(
       &config,
       &runtime_dir,
       &install_dir,
-      ManageFlags::new(fetch, compile, install),
+      ManageFlags::new(fetch, compile, install, sync),
       lang,
     ),
 
@@ -335,6 +340,13 @@ fn manage_git_grammar(
     }
   }
 
+  if manage_flags.sync {
+    let report = Report::new(ReportIcon::Sync, format!("syncing {lang} grammar"));
+    fetch_remote(&report, url, &sources_path, lang)?;
+    check_out_pin(&report, url, pin, &sources_path, lang)?;
+    report.report(ReportIcon::Success, format!("synchronized {lang} grammar"));
+  }
+
   let lang_build_dir = runtime_dir.join(format!(
     "{fetch_path}/{src_path}/build",
     fetch_path = sources_path.display(),
@@ -394,6 +406,13 @@ fn manage_git_queries(
         ),
       );
     }
+  }
+
+  if manage_flags.sync {
+    let report = Report::new(ReportIcon::Sync, format!("syncing {lang} queries"));
+    fetch_remote(&report, url, &sources_path, lang)?;
+    check_out_pin(&report, url, pin, &sources_path, lang)?;
+    report.report(ReportIcon::Success, format!("synchronized {lang} queries"));
   }
 
   if manage_flags.install {
@@ -585,7 +604,7 @@ fn display_grammar_info(config: &LanguageGrammarConfig, install_dir: &Path, lang
       println!(
         "   {sign} {lang} grammar out of sync; synchronize with {help}",
         sign = no_sign(),
-        help = format!("ktsctl manage --sync --lang {lang}").bold()
+        help = format!("ktsctl manage -cis {lang}").bold()
       );
     } else {
       println!(
@@ -657,7 +676,7 @@ fn display_queries_info(config: &LanguageQueriesConfig, install_dir: &Path, lang
       println!(
         "   {sign} {lang} queries missing; install with {help}",
         sign = no_sign(),
-        help = format!("ktsctl manage -fci {lang}").bold()
+        help = format!("ktsctl manage -fi {lang}").bold()
       );
     }
 
@@ -671,7 +690,7 @@ fn display_queries_info(config: &LanguageQueriesConfig, install_dir: &Path, lang
       println!(
         "   {sync} {lang} queries out of sync; synchronize with {help}",
         sync = no_sign(),
-        help = format!("ktsctl manage --sync {lang}").bold()
+        help = format!("ktsctl manage -is {lang}").bold()
       );
     } else {
       println!(
@@ -731,7 +750,51 @@ fn fetch_via_git(
       err,
     })?;
 
-  report.report(ReportIcon::Info, format!("checking out {pin}"));
+  check_out_pin(report, url, pin, fetch_path, lang)?;
+
+  Ok(true)
+}
+
+/// Fetch remote git objects.
+fn fetch_remote(report: &Report, url: &str, fetch_path: &Path, lang: &str) -> Result<(), AppError> {
+  report.report(
+    ReportIcon::Sync,
+    format!("fetching {lang} git remote objects {url}"),
+  );
+
+  Command::new("git")
+    .args(["fetch", "origin", "--prune"])
+    .current_dir(fetch_path)
+    .stdout(Stdio::null())
+    .stderr(Stdio::null())
+    .spawn()
+    .map_err(|err| AppError::FetchError {
+      lang: lang.to_owned(),
+      err,
+    })?
+    .wait()
+    .map(|_| ())
+    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
+      process: "git reset".to_owned(),
+      err,
+    })?;
+
+  Ok(())
+}
+
+/// Checkout a source at a given pin.
+fn check_out_pin(
+  report: &Report,
+  url: &str,
+  pin: &str,
+  fetch_path: &Path,
+  lang: &str,
+) -> Result<(), AppError> {
+  report.report(
+    ReportIcon::Info,
+    format!("checking out {lang} {url} at {pin}"),
+  );
+
   Command::new("git")
     .args(["reset", "--hard", pin])
     .current_dir(fetch_path)
@@ -749,7 +812,7 @@ fn fetch_via_git(
       err,
     })?;
 
-  Ok(true)
+  Ok(())
 }
 
 /// Compile and link the grammar.

@@ -220,7 +220,7 @@ impl LanguageConfig {
       self.grammar.merge_user_config(user_grammar)?;
     }
     if let Some(user_queries) = user_config.queries {
-      self.queries.merge_user_config(user_queries);
+      self.queries.merge_user_config(user_queries)?;
     }
 
     self.remove_default_highlighter = user_config
@@ -383,10 +383,25 @@ pub struct LanguageQueriesConfig {
 }
 
 impl LanguageQueriesConfig {
-  fn merge_user_config(&mut self, user_config: UserLanguageQueriesConfig) {
-    if let Some(source) = user_config.source {
-      self.source = Some(source);
+  fn merge_user_config(
+    &mut self,
+    user_config: UserLanguageQueriesConfig,
+  ) -> Result<(), ConfigError> {
+    match (&mut self.source, user_config.source) {
+      (_, None) => (),
+
+      (None, Some(source)) => self.source = Some(Source::try_from(source)?),
+
+      (Some(source), Some(user_source)) => {
+        source.merge_user_config(user_source);
+      }
     }
+
+    if let Some(path) = user_config.path {
+      self.path = path;
+    }
+
+    Ok(())
   }
 }
 
@@ -398,10 +413,13 @@ impl TryFrom<UserLanguageQueriesConfig> for LanguageQueriesConfig {
       return Err(ConfigError::missing_opt("path"));
     };
 
-    Ok(Self {
-      source: user_config.source,
-      path,
-    })
+    let source = if let Some(source) = user_config.source {
+      Some(Source::try_from(source)?)
+    } else {
+      None
+    };
+
+    Ok(Self { source, path })
   }
 }
 
@@ -465,7 +483,7 @@ pub struct UserLanguageGrammarConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserLanguageQueriesConfig {
-  pub source: Option<Source>,
+  pub source: Option<UserSource>,
   pub path: Option<PathBuf>,
 }
 

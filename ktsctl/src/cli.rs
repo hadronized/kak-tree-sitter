@@ -33,6 +33,13 @@ pub enum Cmd {
     #[clap(short, long)]
     install: bool,
 
+    /// Synchronize resources.
+    ///
+    /// This command uses the `pin` configuration option of the language to synchronize. This command doesn’t remove
+    /// previous pinned resources; see --clear.
+    #[clap(short, long)]
+    sync: bool,
+
     /// Language to manage.
     lang: String,
   },
