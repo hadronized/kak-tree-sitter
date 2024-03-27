@@ -11,13 +11,21 @@ use std::{
 use clap::Parser;
 use cli::Cli;
 use colored::Colorize;
-use kak_tree_sitter_config::{source::Source, Config, LanguageConfig};
+use kak_tree_sitter_config::{
+  source::Source, Config, LanguageConfig, LanguageGrammarConfig, LanguageQueriesConfig,
+};
 use thiserror::Error;
 
 mod cli;
 
 #[derive(Debug, Error)]
 pub enum AppError {
+  #[error("logger failed to initialize: {err}")]
+  LoggerError {
+    #[from]
+    err: log::SetLoggerError,
+  },
+
   #[error("no runtime directory available")]
   NoRuntimeDir,
 
@@ -75,14 +83,16 @@ struct ManageFlags {
   fetch: bool,
   compile: bool,
   install: bool,
+  sync: bool,
 }
 
 impl ManageFlags {
-  fn new(fetch: bool, compile: bool, install: bool) -> Self {
+  fn new(fetch: bool, compile: bool, install: bool, sync: bool) -> Self {
     Self {
       fetch,
       compile,
       install,
+      sync,
     }
   }
 }
@@ -125,6 +135,7 @@ impl Drop for Report {
 #[derive(Debug)]
 enum ReportIcon {
   Fetch,
+  Sync,
   Compile,
   Link,
   Install,
@@ -137,6 +148,7 @@ impl Display for ReportIcon {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
     match self {
       ReportIcon::Fetch => write!(f, "{}", "".magenta()),
+      ReportIcon::Sync => write!(f, "{}", "".magenta()),
       ReportIcon::Compile => write!(f, "{}", "".cyan()),
       ReportIcon::Link => write!(f, "{}", "".cyan()),
       ReportIcon::Install => write!(f, "{}", "".cyan()),
@@ -164,7 +176,13 @@ fn kak_tree_sitter_data_dir() -> Result<PathBuf, AppError> {
 
 fn start() -> Result<(), AppError> {
   let cli = Cli::parse();
+
+  if cli.verbose {
+    simple_logger::init_with_level(log::Level::Debug)?;
+  }
+
   let config = Config::load_default_user()?;
+  log::debug!("ktsctl configuration:\n{config:#?}");
 
   // check the runtime dir exists
   let runtime_dir = runtime_dir()?;
@@ -185,12 +203,13 @@ fn start() -> Result<(), AppError> {
       fetch,
       compile,
       install,
+      sync,
       lang,
     } => manage(
       &config,
       &runtime_dir,
       &install_dir,
-      ManageFlags::new(fetch, compile, install),
+      ManageFlags::new(fetch, compile, install, sync),
       lang,
     ),
 
@@ -231,7 +250,7 @@ fn manage(
       runtime_dir,
       install_dir,
       url,
-      pin.as_deref(),
+      pin,
       &manage_flags,
       &lang,
     )?,
@@ -253,7 +272,7 @@ fn manage(
       runtime_dir,
       install_dir,
       url,
-      pin.as_deref(),
+      pin,
       &lang_config.queries.path,
       &manage_flags,
       &lang,
@@ -275,7 +294,7 @@ fn sources_dir(runtime_dir: &Path, url: &str) -> Result<PathBuf, AppError> {
   let url_dir = PathBuf::from(
     url
       .trim_start_matches("http")
-      .trim_start_matches("s")
+      .trim_start_matches('s')
       .trim_start_matches("://"),
   );
   let path = runtime_dir.join("sources").join(url_dir);
@@ -291,7 +310,7 @@ fn manage_git_grammar(
   runtime_dir: &Path,
   install_dir: &Path,
   url: &str,
-  pin: Option<&str>,
+  pin: &str,
   manage_flags: &ManageFlags,
   lang: &str,
 ) -> Result<(), AppError> {
@@ -321,6 +340,13 @@ fn manage_git_grammar(
     }
   }
 
+  if manage_flags.sync {
+    let report = Report::new(ReportIcon::Sync, format!("syncing {lang} grammar"));
+    fetch_remote(&report, url, &sources_path, lang)?;
+    check_out_pin(&report, url, pin, &sources_path, lang)?;
+    report.report(ReportIcon::Success, format!("synchronized {lang} grammar"));
+  }
+
   let lang_build_dir = runtime_dir.join(format!(
     "{fetch_path}/{src_path}/build",
     fetch_path = sources_path.display(),
@@ -338,7 +364,7 @@ fn manage_git_grammar(
   }
 
   if manage_flags.install {
-    install_grammar(install_dir, &lang_build_dir, lang)?;
+    install_grammar(install_dir, &lang_build_dir, lang, pin)?;
   }
 
   Ok(())
@@ -351,7 +377,7 @@ fn manage_git_queries(
   runtime_dir: &Path,
   install_dir: &Path,
   url: &str,
-  pin: Option<&str>,
+  pin: &str,
   path: &Path,
   manage_flags: &ManageFlags,
   lang: &str,
@@ -382,8 +408,15 @@ fn manage_git_queries(
     }
   }
 
+  if manage_flags.sync {
+    let report = Report::new(ReportIcon::Sync, format!("syncing {lang} queries"));
+    fetch_remote(&report, url, &sources_path, lang)?;
+    check_out_pin(&report, url, pin, &sources_path, lang)?;
+    report.report(ReportIcon::Success, format!("synchronized {lang} queries"));
+  }
+
   if manage_flags.install {
-    install_queries(install_dir, &sources_path.join(path), lang)?;
+    install_queries(install_dir, &sources_path.join(path), lang, pin)?;
   }
 
   Ok(())
@@ -415,7 +448,7 @@ fn display_lang_info(config: &Config, install_dir: &Path, lang: &str) -> Result<
   };
 
   display_lang_config(lang_config);
-  display_lang_install_stats(install_dir, lang);
+  display_lang_install_stats(lang_config, install_dir, lang);
 
   Ok(())
 }
@@ -443,14 +476,14 @@ fn display_source(source: &Source) {
     }
 
     Source::Git { url, pin } => {
-      print!("  {} {}", config_field("Source (git)"), url.green());
-
-      if let Some(pin) = pin {
-        let pin = format!("{}{}{}", "(".black(), pin.red(), ")".black());
-        print!(" {pin}");
-      }
-
-      println!();
+      println!(
+        "  {} {} {}{}{}",
+        config_field("Source (git)"),
+        url.green(),
+        "(".black(),
+        pin.red(),
+        ")".black()
+      );
     }
   }
 }
@@ -543,34 +576,58 @@ fn no_sign() -> impl Display {
   "".red()
 }
 
-fn display_lang_install_stats(install_dir: &Path, lang: &str) {
+fn display_lang_install_stats(lang_config: &LanguageConfig, install_dir: &Path, lang: &str) {
   println!("{section}", section = config_section("Install stats"));
 
-  let grammar_path = install_dir.join(format!("grammars/{lang}.so"));
-  if let Ok(true) = grammar_path.try_exists() {
-    println!(
-      "   {sign} {grammar}{delim} {path}",
-      sign = check_sign(),
-      grammar = format!("{lang} grammar").blue(),
-      delim = delim(":"),
-      path = format!("{}", grammar_path.display()).green()
-    );
-  } else {
-    println!(
-      "   {sign} {lang} grammar missing; install with {help}",
-      sign = no_sign(),
-      help = format!("ktsctl manage -fci {lang}").bold()
-    );
+  display_grammar_info(&lang_config.grammar, install_dir, lang);
+  display_queries_info(&lang_config.queries, install_dir, lang);
+}
+
+/// Check install grammar and report status.
+fn display_grammar_info(config: &LanguageGrammarConfig, install_dir: &Path, lang: &str) {
+  let grammar_path = match config.source {
+    Source::Local { ref path } => path.clone(),
+    Source::Git { ref pin, .. } => install_dir.join(format!("grammars/{lang}/{pin}.so")),
   };
 
-  let queries_path = install_dir.join(format!("queries/{lang}"));
-  display_queries_info(&queries_path, lang);
+  if let Ok(true) = grammar_path.try_exists() {
+    println!(
+      "   {sign} {grammar}",
+      sign = check_sign(),
+      grammar = format!("{lang} grammar").blue(),
+    );
+  } else {
+    let grammars_path = install_dir.join(format!("grammars/{lang}"));
+
+    if let Ok(true) = grammars_path.try_exists() {
+      // we might have a list of stuff
+      println!(
+        "   {sign} {lang} grammar out of sync; synchronize with {help}",
+        sign = no_sign(),
+        help = format!("ktsctl manage -cis {lang}").bold()
+      );
+    } else {
+      println!(
+        "   {sign} {lang} grammar missing; install with {help}",
+        sign = no_sign(),
+        help = format!("ktsctl manage -fci {lang}").bold()
+      );
+    }
+  };
 }
 
 /// Check installed queries and report status.
-fn display_queries_info(path: &Path, lang: &str) {
-  if let Ok(true) = path.try_exists() {
-    let scm_files: HashSet<_> = path
+fn display_queries_info(config: &LanguageQueriesConfig, install_dir: &Path, lang: &str) {
+  let Some(source) = config.source.as_ref() else {
+    return;
+  };
+  let queries_path = match source {
+    Source::Local { path } => path.clone(),
+    Source::Git { pin, .. } => install_dir.join(format!("queries/{lang}/{pin}")),
+  };
+
+  if let Ok(true) = queries_path.try_exists() {
+    let scm_files: HashSet<_> = queries_path
       .read_dir()
       .into_iter()
       .flatten()
@@ -605,19 +662,35 @@ fn display_queries_info(path: &Path, lang: &str) {
 
     if scm_count == scm_expected_count {
       println!(
-        "   {sign} {queries}{delim} {path}",
+        "   {sign} {queries}",
         sign = check_sign(),
         queries = format!("{lang} queries").blue(),
-        delim = delim(":"),
-        path = format!("{}", path.display()).green(),
       );
     } else if scm_count > 0 {
       println!(
-        "   {sign} {queries}{delim} {path}",
+        "   {sign} {queries}",
         sign = warn_sign(),
         queries = format!("{lang} queries").blue(),
-        delim = delim(":"),
-        path = path.display()
+      );
+    } else {
+      println!(
+        "   {sign} {lang} queries missing; install with {help}",
+        sign = no_sign(),
+        help = format!("ktsctl manage -fi {lang}").bold()
+      );
+    }
+
+    for q in queries {
+      println!("{q}");
+    }
+  } else {
+    let queries_path = install_dir.join(format!("queries/{lang}"));
+
+    if let Ok(true) = queries_path.try_exists() {
+      println!(
+        "   {sync} {lang} queries out of sync; synchronize with {help}",
+        sync = no_sign(),
+        help = format!("ktsctl manage -is {lang}").bold()
       );
     } else {
       println!(
@@ -626,16 +699,6 @@ fn display_queries_info(path: &Path, lang: &str) {
         help = format!("ktsctl manage -fci {lang}").bold()
       );
     }
-
-    for q in queries {
-      println!("{q}");
-    }
-  } else {
-    println!(
-      "   {sign} {lang} queries missing; install with {help}",
-      sign = no_sign(),
-      help = format!("ktsctl manage -fci {lang}").bold()
-    );
   }
 }
 
@@ -645,7 +708,7 @@ fn display_queries_info(path: &Path, lang: &str) {
 fn fetch_via_git(
   report: &Report,
   url: &str,
-  pin: Option<&str>,
+  pin: &str,
   fetch_path: &Path,
   lang: &str,
 ) -> Result<bool, AppError> {
@@ -655,33 +718,20 @@ fn fetch_via_git(
     return Ok(false);
   }
 
-  fs::create_dir_all(&fetch_path).map_err(|err| AppError::CannotCreateDir {
+  fs::create_dir_all(fetch_path).map_err(|err| AppError::CannotCreateDir {
     dir: fetch_path.to_owned(),
     err,
   })?;
 
-  let git_clone_args = if pin.is_some() {
-    vec![
-      "clone",
-      url,
-      "-n",
-      fetch_path
-        .as_os_str()
-        .to_str()
-        .ok_or_else(|| AppError::BadPath)?,
-    ]
-  } else {
-    vec![
-      "clone",
-      url,
-      "--depth",
-      "1",
-      fetch_path
-        .as_os_str()
-        .to_str()
-        .ok_or_else(|| AppError::BadPath)?,
-    ]
-  };
+  let git_clone_args = vec![
+    "clone",
+    url,
+    "-n",
+    fetch_path
+      .as_os_str()
+      .to_str()
+      .ok_or_else(|| AppError::BadPath)?,
+  ];
 
   report.report(ReportIcon::Fetch, format!("cloning {url}"));
   Command::new("git")
@@ -700,28 +750,69 @@ fn fetch_via_git(
       err,
     })?;
 
-  if let Some(pin) = pin {
-    report.report(ReportIcon::Info, format!("checking out {pin}"));
-
-    Command::new("git")
-      .args(["reset", "--hard", pin])
-      .current_dir(fetch_path)
-      .stdout(Stdio::null())
-      .stderr(Stdio::null())
-      .spawn()
-      .map_err(|err| AppError::FetchError {
-        lang: lang.to_owned(),
-        err,
-      })?
-      .wait()
-      .map(|_| ())
-      .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-        process: "git reset".to_owned(),
-        err,
-      })?;
-  }
+  check_out_pin(report, url, pin, fetch_path, lang)?;
 
   Ok(true)
+}
+
+/// Fetch remote git objects.
+fn fetch_remote(report: &Report, url: &str, fetch_path: &Path, lang: &str) -> Result<(), AppError> {
+  report.report(
+    ReportIcon::Sync,
+    format!("fetching {lang} git remote objects {url}"),
+  );
+
+  Command::new("git")
+    .args(["fetch", "origin", "--prune"])
+    .current_dir(fetch_path)
+    .stdout(Stdio::null())
+    .stderr(Stdio::null())
+    .spawn()
+    .map_err(|err| AppError::FetchError {
+      lang: lang.to_owned(),
+      err,
+    })?
+    .wait()
+    .map(|_| ())
+    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
+      process: "git reset".to_owned(),
+      err,
+    })?;
+
+  Ok(())
+}
+
+/// Checkout a source at a given pin.
+fn check_out_pin(
+  report: &Report,
+  url: &str,
+  pin: &str,
+  fetch_path: &Path,
+  lang: &str,
+) -> Result<(), AppError> {
+  report.report(
+    ReportIcon::Info,
+    format!("checking out {lang} {url} at {pin}"),
+  );
+
+  Command::new("git")
+    .args(["reset", "--hard", pin])
+    .current_dir(fetch_path)
+    .stdout(Stdio::null())
+    .stderr(Stdio::null())
+    .spawn()
+    .map_err(|err| AppError::FetchError {
+      lang: lang.to_owned(),
+      err,
+    })?
+    .wait()
+    .map(|_| ())
+    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
+      process: "git reset".to_owned(),
+      err,
+    })?;
+
+  Ok(())
 }
 
 /// Compile and link the grammar.
@@ -784,11 +875,16 @@ fn do_compile(
   Ok(())
 }
 
-fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Result<(), AppError> {
+fn install_grammar(
+  install_dir: &Path,
+  lang_build_dir: &Path,
+  lang: &str,
+  pin: &str,
+) -> Result<(), AppError> {
   let lang_so = format!("{lang}.so");
-  let source_path = lang_build_dir.join(&lang_so);
-  let grammar_dir = install_dir.join("grammars");
-  let install_path = grammar_dir.join(lang_so);
+  let source_path = lang_build_dir.join(lang_so);
+  let grammar_dir = install_dir.join(format!("grammars/{lang}"));
+  let install_path = grammar_dir.join(format!("{pin}.so"));
   let report = Report::new(ReportIcon::Install, format!("installing {lang} grammar"));
 
   // ensure the grammars directory exists
@@ -807,9 +903,14 @@ fn install_grammar(install_dir: &Path, lang_build_dir: &Path, lang: &str) -> Res
   Ok(())
 }
 
-fn install_queries(install_dir: &Path, query_dir: &Path, lang: &str) -> Result<(), AppError> {
+fn install_queries(
+  install_dir: &Path,
+  query_dir: &Path,
+  lang: &str,
+  pin: &str,
+) -> Result<(), AppError> {
   // ensure the queries directory exists
-  let install_path = install_dir.join(format!("queries/{lang}"));
+  let install_path = install_dir.join(format!("queries/{lang}/{pin}"));
   let report = Report::new(ReportIcon::Install, format!("installing {lang} queries"));
 
   fs::create_dir_all(&install_path).map_err(|err| AppError::CannotCreateDir {

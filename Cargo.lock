@@ -377,6 +377,8 @@ dependencies = [
  "colored",
  "dirs",
  "kak-tree-sitter-config",
+ "log",
+ "simple_logger",
  "thiserror",
 ]
 

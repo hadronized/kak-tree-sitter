@@ -70,7 +70,7 @@ Sources are a way to provide information from where runtime resources come from.
 - Local paths (`local.path`).
 - And Git repositories (`git`), which is an object containing the following fields:
   - `url`: the URL to fetch from. Will use `git clone`.
-  - `pin`: _pin ref_, such as a commit, branch name or tag. **Highly recommended** to prevent breakage.
+  - `pin`: _pin ref_, such as a commit, branch name or tag.
 
 If you decide to use a `git` source:
 

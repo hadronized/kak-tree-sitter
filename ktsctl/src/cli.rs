@@ -8,6 +8,9 @@ use clap::{Parser, Subcommand};
   about = "CLI controler for kak-tree-sitter"
 )]
 pub struct Cli {
+  #[clap(long)]
+  pub verbose: bool,
+
   #[clap(subcommand)]
   pub cmd: Cmd,
 }
@@ -29,6 +32,13 @@ pub enum Cmd {
     /// Implies --compile for grammars.
     #[clap(short, long)]
     install: bool,
+
+    /// Synchronize resources.
+    ///
+    /// This command uses the `pin` configuration option of the language to synchronize. This command doesn’t remove
+    /// previous pinned resources; see --clear.
+    #[clap(short, long)]
+    sync: bool,
 
     /// Language to manage.
     lang: String,

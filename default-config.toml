@@ -1167,6 +1167,7 @@ link_flags = ["-O3"]
 
 [language.verilog.queries.source.git]
 url = "https://github.com/helix-editor/helix"
+pin = "cb286b7a5df247057602f3bba3254b4c58093375"
 
 [language.verilog.queries]
 path = "runtime/queries/verilog"

@@ -9,7 +9,7 @@ use std::{
 };
 
 use serde::{Deserialize, Serialize};
-use source::Source;
+use source::{Source, UserSource};
 use thiserror::Error;
 
 #[derive(Debug, Error)]
@@ -91,8 +91,8 @@ impl Config {
       self.highlight.merge_user_config(user_highlight);
     }
 
-    if let Some(languages) = user_config.languages {
-      self.languages.merge_user_config(languages)?;
+    if let Some(language) = user_config.language {
+      self.languages.merge_user_config(language)?;
     }
 
     Ok(())
@@ -122,11 +122,14 @@ pub struct LanguagesConfig {
 }
 
 impl LanguagesConfig {
-  fn merge_user_config(&mut self, user_config: UserLanguagesConfig) -> Result<(), ConfigError> {
-    for (lang, user_config) in user_config.language {
+  fn merge_user_config(
+    &mut self,
+    user_config: HashMap<String, UserLanguageConfig>,
+  ) -> Result<(), ConfigError> {
+    for (lang, user_config) in user_config {
       if let Some(config) = self.language.get_mut(&lang) {
         // if we already have a config, everything is optional so we can merge
-        config.merge_user_config(user_config);
+        config.merge_user_config(user_config)?;
       } else {
         // if we do not have a config, we take it from the user configuration, which can fail
         self
@@ -151,11 +154,11 @@ impl LanguagesConfig {
   /// Get the grammar path for a given language.
   pub fn get_grammar_path(lang_config: &LanguageConfig, lang: impl AsRef<str>) -> Option<PathBuf> {
     match lang_config.grammar.source {
-      Source::Local { path: ref dir } => Some(dir.clone()),
+      Source::Local { ref path } => Some(path.clone()),
 
-      Source::Git { .. } => {
+      Source::Git { ref pin, .. } => {
         let lang = lang.as_ref();
-        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}.so")))
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/grammars/{lang}/{pin}.so")))
       }
     }
   }
@@ -163,11 +166,16 @@ impl LanguagesConfig {
   /// Get the queries directory for a given language.
   pub fn get_queries_dir(lang_config: &LanguageConfig, lang: impl AsRef<str>) -> Option<PathBuf> {
     match lang_config.queries.source {
-      Some(Source::Local { path: ref dir }) => Some(dir.clone()),
+      Some(Source::Local { ref path }) => Some(path.clone()),
 
-      _ => {
+      Some(Source::Git { ref pin, .. }) => {
         let lang = lang.as_ref();
-        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}")))
+        dirs::data_dir().map(|dir| dir.join(format!("kak-tree-sitter/queries/{lang}/{pin}")))
+      }
+
+      None => {
+        // FIXME: not sure this is wanted?
+        None
       }
     }
   }
@@ -207,18 +215,20 @@ pub struct LanguageConfig {
 }
 
 impl LanguageConfig {
-  fn merge_user_config(&mut self, user_config: UserLanguageConfig) {
+  fn merge_user_config(&mut self, user_config: UserLanguageConfig) -> Result<(), ConfigError> {
     if let Some(user_grammar) = user_config.grammar {
-      self.grammar.merge_user_config(user_grammar);
+      self.grammar.merge_user_config(user_grammar)?;
     }
     if let Some(user_queries) = user_config.queries {
-      self.queries.merge_user_config(user_queries);
+      self.queries.merge_user_config(user_queries)?;
     }
 
     self.remove_default_highlighter = user_config
       .remove_default_highlighter
       .unwrap_or(self.remove_default_highlighter.0)
       .into();
+
+    Ok(())
   }
 }
 
@@ -283,9 +293,12 @@ pub struct LanguageGrammarConfig {
 }
 
 impl LanguageGrammarConfig {
-  fn merge_user_config(&mut self, user_config: UserLanguageGrammarConfig) {
+  fn merge_user_config(
+    &mut self,
+    user_config: UserLanguageGrammarConfig,
+  ) -> Result<(), ConfigError> {
     if let Some(source) = user_config.source {
-      self.source = source;
+      self.source.merge_user_config(source);
     }
 
     if let Some(path) = user_config.path {
@@ -315,6 +328,8 @@ impl LanguageGrammarConfig {
     if let Some(link_flags) = user_config.link_flags {
       self.link_flags = link_flags;
     }
+
+    Ok(())
   }
 }
 
@@ -330,7 +345,7 @@ impl TryFrom<UserLanguageGrammarConfig> for LanguageGrammarConfig {
     };
 
     Ok(Self {
-      source,
+      source: Source::try_from(source)?,
       path: user_config.path.unwrap_or_else(|| PathBuf::from("src")),
       compile: user_config.compile.unwrap_or_else(|| "cc".to_owned()),
       compile_args: user_config.compile_args.unwrap_or_else(|| {
@@ -368,10 +383,25 @@ pub struct LanguageQueriesConfig {
 }
 
 impl LanguageQueriesConfig {
-  fn merge_user_config(&mut self, user_config: UserLanguageQueriesConfig) {
-    if let Some(source) = user_config.source {
-      self.source = Some(source);
+  fn merge_user_config(
+    &mut self,
+    user_config: UserLanguageQueriesConfig,
+  ) -> Result<(), ConfigError> {
+    match (&mut self.source, user_config.source) {
+      (_, None) => (),
+
+      (None, Some(source)) => self.source = Some(Source::try_from(source)?),
+
+      (Some(source), Some(user_source)) => {
+        source.merge_user_config(user_source);
+      }
     }
+
+    if let Some(path) = user_config.path {
+      self.path = path;
+    }
+
+    Ok(())
   }
 }
 
@@ -383,10 +413,13 @@ impl TryFrom<UserLanguageQueriesConfig> for LanguageQueriesConfig {
       return Err(ConfigError::missing_opt("path"));
     };
 
-    Ok(Self {
-      source: user_config.source,
-      path,
-    })
+    let source = if let Some(source) = user_config.source {
+      Some(Source::try_from(source)?)
+    } else {
+      None
+    };
+
+    Ok(Self { source, path })
   }
 }
 
@@ -394,8 +427,7 @@ impl TryFrom<UserLanguageQueriesConfig> for LanguageQueriesConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserConfig {
   pub highlight: Option<UserHighlightConfig>,
-  #[serde(flatten)]
-  pub languages: Option<UserLanguagesConfig>,
+  pub language: Option<HashMap<String, UserLanguageConfig>>,
 }
 
 impl UserConfig {
@@ -431,11 +463,6 @@ pub struct UserHighlightConfig {
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
-pub struct UserLanguagesConfig {
-  pub language: HashMap<String, UserLanguageConfig>,
-}
-
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserLanguageConfig {
   pub grammar: Option<UserLanguageGrammarConfig>,
   pub queries: Option<UserLanguageQueriesConfig>,
@@ -444,7 +471,7 @@ pub struct UserLanguageConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserLanguageGrammarConfig {
-  pub source: Option<Source>,
+  pub source: Option<UserSource>,
   pub path: Option<PathBuf>,
   pub compile: Option<String>,
   pub compile_args: Option<Vec<String>>,
@@ -456,7 +483,7 @@ pub struct UserLanguageGrammarConfig {
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserLanguageQueriesConfig {
-  pub source: Option<Source>,
+  pub source: Option<UserSource>,
   pub path: Option<PathBuf>,
 }
 
@@ -465,9 +492,10 @@ mod tests {
   use std::path::PathBuf;
 
   use crate::{
-    source::Source, Config, HighlightConfig, LanguageConfig, LanguageGrammarConfig,
+    source::{Source, UserSource},
+    Config, ConfigError, HighlightConfig, LanguageConfig, LanguageGrammarConfig,
     LanguageQueriesConfig, LanguagesConfig, UserConfig, UserLanguageConfig,
-    UserLanguageGrammarConfig, UserLanguagesConfig,
+    UserLanguageGrammarConfig,
   };
 
   #[test]
@@ -518,12 +546,12 @@ mod tests {
       let mut config = main_config.clone();
       let user_config = UserConfig {
         highlight: None,
-        languages: Some(UserLanguagesConfig {
-          language: [(
+        language: Some(
+          [(
             "rust".to_owned(),
             UserLanguageConfig {
               grammar: Some(UserLanguageGrammarConfig {
-                source: Some(Source::git("git_source", "pin".to_owned())),
+                source: Some(UserSource::git("git_source".to_owned(), "pin".to_owned())),
                 link_args: Some(vec!["link".to_owned(), "args".to_owned()]),
                 ..Default::default()
               }),
@@ -532,8 +560,9 @@ mod tests {
           )]
           .into_iter()
           .collect(),
-        }),
+        ),
       };
+
       assert!(config.merge_user_config(user_config).is_ok());
 
       let prev_rust_config = main_config.languages.get_lang_conf("rust").unwrap();
@@ -546,13 +575,33 @@ mod tests {
         Source::git("git_source", "pin".to_owned())
       );
       assert_eq!(
-        new_rust_config.grammar.source,
-        Source::git("git_source", "pin".to_owned())
-      );
-      assert_eq!(
         new_rust_config.grammar.link_args,
         vec!["link".to_owned(), "args".to_owned()]
       );
     }
+  }
+
+  #[test]
+  fn user_config() -> Result<(), ConfigError> {
+    let toml = r#"[language.rust.grammar.source.git]
+      pin = "foo""#;
+    let config = toml::from_str::<UserConfig>(toml).unwrap();
+    let source = config
+      .language
+      .as_ref()
+      .unwrap()
+      .get("rust")
+      .as_ref()
+      .unwrap()
+      .grammar
+      .as_ref()
+      .unwrap()
+      .source
+      .as_ref()
+      .unwrap();
+
+    assert!(matches!(source, UserSource::Git { pin, .. } if pin.as_deref() == Some("foo")));
+
+    Ok(())
   }
 }
