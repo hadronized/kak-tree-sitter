@@ -852,7 +852,26 @@ path = "runtime/queries/markdown.inline"
 # TODO
 
 # nix
-# TODO
+
+[language.nix.grammar.source.git]
+url = "https://github.com/nix-community/tree-sitter-nix"
+pin = "763168fa916a333a459434f1424b5d30645f015d"
+
+[language.nix.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "nix.so"]
+link_flags = ["-O3"]
+
+[language.nix.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.nix.queries]
+path = "runtime/queries/nix"
 
 # nu
 [language.nu.grammar.source.git ]
