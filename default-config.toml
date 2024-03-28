@@ -285,7 +285,25 @@ path = "runtime/queries/cpp"
 # TODO
 
 # c-sharp
-# TODO
+[language.csharp.grammar.source.git]
+url = "https://github.com/tree-sitter/tree-sitter-c-sharp"
+pin = "92c0a9431400cd8b6b6ee7503f81da3ae83fc830"
+
+[language.csharp.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "csharp.so"]
+link_flags = ["-O3"]
+
+[language.csharp.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.csharp.queries]
+path = "runtime/queries/c-sharp"
 
 # css
 [language.css.grammar.source.git]
@@ -366,7 +384,25 @@ path = "runtime/queries/diff"
 # TODO
 
 # elixir
-# TODO
+[language.elixir.grammar.source.git]
+url = "https://github.com/elixir-lang/tree-sitter-elixir"
+pin = "511ea5e0088779e4bdd76e12963ab9a5fe99983a"
+
+[language.elixir.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "elixir.so"]
+link_flags = ["-O3"]
+
+[language.elixir.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.elixir.queries]
+path = "runtime/queries/elixir"
 
 # elm
 # TODO
@@ -816,7 +852,26 @@ path = "runtime/queries/markdown.inline"
 # TODO
 
 # nix
-# TODO
+
+[language.nix.grammar.source.git]
+url = "https://github.com/nix-community/tree-sitter-nix"
+pin = "763168fa916a333a459434f1424b5d30645f015d"
+
+[language.nix.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "nix.so"]
+link_flags = ["-O3"]
+
+[language.nix.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.nix.queries]
+path = "runtime/queries/nix"
 
 # nu
 [language.nu.grammar.source.git ]
@@ -1001,6 +1056,27 @@ pin = "3e963b3c1b5eb4b5cd7f33b8ef6d6642de210a9b"
 [language.rust.queries]
 path = "runtime/queries/rust"
 
+# scss
+[language.scss.grammar.source.git]
+url = "https://github.com/serenadeai/tree-sitter-scss"
+pin = "c478c6868648eff49eb04a4df90d703dc45b312a"
+
+[language.scss.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "scss.so"]
+link_flags = ["-O3"]
+
+[language.scss.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.scss.queries]
+path = "runtime/queries/scss"
+
 # sage
 # TODO
 
@@ -1142,6 +1218,27 @@ path = "runtime/queries/typescript"
 # ungrammar
 # TODO
 
+# unison
+[language.unison.grammar.source.git]
+url = "https://github.com/kylegoetz/tree-sitter-unison"
+pin = "1f505e2447fa876a87aee47ff3d70b9e141c744f"
+
+[language.unison.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "unison.so"]
+link_flags = ["-O3"]
+
+[language.unison.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.unison.queries]
+path = "runtime/queries/unison"
+
 # uxntal
 # TODO
 
@@ -1179,7 +1276,25 @@ path = "runtime/queries/verilog"
 # TODO
 
 # vue
-# TODO
+[language.vue.grammar.source.git]
+url = "https://github.com/ikatyang/tree-sitter-vue"
+pin = "91fe2754796cd8fba5f229505a23fa08f3546c06"
+
+[language.vue.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "vue.so"]
+link_flags = ["-O3", "-lstdc++"]
+
+[language.vue.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "be307a420480178c1bc443992c8336f6471b8b7b"
+
+[language.vue.queries]
+path = "runtime/queries/vue"
 
 # wast
 # TODO
