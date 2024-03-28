@@ -836,7 +836,7 @@ fn fetch_via_git(
   let mut child = Command::new("git")
     .args(git_clone_args)
     .stdout(Stdio::null())
-    .stderr(Stdio::null())
+    .stderr(Stdio::piped())
     .spawn()
     .map_err(|err| AppError::FetchError {
       lang: lang.to_owned(),
@@ -844,27 +844,29 @@ fn fetch_via_git(
     })?;
   let stderr = child.stderr.take();
 
-  if let Some(mut stderr) = stderr {
-    let mut err = String::new();
-    stderr
-      .read_to_string(&mut err)
-      .map_err(|err| AppError::FetchError {
-        lang: lang.to_owned(),
-        err: err.to_string(),
-      })?;
-
-    return Err(AppError::FetchError {
-      lang: lang.to_owned(),
-      err,
-    });
-  }
-
-  child
+  let exit_status = child
     .wait()
     .map_err(|err| AppError::ErrorWhileWaitingForProcess {
       process: "git clone".to_owned(),
       err,
     })?;
+
+  if !exit_status.success() {
+    if let Some(mut stderr) = stderr {
+      let mut err = String::new();
+      stderr
+        .read_to_string(&mut err)
+        .map_err(|err| AppError::FetchError {
+          lang: lang.to_owned(),
+          err: err.to_string(),
+        })?;
+
+      return Err(AppError::FetchError {
+        lang: lang.to_owned(),
+        err,
+      });
+    }
+  }
 
   check_out_pin(report, url, pin, fetch_path, lang)?;
 
@@ -890,27 +892,29 @@ fn fetch_remote(report: &Report, url: &str, fetch_path: &Path, lang: &str) -> Re
     })?;
   let stderr = child.stderr.take();
 
-  if let Some(mut stderr) = stderr {
-    let mut err = String::new();
-    stderr
-      .read_to_string(&mut err)
-      .map_err(|err| AppError::FetchError {
-        lang: lang.to_owned(),
-        err: err.to_string(),
-      })?;
-
-    return Err(AppError::FetchError {
-      lang: lang.to_owned(),
-      err,
-    });
-  }
-
-  child
+  let exit_status = child
     .wait()
     .map_err(|err| AppError::ErrorWhileWaitingForProcess {
       process: "git fetch".to_owned(),
       err,
     })?;
+
+  if !exit_status.success() {
+    if let Some(mut stderr) = stderr {
+      let mut err = String::new();
+      stderr
+        .read_to_string(&mut err)
+        .map_err(|err| AppError::FetchError {
+          lang: lang.to_owned(),
+          err: err.to_string(),
+        })?;
+
+      return Err(AppError::FetchError {
+        lang: lang.to_owned(),
+        err,
+      });
+    }
+  }
 
   Ok(())
 }
@@ -932,7 +936,7 @@ fn check_out_pin(
     .args(["reset", "--hard", pin])
     .current_dir(fetch_path)
     .stdout(Stdio::null())
-    .stderr(Stdio::null())
+    .stderr(Stdio::piped())
     .spawn()
     .map_err(|err| AppError::FetchError {
       lang: lang.to_owned(),
@@ -941,28 +945,29 @@ fn check_out_pin(
 
   let stderr = child.stderr.take();
 
-  if let Some(mut stderr) = stderr {
-    let mut err = String::new();
-    stderr
-      .read_to_string(&mut err)
-      .map_err(|err| AppError::CheckOutError {
-        lang: lang.to_owned(),
-        err: err.to_string(),
-      })?;
-
-    return Err(AppError::CheckOutError {
-      lang: lang.to_owned(),
-      err,
-    });
-  }
-
-  child
+  let exit_status = child
     .wait()
     .map_err(|err| AppError::ErrorWhileWaitingForProcess {
       process: "git reset".to_owned(),
       err,
     })?;
 
+  if !exit_status.success() {
+    if let Some(mut stderr) = stderr {
+      let mut err = String::new();
+      stderr
+        .read_to_string(&mut err)
+        .map_err(|err| AppError::CheckOutError {
+          lang: lang.to_owned(),
+          err: err.to_string(),
+        })?;
+
+      return Err(AppError::CheckOutError {
+        lang: lang.to_owned(),
+        err,
+      });
+    }
+  }
   Ok(())
 }
 
