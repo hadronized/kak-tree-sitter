@@ -208,16 +208,25 @@ fn start() -> Result<(), AppError> {
       install,
       sync,
       lang,
-    } => manage(
-      &config,
-      &runtime_dir,
-      &install_dir,
-      ManageFlags::new(fetch, compile, install, sync),
-      lang,
-    ),
+      all,
+    } => {
+      let manage_flags = ManageFlags::new(fetch, compile, install, sync);
 
-    cli::Cmd::Info { lang, all } => info(&config, &install_dir, lang, all),
+      if let Some(lang) = lang {
+        manage(&config, &runtime_dir, &install_dir, &manage_flags, &lang)?;
+      } else if all {
+        for lang in config.languages.language.keys() {
+          println!("working {}", lang.blue());
+          manage(&config, &runtime_dir, &install_dir, &manage_flags, lang)?;
+          println!();
+        }
+      }
+    }
+
+    cli::Cmd::Info { lang, all } => info(&config, &install_dir, lang.as_deref(), all)?,
   }
+
+  Ok(())
 }
 
 /// Manage mode.
@@ -225,13 +234,13 @@ fn manage(
   config: &Config,
   runtime_dir: &Path,
   install_dir: &Path,
-  manage_flags: ManageFlags,
-  lang: String,
+  manage_flags: &ManageFlags,
+  lang: &str,
 ) -> Result<(), AppError> {
   let lang_config =
     config
       .languages
-      .get_lang_conf(&lang)
+      .get_lang_conf(lang)
       .ok_or_else(|| AppError::MissingLangConfig {
         lang: lang.to_owned(),
       })?;
@@ -254,8 +263,8 @@ fn manage(
       install_dir,
       url,
       pin,
-      &manage_flags,
-      &lang,
+      manage_flags,
+      lang,
     )?,
   }
 
@@ -277,8 +286,8 @@ fn manage(
       url,
       pin,
       &lang_config.queries.path,
-      &manage_flags,
-      &lang,
+      manage_flags,
+      lang,
     )?,
 
     None => {
@@ -427,11 +436,11 @@ fn manage_git_queries(
 fn info(
   config: &Config,
   install_dir: &Path,
-  lang: Option<String>,
+  lang: Option<&str>,
   all: bool,
 ) -> Result<(), AppError> {
   if let Some(lang) = lang {
-    display_lang_info(config, install_dir, &lang)?;
+    display_lang_info(config, install_dir, lang)?;
   } else if all {
     display_all_lang_info(config, install_dir)?;
   }

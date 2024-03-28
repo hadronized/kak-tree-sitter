@@ -41,13 +41,20 @@ pub enum Cmd {
     sync: bool,
 
     /// Language to manage.
-    lang: String,
+    #[clap(short, long)]
+    lang: Option<String>,
+
+    /// Execute commands for all known languages.
+    ///
+    /// The list of languages can be seen with `ktsctl info --all`.
+    #[clap(short, long)]
+    all: bool,
   },
 
   /// Get information on installed resources.
   Info {
     /// Get information about a specific language.
-    #[clap(long)]
+    #[clap(short, long)]
     lang: Option<String>,
 
     /// List all known languages and display information about them.
