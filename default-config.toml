@@ -136,7 +136,7 @@ pin = "275effdfc0edce774acf7d481f9ea195c6c403cd"
 [language.bash.grammar]
 path = "src"
 compile = "cc"
-compile_args = ["-c", "-fpic", "../scanner.cc", "../parser.c", "-I", ".."]
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
 compile_flags = ["-O3"]
 link = "cc"
 link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "bash.so"]
