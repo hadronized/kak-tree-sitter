@@ -435,7 +435,82 @@ fn info(
   if let Some(lang) = lang {
     display_lang_info(config, install_dir, &lang)?;
   } else if all {
-    unimplemented!();
+    display_all_lang_info(config, install_dir)?;
+  }
+
+  Ok(())
+}
+
+/// Display information about all languages.
+fn display_all_lang_info(config: &Config, install_dir: &Path) -> Result<(), AppError> {
+  println!(
+    "{lang_header:^20}| {g} | {h} | {i} | {l} | {t} | {z}",
+    lang_header = "Language".bold(),
+    g = "Grammar".bold(),
+    h = "Highlights".bold(),
+    i = "Injections".bold(),
+    l = "Locals".bold(),
+    t = "Text-objects".bold(),
+    z = "Indents".bold(),
+  );
+  println!(
+    "{f:-^20}|---------|------------|------------|--------|--------------|---------",
+    f = "-"
+  );
+
+  let mut langs = config.languages.language.iter().collect::<Vec<_>>();
+  langs.sort_by(|(a, _), (b, _)| a.cmp(b));
+
+  for (lang, lang_config) in langs {
+    let grammar_path = get_grammar_path(&lang_config.grammar, install_dir, lang);
+
+    let lang = &lang[..lang.len().min(20)];
+    if let Some(queries_path) = get_queries_path(&lang_config.queries, install_dir, lang) {
+      print!("{lang:^20}");
+
+      if let Ok(true) = grammar_path.try_exists() {
+        print!("|{:^9}", check_sign());
+      } else {
+        print!("|{:^9}", no_sign());
+      }
+
+      if let Ok(true) = queries_path.join("highlights.scm").try_exists() {
+        print!("|{:^12}", check_sign());
+      } else {
+        print!("|{:^12}", no_sign());
+      }
+
+      if let Ok(true) = queries_path.join("injections.scm").try_exists() {
+        print!("|{:^12}", check_sign());
+      } else {
+        print!("|{:^12}", no_sign());
+      }
+
+      if let Ok(true) = queries_path.join("locals.scm").try_exists() {
+        print!("|{:^8}", check_sign());
+      } else {
+        print!("|{:^8}", no_sign());
+      }
+
+      if let Ok(true) = queries_path.join("textobjects.scm").try_exists() {
+        print!("|{:^14}", check_sign());
+      } else {
+        print!("|{:^14}", no_sign());
+      }
+
+      if let Ok(true) = queries_path.join("indents.scm").try_exists() {
+        print!("|{:^9}", check_sign());
+      } else {
+        print!("|{:^9}", no_sign());
+      }
+
+      println!();
+    } else {
+      println!(
+        "{lang:^20}|{no:^9}|{no:^12}|{no:^12}|{no:^8}|{no:^14}|{no:^9}",
+        no = no_sign()
+      );
+    }
   }
 
   Ok(())
@@ -586,6 +661,26 @@ fn display_lang_install_stats(lang_config: &LanguageConfig, install_dir: &Path, 
   display_queries_info(&lang_config.queries, install_dir, lang);
 }
 
+fn get_grammar_path(config: &LanguageGrammarConfig, install_dir: &Path, lang: &str) -> PathBuf {
+  match config.source {
+    Source::Local { ref path } => path.clone(),
+    Source::Git { ref pin, .. } => install_dir.join(format!("grammars/{lang}/{pin}.so")),
+  }
+}
+
+fn get_queries_path(
+  config: &LanguageQueriesConfig,
+  install_dir: &Path,
+  lang: &str,
+) -> Option<PathBuf> {
+  let path = match config.source.as_ref()? {
+    Source::Local { ref path } => path.clone(),
+    Source::Git { ref pin, .. } => install_dir.join(format!("queries/{lang}/{pin}")),
+  };
+
+  Some(path)
+}
+
 /// Check install grammar and report status.
 fn display_grammar_info(config: &LanguageGrammarConfig, install_dir: &Path, lang: &str) {
   let grammar_path = match config.source {
@@ -728,10 +823,9 @@ fn fetch_via_git(
 
   let git_clone_args = vec![
     "clone",
-    url,
     "--depth",
     "1",
-    "-n",
+    url,
     fetch_path
       .as_os_str()
       .to_str()
