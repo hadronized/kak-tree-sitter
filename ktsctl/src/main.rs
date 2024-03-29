@@ -217,8 +217,12 @@ fn start() -> Result<(), AppError> {
       } else if all {
         for lang in config.languages.language.keys() {
           println!("working {}", lang.blue());
-          manage(&config, &runtime_dir, &install_dir, &manage_flags, lang)?;
+          let r = manage(&config, &runtime_dir, &install_dir, &manage_flags, lang);
           println!();
+
+          if let Err(err) = r {
+            println!("{err}");
+          }
         }
       }
     }
