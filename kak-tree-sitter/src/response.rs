@@ -72,10 +72,10 @@ impl Response {
         );
 
         if *with_highlighting {
-          resp.push_str(&format!(
+          resp.push_str(
             "\nkak-tree-sitter-enable-highlighting\n
-               kak-tree-sitter-req-enable"
-          ));
+               kak-tree-sitter-req-enable",
+          );
         }
 
         resp
