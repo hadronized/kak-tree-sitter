@@ -12,7 +12,8 @@ use clap::Parser;
 use cli::Cli;
 use colored::Colorize;
 use kak_tree_sitter_config::{
-  source::Source, Config, LanguageConfig, LanguageGrammarConfig, LanguageQueriesConfig,
+  error::ConfigError, source::Source, Config, LanguageConfig, LanguageGrammarConfig,
+  LanguageQueriesConfig,
 };
 use thiserror::Error;
 
@@ -44,7 +45,7 @@ pub enum AppError {
   #[error("configuration error: {err}")]
   ConfigError {
     #[from]
-    err: kak_tree_sitter_config::ConfigError,
+    err: ConfigError,
   },
 
   #[error("no configuration for language {lang}")]

@@ -5,10 +5,11 @@ pub mod source;
 
 use std::{
   collections::{HashMap, HashSet},
-  fs, io,
+  fs,
   path::{Path, PathBuf},
 };
 
+use error::ConfigError;
 use serde::{Deserialize, Serialize};
 use source::{Source, UserSource};
 

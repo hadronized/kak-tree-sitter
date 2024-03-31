@@ -1,6 +1,6 @@
 use std::{io, path::PathBuf};
 
-use kak_tree_sitter_config::ConfigError;
+use kak_tree_sitter_config::error::ConfigError;
 use log::SetLoggerError;
 use thiserror::Error;
 use tree_sitter::{LanguageError, QueryError};
