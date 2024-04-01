@@ -23,14 +23,14 @@ Usage: `ktsctl <COMMAND>`. Commands can be:
 
 `ktsctl manage --help` will provide more than enough help for you to get started, but here’s some more:
 
-- A typical one-liner to install a language is `ktsctl manage -fci <LANG>`.
+- A typical one-liner to install a language is `ktsctl manage -fcil <LANG>`.
 - `-f, --fetch` will make `ktsctl` fetch and download grammars and queries. You can decide to first fetch resources for
   a given language, and then call the other commands later without fetching anymore; or you can combine everything at
   once.
 - `-c, --compile` compiles and link grammars.
 - `-i, --install` installs grammars and queries into `$XDG_DATA_HOME/kak-tree-sitter`. The install path can change
   depending on the operating system (for instance, it might be `$HOME/Library/Application\ Support` for macOS).
-- `<LANG>` is the name of the language to install.
+- `-l, --language <LANG>` is the name of the language to install.
 
 > The list of language names you can installed can be found with the [info command](#getting-information).
 
@@ -38,6 +38,14 @@ For instance, to fetch, compile and install the grammar and queries for the Rust
 
 ```sh
 ktsctl manage -fci rust
+```
+
+#### Installing all languages at once
+
+A useful one-liner that you can use to install everything at once is to use the `-a, --all` flag:
+
+```bash
+ktscstl manage -fcia
 ```
 
 ### Getting information

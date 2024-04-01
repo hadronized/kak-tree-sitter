@@ -3,8 +3,9 @@ use std::{io, path::PathBuf};
 use kak_tree_sitter_config::error::ConfigError;
 use thiserror::Error;
 
+/// Hell no!
 #[derive(Debug, Error)]
-pub enum AppError {
+pub enum HellNo {
   #[error("logger failed to initialize: {err}")]
   LoggerError {
     #[from]
@@ -32,8 +33,11 @@ pub enum AppError {
   #[error("no configuration for language {lang}")]
   MissingLangConfig { lang: String },
 
-  #[error("error while waiting for process {process} to end: {err}")]
-  ErrorWhileWaitingForProcess { process: String, err: io::Error },
+  #[error("{process} failed to run: {err}")]
+  ProcessRunError { process: String, err: io::Error },
+
+  #[error("{process} exited with error: {err}")]
+  ProcessExitedWithError { process: String, err: String },
 
   #[error("error while fetching resource for language {lang}: {err}")]
   FetchError { lang: String, err: String },

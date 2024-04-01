@@ -1,43 +1,27 @@
 use std::{
   collections::HashSet,
-  env,
   fmt::Display,
-  fs,
-  io::{self, stdout, Read, Write},
+  fs, io,
   path::{Path, PathBuf},
-  process::{Command, Stdio},
 };
 
 use clap::Parser;
 use cli::Cli;
 use colored::Colorize;
-use error::AppError;
+use error::HellNo;
 use kak_tree_sitter_config::{
   source::Source, Config, LanguageConfig, LanguageGrammarConfig, LanguageQueriesConfig,
 };
 
+use crate::commands::manage::{ManageFlags, Manager};
+
 mod cli;
+mod commands;
 mod error;
-
-/// Flags taken out from the CLI to fetch, compile and/or install resources.
-#[derive(Debug)]
-struct ManageFlags {
-  fetch: bool,
-  compile: bool,
-  install: bool,
-  sync: bool,
-}
-
-impl ManageFlags {
-  fn new(fetch: bool, compile: bool, install: bool, sync: bool) -> Self {
-    Self {
-      fetch,
-      compile,
-      install,
-      sync,
-    }
-  }
-}
+mod git;
+mod process;
+mod report;
+mod resources;
 
 fn main() {
   if let Err(err) = start() {
@@ -46,77 +30,7 @@ fn main() {
   }
 }
 
-#[derive(Debug)]
-struct Report;
-
-impl Report {
-  fn new(icon: ReportIcon, msg: impl AsRef<str>) -> Self {
-    print!("\x1b[?7l");
-    Self::to_stdout(icon, msg);
-    Self
-  }
-
-  fn to_stdout(icon: ReportIcon, msg: impl AsRef<str>) {
-    print!("{} {msg}", icon, msg = msg.as_ref());
-    stdout().flush().unwrap();
-  }
-
-  fn report(&self, icon: ReportIcon, msg: impl AsRef<str>) {
-    print!("\x1b[2K\r");
-    Self::to_stdout(icon, msg);
-  }
-}
-
-impl Drop for Report {
-  fn drop(&mut self) {
-    println!("\x1b[?7h");
-    stdout().flush().unwrap();
-  }
-}
-
-#[derive(Debug)]
-enum ReportIcon {
-  Fetch,
-  Sync,
-  Compile,
-  Link,
-  Install,
-  Success,
-  Error,
-  Info,
-}
-
-impl Display for ReportIcon {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    match self {
-      ReportIcon::Fetch => write!(f, "{}", "".magenta()),
-      ReportIcon::Sync => write!(f, "{}", "".magenta()),
-      ReportIcon::Compile => write!(f, "{}", "".cyan()),
-      ReportIcon::Link => write!(f, "{}", "".cyan()),
-      ReportIcon::Install => write!(f, "{}", "".cyan()),
-      ReportIcon::Success => write!(f, "{}", "".green()),
-      ReportIcon::Error => write!(f, "{}", "".red()),
-      ReportIcon::Info => write!(f, "{}", "󰈅".blue()),
-    }
-  }
-}
-
-fn runtime_dir() -> Result<PathBuf, AppError> {
-  let dir = dirs::runtime_dir()
-    .or_else(|| env::var("TMPDIR").map(PathBuf::from).ok())
-    .ok_or_else(|| AppError::NoRuntimeDir)?
-    .join("ktsctl");
-  Ok(dir)
-}
-
-fn kak_tree_sitter_data_dir() -> Result<PathBuf, AppError> {
-  let dir = dirs::data_dir()
-    .ok_or_else(|| AppError::NoDataDir)?
-    .join("kak-tree-sitter");
-  Ok(dir)
-}
-
-fn start() -> Result<(), AppError> {
+fn start() -> Result<(), HellNo> {
   let cli = Cli::parse();
 
   if cli.verbose {
@@ -125,20 +39,6 @@ fn start() -> Result<(), AppError> {
 
   let config = Config::load_default_user()?;
   log::debug!("ktsctl configuration:\n{config:#?}");
-
-  // check the runtime dir exists
-  let runtime_dir = runtime_dir()?;
-  fs::create_dir_all(&runtime_dir).map_err(|err| AppError::CannotCreateDir {
-    dir: runtime_dir.clone(),
-    err,
-  })?;
-
-  // check the kak-tree-sitter data dir exists
-  let install_dir = kak_tree_sitter_data_dir()?;
-  fs::create_dir_all(&install_dir).map_err(|err| AppError::CannotCreateDir {
-    dir: install_dir.clone(),
-    err,
-  })?;
 
   match cli.cmd {
     cli::Cmd::Manage {
@@ -150,19 +50,12 @@ fn start() -> Result<(), AppError> {
       all,
     } => {
       let manage_flags = ManageFlags::new(fetch, compile, install, sync);
+      let manager = Manager::new(config, manage_flags)?;
 
       if let Some(lang) = lang {
-        manage(&config, &runtime_dir, &install_dir, &manage_flags, &lang)?;
+        manager.manage(&lang)?;
       } else if all {
-        for lang in config.languages.language.keys() {
-          println!("working {}", lang.blue());
-          let r = manage(&config, &runtime_dir, &install_dir, &manage_flags, lang);
-          println!();
-
-          if let Err(err) = r {
-            println!("{err}");
-          }
-        }
+        manager.manage_all(config.languages.language.keys().map(String::as_str));
       }
     }
 
@@ -172,216 +65,8 @@ fn start() -> Result<(), AppError> {
   Ok(())
 }
 
-/// Manage mode.
-fn manage(
-  config: &Config,
-  runtime_dir: &Path,
-  install_dir: &Path,
-  manage_flags: &ManageFlags,
-  lang: &str,
-) -> Result<(), AppError> {
-  let lang_config =
-    config
-      .languages
-      .get_lang_conf(lang)
-      .ok_or_else(|| AppError::MissingLangConfig {
-        lang: lang.to_owned(),
-      })?;
-
-  // grammar
-  match lang_config.grammar.source {
-    Source::Local { ref path } => {
-      Report::new(
-        ReportIcon::Info,
-        format!(
-          "using local grammar {lang} at {path}",
-          path = path.display()
-        ),
-      );
-    }
-
-    Source::Git { ref url, ref pin } => manage_git_grammar(
-      lang_config,
-      runtime_dir,
-      install_dir,
-      url,
-      pin,
-      manage_flags,
-      lang,
-    )?,
-  }
-
-  // queries
-  match lang_config.queries.source {
-    Some(Source::Local { ref path }) => {
-      Report::new(
-        ReportIcon::Info,
-        format!(
-          "using local queries {lang} at {path}",
-          path = path.display()
-        ),
-      );
-    }
-
-    Some(Source::Git { ref url, ref pin }) => manage_git_queries(
-      runtime_dir,
-      install_dir,
-      url,
-      pin,
-      &lang_config.queries.path,
-      manage_flags,
-      lang,
-    )?,
-
-    None => {
-      Report::new(
-        ReportIcon::Error,
-        format!("no query configuration for {lang}; will be using the grammar directory"),
-      );
-    }
-  }
-
-  Ok(())
-}
-
-/// Generate a source directory for a given URL.
-fn sources_dir(runtime_dir: &Path, url: &str) -> Result<PathBuf, AppError> {
-  let url_dir = PathBuf::from(
-    url
-      .trim_start_matches("http")
-      .trim_start_matches('s')
-      .trim_start_matches("://"),
-  );
-  let path = runtime_dir.join("sources").join(url_dir);
-
-  Ok(path)
-}
-
-/// Manage a git grammar.
-///
-/// For git repositories, we have to fetch, compile, link and install grammars.
-fn manage_git_grammar(
-  lang_config: &LanguageConfig,
-  runtime_dir: &Path,
-  install_dir: &Path,
-  url: &str,
-  pin: &str,
-  manage_flags: &ManageFlags,
-  lang: &str,
-) -> Result<(), AppError> {
-  let sources_path = sources_dir(runtime_dir, url)?;
-
-  // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
-  if manage_flags.fetch {
-    let report = Report::new(ReportIcon::Fetch, format!("fetching {lang} grammar…"));
-    let fetched = fetch_via_git(&report, url, pin, &sources_path, lang)?;
-
-    if fetched {
-      report.report(
-        ReportIcon::Success,
-        format!(
-          "fetched {lang} grammar at {path}",
-          path = sources_path.display(),
-        ),
-      );
-    } else {
-      report.report(
-        ReportIcon::Success,
-        format!(
-          "already fetched {lang} grammar at {path} (cached)",
-          path = sources_path.display(),
-        ),
-      );
-    }
-  }
-
-  if manage_flags.sync {
-    let report = Report::new(ReportIcon::Sync, format!("syncing {lang} grammar"));
-    check_out_pin(&report, url, pin, &sources_path, lang)?;
-    report.report(ReportIcon::Success, format!("synchronized {lang} grammar"));
-  }
-
-  let lang_build_dir = runtime_dir.join(format!(
-    "{fetch_path}/{src_path}/build",
-    fetch_path = sources_path.display(),
-    src_path = lang_config.grammar.path.display()
-  ));
-
-  if manage_flags.compile {
-    // ensure the build dir exists
-    fs::create_dir_all(&lang_build_dir).map_err(|err| AppError::CannotCreateDir {
-      dir: lang_build_dir.clone(),
-      err,
-    })?;
-
-    do_compile(lang_config, &lang_build_dir, lang)?;
-  }
-
-  if manage_flags.install {
-    install_grammar(install_dir, &lang_build_dir, lang, pin)?;
-  }
-
-  Ok(())
-}
-
-/// Manage git-based queries.
-///
-/// For git repositories, we have to fetch, compile, link and install queries.
-fn manage_git_queries(
-  runtime_dir: &Path,
-  install_dir: &Path,
-  url: &str,
-  pin: &str,
-  path: &Path,
-  manage_flags: &ManageFlags,
-  lang: &str,
-) -> Result<(), AppError> {
-  let sources_path = sources_dir(runtime_dir, url)?;
-
-  // fetch the language if required; it should be done at least once by the user, otherwise, the rest below will fail
-  if manage_flags.fetch {
-    let report = Report::new(ReportIcon::Fetch, format!("fetching {lang} queries",));
-    let fetched = fetch_via_git(&report, url, pin, &sources_path, lang)?;
-
-    if fetched {
-      report.report(
-        ReportIcon::Success,
-        format!(
-          "fetched {lang} queries at {path}",
-          path = sources_path.display(),
-        ),
-      );
-    } else {
-      report.report(
-        ReportIcon::Success,
-        format!(
-          "already fetched {lang} queries at {path} (cached)",
-          path = sources_path.display(),
-        ),
-      );
-    }
-  }
-
-  if manage_flags.sync {
-    let report = Report::new(ReportIcon::Sync, format!("syncing {lang} queries"));
-    check_out_pin(&report, url, pin, &sources_path, lang)?;
-    report.report(ReportIcon::Success, format!("synchronized {lang} queries"));
-  }
-
-  if manage_flags.install {
-    install_queries(install_dir, &sources_path.join(path), lang, pin)?;
-  }
-
-  Ok(())
-}
-
 /// Info mode.
-fn info(
-  config: &Config,
-  install_dir: &Path,
-  lang: Option<&str>,
-  all: bool,
-) -> Result<(), AppError> {
+fn info(config: &Config, install_dir: &Path, lang: Option<&str>, all: bool) -> Result<(), HellNo> {
   if let Some(lang) = lang {
     display_lang_info(config, install_dir, lang)?;
   } else if all {
@@ -392,7 +77,7 @@ fn info(
 }
 
 /// Display information about all languages.
-fn display_all_lang_info(config: &Config, install_dir: &Path) -> Result<(), AppError> {
+fn display_all_lang_info(config: &Config, install_dir: &Path) -> Result<(), HellNo> {
   println!(
     "{lang_header:^20}| {g} | {h} | {i} | {l} | {t} | {z}",
     lang_header = "Language".bold(),
@@ -467,10 +152,10 @@ fn display_all_lang_info(config: &Config, install_dir: &Path) -> Result<(), AppE
 }
 
 /// Display information about a given language.
-fn display_lang_info(config: &Config, install_dir: &Path, lang: &str) -> Result<(), AppError> {
+fn display_lang_info(config: &Config, install_dir: &Path, lang: &str) -> Result<(), HellNo> {
   // first, display the config
   let Some(lang_config) = config.languages.get_lang_conf(lang) else {
-    return Err(AppError::MissingLangConfig {
+    return Err(HellNo::MissingLangConfig {
       lang: lang.to_owned(),
     });
   };
@@ -750,249 +435,12 @@ fn display_queries_info(config: &LanguageQueriesConfig, install_dir: &Path, lang
   }
 }
 
-/// Fetch an URL via git, and support pinning.
-///
-/// Return `Ok(true)` if something was fetched; `Ok(false)` if it was already there.
-fn fetch_via_git(
-  report: &Report,
-  url: &str,
-  pin: &str,
-  fetch_path: &Path,
-  lang: &str,
-) -> Result<bool, AppError> {
-  // check if the fetch path already exists; if not, we clone the repository
-  if let Ok(false) = fetch_path.try_exists() {
-    fs::create_dir_all(fetch_path).map_err(|err| AppError::CannotCreateDir {
-      dir: fetch_path.to_owned(),
-      err,
-    })?;
-
-    let git_clone_args = vec![
-      "clone",
-      "--depth",
-      "1",
-      "-n",
-      url,
-      fetch_path
-        .as_os_str()
-        .to_str()
-        .ok_or_else(|| AppError::BadPath)?,
-    ];
-
-    report.report(ReportIcon::Fetch, format!("cloning {url}"));
-    let mut child = Command::new("git")
-      .args(git_clone_args)
-      .stdout(Stdio::null())
-      .stderr(Stdio::piped())
-      .spawn()
-      .map_err(|err| AppError::FetchError {
-        lang: lang.to_owned(),
-        err: err.to_string(),
-      })?;
-    let stderr = child.stderr.take();
-
-    let exit_status = child
-      .wait()
-      .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-        process: "git clone".to_owned(),
-        err,
-      })?;
-
-    if !exit_status.success() {
-      if let Some(mut stderr) = stderr {
-        let mut err = String::new();
-        stderr
-          .read_to_string(&mut err)
-          .map_err(|err| AppError::FetchError {
-            lang: lang.to_owned(),
-            err: err.to_string(),
-          })?;
-
-        return Err(AppError::FetchError {
-          lang: lang.to_owned(),
-          err,
-        });
-      }
-    }
-  }
-
-  check_out_pin(report, url, pin, fetch_path, lang)?;
-
-  Ok(true)
-}
-
-/// Fetch remote git objects.
-fn fetch_remote(
-  report: &Report,
-  url: &str,
-  fetch_path: &Path,
-  lang: &str,
-  pin: &str,
-) -> Result<(), AppError> {
-  report.report(
-    ReportIcon::Sync,
-    format!("fetching {lang} git remote objects {url}"),
-  );
-
-  let mut child = Command::new("git")
-    .args(["fetch", "origin", "--prune", pin])
-    .current_dir(fetch_path)
-    .stdout(Stdio::null())
-    .stderr(Stdio::piped())
-    .spawn()
-    .map_err(|err| AppError::FetchError {
-      lang: lang.to_owned(),
-      err: err.to_string(),
-    })?;
-  let stderr = child.stderr.take();
-
-  let exit_status = child
-    .wait()
-    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-      process: "git fetch".to_owned(),
-      err,
-    })?;
-
-  if !exit_status.success() {
-    if let Some(mut stderr) = stderr {
-      let mut err = String::new();
-      stderr
-        .read_to_string(&mut err)
-        .map_err(|err| AppError::FetchError {
-          lang: lang.to_owned(),
-          err: err.to_string(),
-        })?;
-
-      return Err(AppError::FetchError {
-        lang: lang.to_owned(),
-        err,
-      });
-    }
-  }
-
-  Ok(())
-}
-
-/// Checkout a source at a given pin.
-fn check_out_pin(
-  report: &Report,
-  url: &str,
-  pin: &str,
-  fetch_path: &Path,
-  lang: &str,
-) -> Result<(), AppError> {
-  fetch_remote(report, url, fetch_path, lang, pin)?;
-
-  report.report(
-    ReportIcon::Info,
-    format!("checking out {lang} {url} at {pin}"),
-  );
-
-  let mut child = Command::new("git")
-    .args(["checkout", pin])
-    .current_dir(fetch_path)
-    .stdout(Stdio::null())
-    .stderr(Stdio::piped())
-    .spawn()
-    .map_err(|err| AppError::FetchError {
-      lang: lang.to_owned(),
-      err: err.to_string(),
-    })?;
-
-  let stderr = child.stderr.take();
-
-  let exit_status = child
-    .wait()
-    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-      process: "git checkout".to_owned(),
-      err,
-    })?;
-
-  if !exit_status.success() {
-    if let Some(mut stderr) = stderr {
-      let mut err = String::new();
-      stderr
-        .read_to_string(&mut err)
-        .map_err(|err| AppError::CheckOutError {
-          lang: lang.to_owned(),
-          err: err.to_string(),
-        })?;
-
-      return Err(AppError::CheckOutError {
-        lang: lang.to_owned(),
-        err,
-      });
-    }
-  }
-  Ok(())
-}
-
-/// Compile and link the grammar.
-fn do_compile(
-  lang_config: &LanguageConfig,
-  lang_build_dir: &Path,
-  lang: &str,
-) -> Result<(), AppError> {
-  // compile into .o
-  let args = lang_config
-    .grammar
-    .compile_args
-    .iter()
-    .map(|arg| arg.replace("{lang}", lang))
-    .chain(lang_config.grammar.compile_flags.clone());
-
-  let report = Report::new(ReportIcon::Compile, format!("compiling {lang} grammar"));
-  Command::new(&lang_config.grammar.compile)
-    .args(args)
-    .current_dir(lang_build_dir)
-    .spawn()
-    .map_err(|err| AppError::CompileError {
-      lang: lang.to_owned(),
-      err,
-    })?
-    .wait()
-    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-      process: "git".to_owned(),
-      err,
-    })?;
-
-  report.report(ReportIcon::Success, format!("compiled {lang} grammar"));
-  drop(report);
-
-  // link into {lang}.so
-  let args = lang_config
-    .grammar
-    .link_args
-    .iter()
-    .map(|arg| arg.replace("{lang}", lang))
-    .chain(lang_config.grammar.link_flags.clone());
-  let report = Report::new(ReportIcon::Link, format!("linking {lang} grammar",));
-  Command::new(&lang_config.grammar.link)
-    .args(args)
-    .current_dir(lang_build_dir)
-    .spawn()
-    .map_err(|err| AppError::LinkError {
-      lang: lang.to_owned(),
-      err,
-    })?
-    .wait()
-    .map(|_| ())
-    .map_err(|err| AppError::ErrorWhileWaitingForProcess {
-      process: "git".to_owned(),
-      err,
-    })?;
-
-  report.report(ReportIcon::Success, format!("linked {lang} grammar"));
-
-  Ok(())
-}
-
 fn install_grammar(
   install_dir: &Path,
   lang_build_dir: &Path,
   lang: &str,
   pin: &str,
-) -> Result<(), AppError> {
+) -> Result<(), HellNo> {
   let lang_so = format!("{lang}.so");
   let source_path = lang_build_dir.join(lang_so);
   let grammar_dir = install_dir.join(format!("grammars/{lang}"));
@@ -1000,11 +448,11 @@ fn install_grammar(
   let report = Report::new(ReportIcon::Install, format!("installing {lang} grammar"));
 
   // ensure the grammars directory exists
-  fs::create_dir_all(&grammar_dir).map_err(|err| AppError::CannotCreateDir {
+  fs::create_dir_all(&grammar_dir).map_err(|err| HellNo::CannotCreateDir {
     dir: grammar_dir,
     err,
   })?;
-  fs::copy(&source_path, &install_path).map_err(|err| AppError::CannotCopyFile {
+  fs::copy(&source_path, &install_path).map_err(|err| HellNo::CannotCopyFile {
     src: source_path,
     dest: install_path,
     err,
@@ -1020,17 +468,17 @@ fn install_queries(
   query_dir: &Path,
   lang: &str,
   pin: &str,
-) -> Result<(), AppError> {
+) -> Result<(), HellNo> {
   // ensure the queries directory exists
   let install_path = install_dir.join(format!("queries/{lang}/{pin}"));
   let report = Report::new(ReportIcon::Install, format!("installing {lang} queries"));
 
-  fs::create_dir_all(&install_path).map_err(|err| AppError::CannotCreateDir {
+  fs::create_dir_all(&install_path).map_err(|err| HellNo::CannotCreateDir {
     dir: install_path.clone(),
     err,
   })?;
 
-  copy_dir(query_dir, &install_path).map_err(|err| AppError::CannotCopyDir {
+  copy_dir(query_dir, &install_path).map_err(|err| HellNo::CannotCopyDir {
     src: query_dir.to_owned(),
     dest: install_path,
     err,
