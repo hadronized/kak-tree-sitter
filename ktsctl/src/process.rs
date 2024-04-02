@@ -22,13 +22,10 @@ impl<'a> Process<'a> {
     Self { name }
   }
 
-  pub fn run(
-    &self,
-    cwd: impl for<'b> Into<Option<&'b Path>>,
-    args: &[&str],
-  ) -> Result<(), HellNo> {
-    let process = format!("{} {}", self.name.to_owned(), args.join(" "));
-    let mut cmd = Command::new(self.name).args(args);
+  pub fn run<'b>(&self, cwd: impl Into<Option<&'b Path>>, args: &[&str]) -> Result<(), HellNo> {
+    let process = format!("{} {}", self.name, args.join(" "));
+    let mut cmd = Command::new(self.name);
+    cmd.args(args);
 
     if let Some(cwd) = cwd.into() {
       cmd.current_dir(cwd);
@@ -59,7 +56,7 @@ impl<'a> Process<'a> {
             err,
           })?;
 
-        return Err(HellNoProcessExitedWithError {
+        return Err(HellNo::ProcessExitedWithError {
           process: process.clone(),
           err: err.to_string(),
         });

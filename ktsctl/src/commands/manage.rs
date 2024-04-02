@@ -7,10 +7,10 @@ use kak_tree_sitter_config::{source::Source, Config, LanguageConfig};
 
 use crate::{
   error::HellNo,
-  git,
+  git::{self, Clone},
   process::Process,
-  report::{Report, ReportIcon},
   resources::Resources,
+  ui::{report::Report, status_icon::StatusIcon},
 };
 
 /// Main flags to fetch, compile and/or install resources.
@@ -81,7 +81,7 @@ impl Manager {
     match lang_config.grammar.source {
       Source::Local { ref path } => {
         Report::new(
-          ReportIcon::Info,
+          StatusIcon::Info,
           format!(
             "using local grammar {lang} at {path}",
             path = path.display()
@@ -105,15 +105,20 @@ impl Manager {
     let sources_path = self.resources.sources_dir(url);
 
     if self.flags.sync {
-      let report = Report::new(ReportIcon::Sync, format!("syncing {lang} grammar"));
+      let report = Report::new(StatusIcon::Sync, format!("syncing {lang} grammar"));
       self.sync_git_grammar(&report, lang, lang_config, &sources_path, url, pin)?;
       return Ok(());
     }
 
     if self.flags.fetch {
-      let report = Report::new(ReportIcon::Fetch, format!("cloning {lang} grammar…"));
-      Self::git_clone(&report, lang, &sources_path, url, pin)?;
-      report.success(format!("cloned {lang} grammar"));
+      let report = Report::new(StatusIcon::Fetch, format!("cloning {lang} grammar…"));
+      let clone = Self::git_clone(&report, lang, &sources_path, url, pin)?;
+
+      if let Clone::Cloned = clone {
+        report.success(format!("cloned {lang} grammar"));
+      } else {
+        report.info(format!("{lang} grammar was already cloned (cached)"));
+      }
     }
 
     let lang_build_dir = self
@@ -121,13 +126,13 @@ impl Manager {
       .lang_build_dir(&sources_path, &lang_config.grammar.path);
 
     if self.flags.compile {
-      let report = Report::new(ReportIcon::Compile, format!("compiling {lang} grammar"));
+      let report = Report::new(StatusIcon::Compile, format!("compiling {lang} grammar"));
       Self::compile_git_grammar(&report, lang, lang_config, &lang_build_dir)?;
       report.success(format!("built {lang} grammar"));
     }
 
     if self.flags.install {
-      let report = Report::new(ReportIcon::Install, format!("installing {lang} grammar"));
+      let report = Report::new(StatusIcon::Install, format!("installing {lang} grammar"));
       self.install_git_grammar(&report, lang, &lang_build_dir, pin)?;
       report.success(format!("installed {lang} grammar"));
     }
@@ -149,14 +154,14 @@ impl Manager {
       return Ok(());
     }
 
-    Self::git_clone(&report, lang, fetch_path, url, pin)?;
+    Self::git_clone(report, lang, fetch_path, url, pin)?;
 
     let lang_build_dir = self
       .resources
       .lang_build_dir(fetch_path, &lang_config.grammar.path);
 
-    Self::compile_git_grammar(&report, lang, lang_config, &lang_build_dir)?;
-    self.install_git_grammar(&report, lang, &lang_build_dir, pin)?;
+    Self::compile_git_grammar(report, lang, lang_config, &lang_build_dir)?;
+    self.install_git_grammar(report, lang, &lang_build_dir, pin)?;
 
     report.success(format!("synchronized {lang} grammar"));
     Ok(())
@@ -168,22 +173,23 @@ impl Manager {
     fetch_path: &Path,
     url: &str,
     pin: &str,
-  ) -> Result<(), HellNo> {
-    let cloned = git::clone(&report, lang, fetch_path, url)?;
+  ) -> Result<Clone, HellNo> {
+    let clone = git::clone(report, fetch_path, url)?;
 
-    if let git::Clone::Cloned = cloned {
-      report.success(format!(
+    if let git::Clone::Cloned = clone {
+      report.info(format!(
         "cloned {lang} at {path}",
         path = fetch_path.display(),
       ));
     } else {
-      report.success(format!(
+      report.info(format!(
         "already cloned {lang} at {path} (cached)",
         path = fetch_path.display(),
       ));
     }
 
-    git::fetch(report, lang, fetch_path, url, pin)
+    git::fetch(report, lang, fetch_path, url, pin)?;
+    Ok(clone)
   }
 
   /// Compile and link the grammar.
@@ -194,7 +200,7 @@ impl Manager {
     lang_build_dir: &Path,
   ) -> Result<(), HellNo> {
     // ensure the build dir exists
-    fs::create_dir_all(&lang_build_dir).map_err(|err| HellNo::CannotCreateDir {
+    fs::create_dir_all(lang_build_dir).map_err(|err| HellNo::CannotCreateDir {
       dir: lang_build_dir.to_owned(),
       err,
     })?;
@@ -213,7 +219,7 @@ impl Manager {
     report.info(format!("compiled {lang} grammar"));
 
     // link into {lang}.so
-    let report = Report::new(ReportIcon::Link, format!("linking {lang} grammar",));
+    let report = Report::new(StatusIcon::Link, format!("linking {lang} grammar",));
     let args: Vec<_> = lang_config
       .grammar
       .link_args
@@ -234,8 +240,6 @@ impl Manager {
     lang_build_dir: &Path,
     pin: &str,
   ) -> Result<(), HellNo> {
-    let report = Report::new(ReportIcon::Install, format!("installing {lang} grammar"));
-
     let lang_so = format!("{lang}.so");
     let source_path = lang_build_dir.join(lang_so);
     let grammar_dir = self.resources.data_dir().join(format!("grammars/{lang}"));
@@ -260,7 +264,7 @@ impl Manager {
     match lang_config.queries.source {
       Some(Source::Local { ref path }) => {
         Report::new(
-          ReportIcon::Info,
+          StatusIcon::Info,
           format!(
             "using local queries {lang} at {path}",
             path = path.display()
@@ -269,12 +273,12 @@ impl Manager {
       }
 
       Some(Source::Git { ref url, ref pin }) => {
-        self.manage_git_queries(lang, &lang_config, url, pin)?
+        self.manage_git_queries(lang, lang_config, url, pin)?
       }
 
       None => {
         Report::new(
-          ReportIcon::Error,
+          StatusIcon::Info,
           format!("no query configuration for {lang}; will be using the grammar directory"),
         );
       }
@@ -293,19 +297,23 @@ impl Manager {
     let sources_path = self.resources.sources_dir(url);
 
     if self.flags.sync {
-      let report = Report::new(ReportIcon::Sync, format!("syncing {lang} queries"));
+      let report = Report::new(StatusIcon::Sync, format!("syncing {lang} queries"));
       self.sync_git_queries(&report, lang, lang_config, &sources_path, url, pin)?;
-      report.success(format!("synchronized {lang} queries"));
       return Ok(());
     }
 
     if self.flags.fetch {
-      let report = Report::new(ReportIcon::Fetch, format!("cloning {lang} queries"));
-      Self::git_clone(&report, lang, &sources_path, url, pin)?;
+      let report = Report::new(StatusIcon::Fetch, format!("cloning {lang} queries"));
+      let clone = Self::git_clone(&report, lang, &sources_path, url, pin)?;
+      if let Clone::Cloned = clone {
+        report.success(format!("cloned {lang} queries"));
+      } else {
+        report.info(format!("{lang} queries were already cloned (cached)"));
+      }
     }
 
     if self.flags.install {
-      let report = Report::new(ReportIcon::Install, format!("installing {lang} queries"));
+      let report = Report::new(StatusIcon::Install, format!("installing {lang} queries"));
       let query_dir = sources_path.join(&lang_config.queries.path);
       self.install_git_queries(&report, &query_dir, lang, pin)?;
     }
@@ -327,11 +335,11 @@ impl Manager {
       return Ok(());
     }
 
-    Self::git_clone(&report, lang, fetch_path, url, pin)?;
+    Self::git_clone(report, lang, fetch_path, url, pin)?;
 
     let path = &lang_config.queries.path;
     let query_dir = fetch_path.join(path);
-    self.install_git_queries(&report, &query_dir, lang, pin)?;
+    self.install_git_queries(report, &query_dir, lang, pin)?;
 
     report.success(format!("synchronized {lang} grammar"));
     Ok(())
@@ -345,8 +353,7 @@ impl Manager {
     pin: &str,
   ) -> Result<(), HellNo> {
     // ensure the queries directory exists
-    let install_path = self.resources.queries_dir(lang, pin);
-    let report = Report::new(ReportIcon::Install, format!("installing {lang} queries"));
+    let install_path = self.resources.queries_pin_dir(lang, pin);
 
     fs::create_dir_all(&install_path).map_err(|err| HellNo::CannotCreateDir {
       dir: install_path.clone(),

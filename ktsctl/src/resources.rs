@@ -2,6 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
+use kak_tree_sitter_config::{source::Source, LanguageConfig};
+
 use crate::error::HellNo;
 
 /// Resources view (paths, dirs, etc.).
@@ -27,11 +29,6 @@ impl Resources {
       runtime_dir,
       data_dir,
     })
-  }
-
-  /// Runtime directory (i.e. where `ktsctl`) fetches, compiles, etc.
-  pub fn runtime_dir(&self) -> &Path {
-    &self.runtime_dir
   }
 
   /// Data directory (a.k.a. install directory); where `ktsctl` moves resources.
@@ -66,19 +63,37 @@ impl Resources {
     ))
   }
 
-  /// Directory for language grammar.
-  pub fn grammar_dir(&self, lang: &str, pin: &str) -> PathBuf {
+  /// Get a grammar path from config.
+  pub fn grammar_path_from_config(&self, lang: &str, config: &LanguageConfig) -> PathBuf {
+    match config.grammar.source {
+      Source::Local { ref path } => path.clone(),
+      Source::Git { ref pin, .. } => self.grammar_pin_path(lang, pin),
+    }
+  }
+
+  /// Directory for language grammar and a pin.
+  pub fn grammar_pin_path(&self, lang: &str, pin: &str) -> PathBuf {
     self.data_dir.join(format!("grammars/{lang}/{pin}.so"))
   }
 
+  /// Get the queries directory from a language config.
+  pub fn queries_dir_from_config(&self, lang: &str, config: &LanguageConfig) -> Option<PathBuf> {
+    let path = match config.queries.source.as_ref()? {
+      Source::Local { ref path } => path.clone(),
+      Source::Git { ref pin, .. } => self.queries_pin_dir(lang, pin),
+    };
+
+    Some(path)
+  }
+
   /// Directory for language queries.
-  pub fn queries_dir(&self, lang: &str, pin: &str) -> PathBuf {
+  pub fn queries_pin_dir(&self, lang: &str, pin: &str) -> PathBuf {
     self.data_dir.join(format!("queries/{lang}/{pin}"))
   }
 
   /// Check if a grammar was compiled and installed for a given language and pin.
   pub fn grammar_exists(&self, lang: &str, pin: &str) -> bool {
-    let path = self.grammar_dir(lang, pin);
+    let path = self.grammar_pin_path(lang, pin);
     matches!(path.try_exists(), Ok(true))
   }
 
@@ -86,7 +101,17 @@ impl Resources {
   ///
   /// Note: this function doesn’t check for the existence of specific queries; only that a directory exists for them.
   pub fn queries_exist(&self, lang: &str, pin: &str) -> bool {
-    let path = self.queries_exist(lang, pin);
+    let path = self.queries_pin_dir(lang, pin);
     matches!(path.try_exists(), Ok(true))
+  }
+
+  /// Grammar directory containing all grammars for a given language.
+  pub fn grammars_dir(&self, lang: &str) -> PathBuf {
+    self.data_dir.join(format!("grammars/{lang}"))
+  }
+
+  /// Queries directory containing all queries for a given language.
+  pub fn queries_dir(&self, lang: &str) -> PathBuf {
+    self.data_dir.join(format!("queries/{lang}"))
   }
 }

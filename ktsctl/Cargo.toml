@@ -21,3 +21,4 @@ kak-tree-sitter-config = { version = "0.4.0-dev", path = "../kak-tree-sitter-con
 log = "0.4.21"
 simple_logger = "4.3.3"
 thiserror = "1.0.57"
+unicode-segmentation = "1.11.0"

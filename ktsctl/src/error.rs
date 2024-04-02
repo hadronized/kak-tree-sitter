@@ -39,18 +39,6 @@ pub enum HellNo {
   #[error("{process} exited with error: {err}")]
   ProcessExitedWithError { process: String, err: String },
 
-  #[error("error while fetching resource for language {lang}: {err}")]
-  FetchError { lang: String, err: String },
-
-  #[error("error while checking out source for language {lang}: {err}")]
-  CheckOutError { lang: String, err: String },
-
-  #[error("error while compiling grammar for language {lang}: {err}")]
-  CompileError { lang: String, err: io::Error },
-
-  #[error("error while linking grammar for language {lang}: {err}")]
-  LinkError { lang: String, err: io::Error },
-
   #[error("cannot copy {src} to {dest}: {err}")]
   CannotCopyFile {
     src: PathBuf,

@@ -52,7 +52,7 @@ pub enum Cmd {
   },
 
   /// Get information on installed resources.
-  Info {
+  Query {
     /// Get information about a specific language.
     #[clap(short, long)]
     lang: Option<String>,

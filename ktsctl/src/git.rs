@@ -2,10 +2,10 @@
 
 use std::{fs, path::Path};
 
-use crate::{error::HellNo, process::Process, report::Report};
+use crate::{error::HellNo, process::Process, ui::report::Report};
 
 /// Result of a successful git clone.
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Clone {
   /// The repository was cloned remotely.
   Cloned,
@@ -17,7 +17,7 @@ pub enum Clone {
 /// Clone a git repository.
 ///
 /// Return `Ok(true)` if something was cloned; `Ok(false)` if it was already there.
-pub fn clone(report: &Report, lang: &str, fetch_path: &Path, url: &str) -> Result<Clone, HellNo> {
+pub fn clone(report: &Report, fetch_path: &Path, url: &str) -> Result<Clone, HellNo> {
   // check if the fetch path already exists; if not, we clone the repository
   let fetched;
   if let Ok(false) = fetch_path.try_exists() {
@@ -67,5 +67,6 @@ pub fn fetch(
   pin: &str,
 ) -> Result<(), HellNo> {
   report.sync(format!("fetching {lang} git remote objects {url}"));
-  Process::new("git").run(fetch_path, &["fetch", "origin", "--prune", pin])
+  Process::new("git").run(fetch_path, &["fetch", "origin", "--prune", pin])?;
+  checkout(report, url, fetch_path, pin)
 }
