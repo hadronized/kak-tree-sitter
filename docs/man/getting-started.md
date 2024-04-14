@@ -6,7 +6,7 @@ how the project is made, how it works, what you should expect and what you shoul
 
 ## Prerequisites
 
-As the name implies, this is project that bridges [tree-sitter] and [Kakoune]. You do not have to know anything about
+As the name implies, this project bridges [tree-sitter] and [Kakoune]. You do not have to know anything about
 the former, but obviously, you need to have [Kakoune] installed. The rest is handled by this project.
 
 ## What is this?

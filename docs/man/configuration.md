@@ -87,3 +87,10 @@ For users installing `ktsctl` by using a binary release or compiling it themselv
 uses mainly `git` sources) is enough. However, if you ship with a distributed set of grammars and queries, you might
 want to override the languages’ configurations and use `local` sources. You can also mix them: a `git` source for the
 grammar, and a `local` one for the queries. It’s up to you.
+
+# What’s next to read?
+
+You can have a look at [ktsctl] and [features] to start exploring what you can do!
+
+[ktsctl]: ktsctl.md
+[features]: features.md
