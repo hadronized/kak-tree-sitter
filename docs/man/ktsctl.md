@@ -59,7 +59,7 @@ so it’s a nice one-liner for people who don’t care about only fetching or on
 A useful one-liner that you can use to install everything at once is to use the `-a, --all` flag:
 
 ```bash
-ktscstl manage -fcia
+ktsctl manage -fcia
 ```
 
 #### Synchronizing everything
