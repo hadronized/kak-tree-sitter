@@ -57,7 +57,7 @@ need to tell it what you want at first.
 
 Colorschemes support is hard. Using this project won’t automatically make your colorscheme look super nice. You will
 have to adapt and use a new, [tree-sitter]-powered colorscheme. The community tries its best to provide more and more
-colorschemes. You shall want to visit the [Colorscheme](colorscheme.md) document for further information.
+colorschemes. You shall want to visit the [Highlighting](highlighting.md) document for further information.
 
 ## What’s the next thing to read?
 

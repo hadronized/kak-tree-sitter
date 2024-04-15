@@ -33,7 +33,7 @@ contains more objects.
 ### `language.<lang>.remove_default_higlighter`
 
 > Default value: `true`
- 
+
 Remove the default highlighter set by the Kakoune “standard library” (i.e. `window/<lang>`). For instance, for `rust`
 filetypes, the default highlighter is `window/rust`. Setting this option to `true` will remove this highlighter, which
 is almost always wanted (otherwise, the highlighting from KTS might not be applied properly).
