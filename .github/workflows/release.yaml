@@ -1,0 +1,40 @@
+name: Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build kak-tree-sitter
+      run: cargo build --release -p kak-tree-sitter
+    - uses: actions/upload-artifact@v4
+      with:
+        name: kak-tree-sitter.Linux-x86_64
+        path: target/release/kak-tree-sitter
+    - name: Build ktsctl
+      run: cargo build --release -p ktsctl
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ktsctl.Linux-x86_64
+        path: target/release/ktsctl
+
+  release-linux:
+    runs-on: macOS-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build kak-tree-sitter
+      run: cargo build --release -p kak-tree-sitter
+    - uses: actions/upload-artifact@v4
+      with:
+        name: kak-tree-sitter.macOS-x86_64
+        path: target/release/kak-tree-sitter
+    - name: Build ktsctl
+      run: cargo build --release -p ktsctl
+    - uses: actions/upload-artifact@v4
+      with:
+        name: ktsctl.macOS-x86_64
+        path: target/release/ktsctl
