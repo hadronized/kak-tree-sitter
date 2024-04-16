@@ -22,7 +22,7 @@ jobs:
         name: ktsctl.Linux-x86_64
         path: target/release/ktsctl
 
-  release-linux:
+  release-macos:
     runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v3
