@@ -77,7 +77,6 @@ It calls `--sync` with `--all`. Basically, it will:
 - If you do, the resource is checked against the pinned version of the configuration. If it’s too old, a new version
   is fetched, compiled, etc.
 
->>>>>>> 4694637 (Update user manual for the new version of ktsctl.)
 ### Getting information
 
 The `query` command allows to get information about tree-sitter resources. As with `manage`, you can use `--help` to
@@ -96,8 +95,9 @@ reuse datasets from other projects, such as the GitHub repositories of the gramm
 Whatever you decide to use, you need to update your [user configuration](configuration.md) file according to the
 languages, grammars and queries. **However**, as explained in the linked section, 99% of people will just be satisfied
 with the default settings shipped with `kak-tree-sitter`’s `default-config.toml`, which you can find at the root of the
-repository, [here](https://github.com/hadronized/kak-tree-sitter/blob/master/default-config.toml). That configuration
-file is shipped with the binary (`kak-tree-sitter`), so you do not need to copy it; just add what you need!
+repository, [here](https://github.com/hadronized/kak-tree-sitter/blob/master/kak-tree-sitter-config/default-config.toml).
+That configuration file is shipped with the binary (`kak-tree-sitter`), so you do not need to copy it; just add what you
+need!
 
 # A note for release channels
 

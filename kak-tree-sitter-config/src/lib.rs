@@ -39,7 +39,7 @@ impl Config {
   }
 
   /// Default configuration using the `default-config.toml` file.
-  const DEFAULT_CONFIG_CONTENT: &'static str = include_str!("../../default-config.toml");
+  const DEFAULT_CONFIG_CONTENT: &'static str = include_str!("../default-config.toml");
 
   pub fn load_default_config() -> Result<Self, ConfigError> {
     log::debug!("loading default configuration");
