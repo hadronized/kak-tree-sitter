@@ -33,4 +33,4 @@ tree-sitter-highlight = "0.20.1"
 unicode-segmentation = "1.11.0"
 
 [dev-dependencies]
-tree-sitter-rust = "0.20.4"
+tree-sitter-rust = "0.21.0"
