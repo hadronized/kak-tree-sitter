@@ -1,3 +1,8 @@
+# v0.5.0
+
+- Introduce user-only configuration. [fc7c5c6](https://github.com/hadronized/kak-tree-sitter/commit/fc7c5c6)
+- Introduce `ktsctl` sources. [e083aad](https://github.com/hadronized/kak-tree-sitter/commit/e083aad)
+
 # v0.4.0
 
 - Add `remove_default_highlighter` option [d78abc0](https://github.com/hadronized/kak-tree-sitter/commit/d78abc0)
