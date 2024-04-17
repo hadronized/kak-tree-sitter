@@ -74,22 +74,9 @@ impl Server {
         log::debug!("kak-tree-sitter already running; not starting a new server");
         return Ok(());
       } else {
-        log::debug!("removing previous PID file");
-        std::fs::remove_file(&pid_file).map_err(|err| OhNo::CannotStartDaemon {
-          err: format!(
-            "cannot remove previous PID file {path}: {err}",
-            path = pid_file.display()
-          ),
-        })?;
-
-        log::debug!("removing previous socket file");
-        let socket_file = runtime_dir.join("socket");
-        std::fs::remove_file(&socket_file).map_err(|err| OhNo::CannotStartDaemon {
-          err: format!(
-            "cannot remove previous socket file {path}: {err}",
-            path = socket_file.display()
-          ),
-        })?;
+        log::debug!("removing previous state");
+        // If there is no previous state then ignore
+        let _ = fs::remove_dir_all(&runtime_dir);
       }
     }
 
