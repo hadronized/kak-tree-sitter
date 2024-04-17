@@ -1,3 +1,16 @@
+# v0.6.0
+
+- First shot at text-objects. [1350fa1](https://github.com/hadronized/kak-tree-sitter/commit/1350fa1)
+- Adding support for selections with text-objects. [46075c8](https://github.com/hadronized/kak-tree-sitter/commit/46075c8)
+- First full and working implementation of text-object. [42935c9](https://github.com/hadronized/kak-tree-sitter/commit/42935c9)
+- Remove default theme and make cascaded tree-sitter faces. [1406e7d](https://github.com/hadronized/kak-tree-sitter/commit/1406e7d)
+- Introduce user-only configuration. [fc7c5c6](https://github.com/hadronized/kak-tree-sitter/commit/fc7c5c6)
+- Move the user manual into the repository, extracted from the wiki. [a7ac734](https://github.com/hadronized/kak-tree-sitter/commit/a7ac734)
+- Add --with-highlighting. [152f5f6](https://github.com/hadronized/kak-tree-sitter/commit/152f5f6)
+- Fix injecting Kakoune RC when we do not have any verbose flag. [ec1ee3c](https://github.com/hadronized/kak-tree-sitter/commit/ec1ee3c)
+- Support reading local paths when used as sources for both grammars & queries. [305455b](https://github.com/hadronized/kak-tree-sitter/commit/305455b)
+- Introduce ktsctl sources. [e083aad](https://github.com/hadronized/kak-tree-sitter/commit/e083aad)
+
 # v0.5.4
 
 - Fix getting (already existing) sessions. [3c8e86d](https://github.com/hadronized/kak-tree-sitter/commit/3c8e86d)
