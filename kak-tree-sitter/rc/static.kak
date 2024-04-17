@@ -112,7 +112,10 @@ define-command -hidden kak-tree-sitter-set-lang %{
 # Send a request to KTS to enable kak-tree-sitter.
 define-command kak-tree-sitter-req-enable -docstring 'Send request to enable tree-sitter support' %{
   kak-tree-sitter-set-lang
-  echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{kts_lang}"", ""client"": ""%val{client}"" }"
+  evaluate-commands -no-hooks %{
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""try_enable_highlight"", ""lang"": ""%opt{kts_lang}"", ""client"": ""%val{client}"" }"
+    write %opt{kts_cmd_fifo_path}
+  }
 }
 
 # Initiate request.
