@@ -24,6 +24,15 @@
 - --depth 1 on git operations to speed things up. [6e375be](https://github.com/hadronized/kak-tree-sitter/commit/6e375be)
 - Introduce --all. [c0bd4c8](https://github.com/hadronized/kak-tree-sitter/commit/c0bd4c8)
 
+---
+
+SHA 256 sums
+
+```
+5eabce3a45932207046f356f9763b402a3ee02467244daa5c4d2c8b712e99a3d  ktsctl.Linux-x86_64
+70b8fcc5a6db25dfe05451a18a09875724cff2d6c7fabdfd7a078cfa68ea7692  ktsctl.macOS-x86_64
+```
+
 # v0.3.3
 
 - Support for kak-tree-sitter-config-v0.4.0

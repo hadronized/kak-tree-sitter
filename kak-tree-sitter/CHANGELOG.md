@@ -11,6 +11,15 @@
 - Support reading local paths when used as sources for both grammars & queries. [305455b](https://github.com/hadronized/kak-tree-sitter/commit/305455b)
 - Introduce ktsctl sources. [e083aad](https://github.com/hadronized/kak-tree-sitter/commit/e083aad)
 
+---
+
+SHA 256 sums
+
+```
+f0bd6991a492218870bdcddaa7ee1eb8fdd5b69bbc2f99a1b16e2e5bf247d1dd  kak-tree-sitter.Linux-x86_64
+a8c0dd2899c5492f53b6e2d9c53ac0cf300f52298be5ada0f1d5c9b52444cf91  kak-tree-sitter.macOS-x86_64
+```
+
 # v0.5.4
 
 - Fix getting (already existing) sessions. [3c8e86d](https://github.com/hadronized/kak-tree-sitter/commit/3c8e86d)
