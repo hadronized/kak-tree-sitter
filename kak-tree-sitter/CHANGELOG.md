@@ -135,17 +135,3 @@ commit 3713c420dd9c9ac3845e90ceb71de6a87e36ba88 (tag: ktsctl-v0.2.0, tag: kak-tr
 
 - Initial version of the project. `v0.1` was being used on crates.io by a completely different project, and they gave
   use the name.
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -61,7 +61,3 @@ SHA 256 sums
 # v0.1.0
 
 - Initial release.
-
-
-
-
