@@ -4,7 +4,7 @@ use std::fmt::Debug;
 
 use serde::{Deserialize, Serialize};
 
-use crate::text_objects;
+use crate::{nav::Dir, text_objects::OperationMode};
 
 /// Unidentified request (i.e. not linked to a given session).
 #[derive(Debug, Deserialize, Serialize)]
@@ -62,14 +62,23 @@ pub enum Request {
     timestamp: u64,
   },
 
-  /// TODO
+  /// Request to apply text-objects on selections.
   TextObjects {
     client: String,
     buffer: String,
     lang: String,
     pattern: String,
     selections: String,
-    mode: text_objects::OperationMode,
+    mode: OperationMode,
+  },
+
+  /// Request to navigate the tree-sitter tree on selections.
+  Nav {
+    client: String,
+    buffer: String,
+    lang: String,
+    selections: String,
+    dir: Dir,
   },
 }
 
@@ -79,6 +88,7 @@ impl Request {
       Request::TryEnableHighlight { client, .. } => Some(client.as_str()),
       Request::Highlight { client, .. } => Some(client.as_str()),
       Request::TextObjects { client, .. } => Some(client.as_str()),
+      Request::Nav { client, .. } => Some(client.as_str()),
     }
   }
 }

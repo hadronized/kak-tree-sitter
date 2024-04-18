@@ -1,7 +1,7 @@
 //! Selections as recognized by Kakoune, as well as associated types and functions.
 
 use serde::{Deserialize, Serialize};
-use tree_sitter::Point;
+use tree_sitter::{Node, Point};
 
 /// A single position in a buffer.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
@@ -15,6 +15,15 @@ impl From<Point> for Pos {
     Self {
       line: p.row + 1,
       col: p.column + 1,
+    }
+  }
+}
+
+impl From<Pos> for Point {
+  fn from(p: Pos) -> Self {
+    Self {
+      row: p.line - 1,
+      column: p.col - 1,
     }
   }
 }
@@ -89,6 +98,18 @@ impl Sel {
         cursor: *a,
       }
     }
+  }
+
+  /// Same as [`Sel::replace`], but with a node’s content.
+  pub fn replace_with_node(&self, node: &Node) -> Self {
+    let mut b: Pos = node.end_position().into();
+    b.col -= 1;
+    self.replace(&node.start_position().into(), &b)
+  }
+
+  /// Check whether the cursor and anchor are at the same position.
+  pub fn is_fused(&self) -> bool {
+    self.anchor == self.cursor
   }
 }
 

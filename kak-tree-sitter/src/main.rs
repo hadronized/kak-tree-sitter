@@ -5,6 +5,7 @@ mod handler;
 mod highlighting;
 mod languages;
 mod logging;
+mod nav;
 mod queries;
 mod rc;
 mod request;

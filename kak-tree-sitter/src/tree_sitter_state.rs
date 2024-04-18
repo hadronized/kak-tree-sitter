@@ -6,8 +6,9 @@ use crate::{
   error::OhNo,
   highlighting::KakHighlightRange,
   languages::Language,
+  nav::Dir,
   selection::{ObjectFlags, Pos, Sel, SelectMode},
-  text_objects,
+  text_objects::OperationMode,
 };
 
 /// State around a tree.
@@ -72,7 +73,7 @@ impl TreeState {
     buf: &str,
     pattern: &str,
     selections: &[Sel],
-    mode: &text_objects::OperationMode,
+    mode: &OperationMode,
   ) -> Result<Vec<Sel>, OhNo> {
     // first, check whether the language supports text-objects, and also check whether it has the text-object type in
     // its capture names
@@ -101,7 +102,7 @@ impl TreeState {
     };
 
     let sels = match mode {
-      text_objects::OperationMode::SearchNext => {
+      OperationMode::SearchNext => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -109,7 +110,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::SearchPrev => {
+      OperationMode::SearchPrev => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -117,7 +118,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::SearchExtendNext => {
+      OperationMode::SearchExtendNext => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -125,7 +126,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::SearchExtendPrev => {
+      OperationMode::SearchExtendPrev => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -133,7 +134,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::FindNext => {
+      OperationMode::FindNext => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -141,7 +142,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::FindPrev => {
+      OperationMode::FindPrev => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -149,7 +150,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::ExtendNext => {
+      OperationMode::ExtendNext => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -157,7 +158,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::ExtendPrev => {
+      OperationMode::ExtendPrev => {
         let nodes = get_captures_nodes(pattern)?;
         selections
           .iter()
@@ -165,7 +166,7 @@ impl TreeState {
           .collect()
       }
 
-      text_objects::OperationMode::Object { mode, flags } => {
+      OperationMode::Object { mode, flags } => {
         let flags = ObjectFlags::parse_kak_str(flags);
 
         let pattern = format!(
@@ -372,5 +373,59 @@ impl TreeState {
 
     candidates.sort_by_key(|node| node.start_byte());
     candidates.last().cloned()
+  }
+
+  /// Navigate the tree.
+  ///
+  /// This function will apply the direction on all selections, expanding or collapsing them. If a selection is not
+  /// spanning on a node, the closet node is selected first, so that if you have the cursor and anchor at the same
+  /// location and you want to select the next child, your cursor will expand to the whole nearest enclosing node first.
+  pub fn nav_tree(&self, selections: &[Sel], dir: Dir) -> Vec<Sel> {
+    selections
+      .iter()
+      .map(|sel| {
+        self
+          .find_sel_node(sel)
+          .and_then(|node| {
+            // if we are fused, we select the nearest node
+            if sel.is_fused() {
+              return Some(node);
+            }
+
+            log::debug!("walking node {node:?} for dir {dir:?}");
+            log::debug!("  parent: {:?}", node.parent());
+            log::debug!("  1st child: {:?}", node.child(0));
+            log::debug!("  next sibling: {:?}", node.next_sibling());
+
+            let res = match dir {
+              Dir::Parent => node.parent(),
+              Dir::FirstChild => node.child(0),
+              Dir::FirstSibling => node.parent().and_then(|node| node.child(0)),
+              Dir::PrevSibling => node.prev_sibling(),
+              Dir::NextSibling => node.next_sibling(),
+            };
+
+            log::debug!("navigated to node: {res:?}");
+            res
+          })
+          .map(|node| sel.replace_with_node(&node))
+          .unwrap_or_else(|| sel.clone())
+      })
+      .collect()
+  }
+
+  /// Find the node for a selection.
+  fn find_sel_node(&self, sel: &Sel) -> Option<Node> {
+    log::trace!("finding node for selection {sel:?}");
+
+    // TODO: this is wrong too; the anchor can be after the cursor
+    let node = self
+      .tree
+      .root_node()
+      .descendant_for_point_range(sel.anchor.into(), sel.cursor.into());
+
+    log::trace!("found node: {node:?}");
+
+    node
   }
 }
