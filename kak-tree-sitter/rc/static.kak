@@ -86,6 +86,14 @@ define-command kak-tree-sitter-req-object-text-objects -params 1 %{
   }
 }
 
+# Send a single request to modify selections with tree-sitter navigation.
+define-command kak-tree-sitter-req-nav -params 1 %{
+  evaluate-commands -no-hooks %{
+    echo -to-file %opt{kts_cmd_fifo_path} -- "{ ""type"": ""nav"", ""client"": ""%val{client}"", ""buffer"": ""%val{bufname}"", ""lang"": ""%opt{kts_lang}"", ""selections"": ""%val{selections_desc}"", ""dir"": ""%arg{1}"" }"
+    write %opt{kts_buf_fifo_path}
+  }
+}
+
 # Enable highlighting for the current buffer.
 #
 # This command does a couple of things, among removing the « default » highlighting (Kakoune based) of the buffer and
