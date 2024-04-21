@@ -2,7 +2,7 @@ use std::{collections::HashMap, fs::File};
 
 use mio::Token;
 
-use crate::{selection::Sel, text_objects};
+use crate::{nav::Dir, selection::Sel, text_objects};
 
 /// Session tracker,
 ///
@@ -153,6 +153,15 @@ pub enum SessionState {
     pattern: String,
     selections: Vec<Sel>,
     mode: text_objects::OperationMode,
+  },
+
+  /// The session requested navigation and we are waiting for the buffer content.
+  NavWaiting {
+    client: String,
+    buffer: String,
+    lang: String,
+    selections: Vec<Sel>,
+    dir: Dir,
   },
 }
 

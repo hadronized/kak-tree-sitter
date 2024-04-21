@@ -6,9 +6,10 @@ use crate::{
   buffer::BufferId,
   error::OhNo,
   languages::{Language, Languages},
+  nav::Dir,
   response::Response,
   selection::Sel,
-  text_objects,
+  text_objects::OperationMode,
   tree_sitter_state::TreeState,
 };
 
@@ -111,7 +112,7 @@ impl Handler {
     buf: &str,
     pattern: &str,
     selections: &[Sel],
-    mode: &text_objects::OperationMode,
+    mode: &OperationMode,
   ) -> Result<Response, OhNo> {
     log::debug!("text-objects {pattern} for buffer {buffer_id:?}, lang {lang_name}");
 
@@ -123,6 +124,28 @@ impl Handler {
 
     let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
     let sels = tree_state.text_objects(lang, buf, pattern, selections, mode)?;
+
+    Ok(Response::Selections { sels })
+  }
+
+  pub fn handle_nav(
+    &mut self,
+    buffer_id: BufferId,
+    lang_name: &str,
+    buf: &str,
+    selections: &[Sel],
+    dir: Dir,
+  ) -> Result<Response, OhNo> {
+    log::debug!("nav {dir:?} for buffer {buffer_id:?}, lang {lang_name}");
+
+    let Some(lang) = self.langs.get(lang_name) else {
+      return Ok(Response::status(format!(
+        "unsupported language: {lang_name}"
+      )));
+    };
+
+    let tree_state = Self::compute_tree(&mut self.trees, lang, buffer_id, buf)?;
+    let sels = tree_state.nav_tree(selections, dir);
 
     Ok(Response::Selections { sels })
   }

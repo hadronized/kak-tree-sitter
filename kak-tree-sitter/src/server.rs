@@ -336,6 +336,8 @@ impl ServerState {
   }
 
   fn get_running_sessions() -> HashSet<String> {
+    log::debug!("getting running sessions via kak -l");
+
     Command::new("kak")
       .arg("-l")
       .output()
@@ -854,6 +856,25 @@ impl FifoHandler {
 
         Ok(None)
       }
+
+      Request::Nav {
+        client,
+        buffer,
+        lang,
+        selections,
+        dir,
+      } => {
+        let selections = Sel::parse_many(selections);
+        *session.state_mut() = SessionState::NavWaiting {
+          client: client.clone(),
+          buffer: buffer.clone(),
+          lang: lang.clone(),
+          selections,
+          dir: dir.clone(),
+        };
+
+        Ok(None)
+      }
     }
   }
 
@@ -916,6 +937,22 @@ impl FifoHandler {
         let resp = self
           .handler
           .handle_text_objects(buffer_id, lang, buf, pattern, selections, mode);
+
+        self.finish_cmd(session, Some(&client), resp);
+      }
+
+      SessionState::NavWaiting {
+        client,
+        buffer,
+        lang,
+        selections,
+        dir,
+      } => {
+        let client = client.clone();
+        let buffer_id = BufferId::new(session.name(), buffer);
+        let resp = self
+          .handler
+          .handle_nav(buffer_id, lang, buf, selections, *dir);
 
         self.finish_cmd(session, Some(&client), resp);
       }
