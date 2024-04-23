@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use tree_sitter::{Node, Point};
 
 /// A single position in a buffer.
+///
+/// Kakoune position _1-based_, while tree-sitter selections are _0-based_.
 #[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd)]
 pub struct Pos {
   pub line: usize,
@@ -41,10 +43,12 @@ impl Pos {
   }
 }
 
-/// A single selection, containing an anchor and a cursor.
+/// A single Kakoune selection, containing an anchor and a cursor.
 ///
 /// Note: there is no rule about anchors and cursors. One can come before the other; do not assume anything about their
 /// position.
+///
+/// Kakoune selections are always inclusive, while tree-sitter ranges are exclusive on their end boundary.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Sel {
   pub anchor: Pos,
@@ -103,19 +107,20 @@ impl Sel {
   /// Same as [`Sel::replace`], but with a node’s content.
   pub fn replace_with_node(&self, node: &Node) -> Self {
     let mut b: Pos = node.end_position().into();
-    b.col -= 1;
+    b.col -= 1; // kakoune selections are inclusive
     self.replace(&node.start_position().into(), &b)
   }
 
   /// Check whether a selection fully selects a node.
   pub fn fully_selects(&self, node: &Node) -> bool {
-    let anchor: Point = self.anchor.into();
-    let cursor: Point = self.cursor.into();
+    let start: Pos = node.start_position().into();
+    let mut end: Pos = node.end_position().into();
+    end.col -= 1;
 
-    if anchor <= cursor {
-      anchor == node.start_position() && cursor == node.end_position()
+    if self.anchor <= self.cursor {
+      self.anchor == start && self.cursor == end
     } else {
-      cursor == node.start_position() && anchor == node.end_position()
+      self.cursor == start && self.anchor == end
     }
   }
 }

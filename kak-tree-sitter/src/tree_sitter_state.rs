@@ -437,7 +437,12 @@ impl TreeState {
     node.next_sibling().or_else(|| {
       let parent = node.parent()?;
       let parent_sibling = parent.next_sibling()?;
-      parent_sibling.child(0)
+
+      if parent_sibling.child_count() > 0 {
+        parent_sibling.child(0)
+      } else {
+        None
+      }
     })
   }
 
@@ -446,7 +451,12 @@ impl TreeState {
     node.prev_sibling().or_else(|| {
       let parent = node.parent()?;
       let parent_sibling = parent.prev_sibling()?;
-      parent_sibling.child(parent_sibling.child_count() - 1)
+
+      if parent_sibling.child_count() > 0 {
+        parent_sibling.child(parent_sibling.child_count() - 1)
+      } else {
+        None
+      }
     })
   }
 }
