@@ -387,8 +387,9 @@ impl TreeState {
         self
           .find_sel_node(sel)
           .and_then(|node| {
-            // if we are fused, we select the nearest node
-            if sel.is_fused() {
+            // if our selection is not the same as the node, we pick the node
+            if !sel.fully_selects(&node) {
+              log::debug!("selection {sel:?} doesn’t fully select node {node:?}");
               return Some(node);
             }
 
@@ -401,8 +402,10 @@ impl TreeState {
               Dir::Parent => node.parent(),
               Dir::FirstChild => node.child(0),
               Dir::FirstSibling => node.parent().and_then(|node| node.child(0)),
-              Dir::PrevSibling => node.prev_sibling(),
-              Dir::NextSibling => node.next_sibling(),
+              Dir::PrevSibling { cousin } if cousin => Self::find_prev_sibling_or_cousin(&node),
+              Dir::NextSibling { cousin } if cousin => Self::find_next_sibling_or_cousin(&node),
+              Dir::PrevSibling { .. } => node.prev_sibling(),
+              Dir::NextSibling { .. } => node.next_sibling(),
             };
 
             log::debug!("navigated to node: {res:?}");
@@ -427,5 +430,23 @@ impl TreeState {
     log::trace!("found node: {node:?}");
 
     node
+  }
+
+  /// Get the next sibiling or cousin.
+  fn find_next_sibling_or_cousin<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    node.next_sibling().or_else(|| {
+      let parent = node.parent()?;
+      let parent_sibling = parent.next_sibling()?;
+      parent_sibling.child(0)
+    })
+  }
+
+  /// Get the previous sibiling or cousin.
+  fn find_prev_sibling_or_cousin<'a>(node: &Node<'a>) -> Option<Node<'a>> {
+    node.prev_sibling().or_else(|| {
+      let parent = node.parent()?;
+      let parent_sibling = parent.prev_sibling()?;
+      parent_sibling.child(parent_sibling.child_count() - 1)
+    })
   }
 }

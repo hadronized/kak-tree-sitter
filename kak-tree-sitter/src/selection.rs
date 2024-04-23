@@ -107,9 +107,16 @@ impl Sel {
     self.replace(&node.start_position().into(), &b)
   }
 
-  /// Check whether the cursor and anchor are at the same position.
-  pub fn is_fused(&self) -> bool {
-    self.anchor == self.cursor
+  /// Check whether a selection fully selects a node.
+  pub fn fully_selects(&self, node: &Node) -> bool {
+    let anchor: Point = self.anchor.into();
+    let cursor: Point = self.cursor.into();
+
+    if anchor <= cursor {
+      anchor == node.start_position() && cursor == node.end_position()
+    } else {
+      cursor == node.start_position() && anchor == node.end_position()
+    }
   }
 }
 
