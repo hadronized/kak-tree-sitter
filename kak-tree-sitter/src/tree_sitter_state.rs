@@ -401,7 +401,17 @@ impl TreeState {
             let res = match dir {
               Dir::Parent => node.parent(),
               Dir::FirstChild => node.child(0),
-              Dir::FirstSibling => node.parent().and_then(|node| node.child(0)),
+              Dir::LastChild => node
+                .child_count()
+                .checked_sub(1)
+                .and_then(|i| node.child(i)),
+              Dir::FirstSibling => node.parent().and_then(|parent| parent.child(0)),
+              Dir::LastSibling => node.parent().and_then(|parent| {
+                parent
+                  .child_count()
+                  .checked_sub(1)
+                  .and_then(|i| parent.child(i))
+              }),
               Dir::PrevSibling { cousin } if cousin => Self::find_prev_sibling_or_cousin(&node),
               Dir::NextSibling { cousin } if cousin => Self::find_next_sibling_or_cousin(&node),
               Dir::PrevSibling { .. } => node.prev_sibling(),
