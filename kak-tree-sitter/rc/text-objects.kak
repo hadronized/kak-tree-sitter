@@ -73,6 +73,11 @@ map global object T '<a-;>kak-tree-sitter-req-object-text-objects test<ret>'    
 # sticky mode for navigation
 declare-user-mode tree-sitter-nav-sticky
 
+define-command -hidden kak-tree-sitter-nav-sticky-undo %{
+  execute-keys "<a-u>"
+  enter-user-mode tree-sitter-nav-sticky
+}
+
 define-command -hidden kak-tree-sitter-nav-sticky-parent %{
   kak-tree-sitter-req-nav '"parent"'
   enter-user-mode tree-sitter-nav-sticky
@@ -93,9 +98,10 @@ define-command -hidden kak-tree-sitter-nav-sticky-next-sibling -params 1 %{
   enter-user-mode tree-sitter-nav-sticky
 }
 
-map global tree-sitter-nav-sticky s ':kak-tree-sitter-nav-sticky-parent<ret>'         -docstring 'select parent'
-map global tree-sitter-nav-sticky t ':kak-tree-sitter-nav-sticky-1st-child<ret>'    -docstring 'select first child'
-map global tree-sitter-nav-sticky c ':kak-tree-sitter-nav-sticky-prev-sibling false<ret>' -docstring 'select previous sibling'
-map global tree-sitter-nav-sticky r ':kak-tree-sitter-nav-sticky-next-sibling false<ret>' -docstring 'select next sibling'
+map global tree-sitter-nav-sticky s ':kak-tree-sitter-nav-sticky-parent<ret>'             -docstring 'select parent'
+map global tree-sitter-nav-sticky t ':kak-tree-sitter-nav-sticky-1st-child<ret>'          -docstring 'select first child'
 map global tree-sitter-nav-sticky C ':kak-tree-sitter-nav-sticky-prev-sibling true<ret>'  -docstring 'select previous sibling (cousin)'
 map global tree-sitter-nav-sticky R ':kak-tree-sitter-nav-sticky-next-sibling true<ret>'  -docstring 'select next sibling (cousin)'
+map global tree-sitter-nav-sticky c ':kak-tree-sitter-nav-sticky-prev-sibling false<ret>' -docstring 'select previous sibling'
+map global tree-sitter-nav-sticky r ':kak-tree-sitter-nav-sticky-next-sibling false<ret>' -docstring 'select next sibling'
+map global tree-sitter-nav-sticky u ':kak-tree-sitter-nav-sticky-undo<ret>'               -docstring 'undo selection'
