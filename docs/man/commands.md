@@ -27,3 +27,4 @@ Commands are separated into three categories:
 | -------                                                 | -----------                                                                                                                  |
 | `kak-tree-sitter-req-text-objects <text-object> <mode>` | Alter every selections by matching `<text-object>` according to `<mode>`. See [the text-objects section](./Text-objects.md). |
 | `kak-tree-sitter-req-object-text-objects <text-object>` | Alter every selections by matching `<text-object>` in _object_ mode. See [the text-objects section](./Text-objects.md).      |
+| `kak-tree-sitter-req-nav <dir>`                         | Alter every selections by navigating in the `<dir>` direction. See [the navigation section](./Text-objects.md#navigation).   |
