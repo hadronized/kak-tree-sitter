@@ -18,10 +18,13 @@ map global tree-sitter F     ':enter-user-mode tree-sitter-find-extend<ret>'    
 map global tree-sitter <a-F> ':enter-user-mode tree-sitter-find-extend-rev<ret>'                           -docstring 'find(extend) prev'
 map global tree-sitter s     ":kak-tree-sitter-req-nav '""parent""'<ret>"                                  -docstring 'select parent'
 map global tree-sitter t     ":kak-tree-sitter-req-nav '""first_child""'<ret>"                             -docstring 'select first child'
+map global tree-sitter <c-t> ":kak-tree-sitter-req-nav '""last_child""'<ret>"                              -docstring 'select last child'
 map global tree-sitter c     ":kak-tree-sitter-req-nav '{ ""prev_sibling"": { ""cousin"": false } }'<ret>" -docstring 'select previous sibling'
 map global tree-sitter r     ":kak-tree-sitter-req-nav '{ ""next_sibling"": { ""cousin"": false } }'<ret>" -docstring 'select next sibling'
 map global tree-sitter C     ":kak-tree-sitter-req-nav '{ ""prev_sibling"": { ""cousin"": true } }'<ret>"  -docstring 'select previous sibling (cousin)'
 map global tree-sitter R     ":kak-tree-sitter-req-nav '{ ""next_sibling"": { ""cousin"": true } }'<ret>"  -docstring 'select next sibling (cousin)'
+map global tree-sitter (     ":kak-tree-sitter-req-nav '""first_sibling""'<ret>"                           -docstring 'select first sibling'
+map global tree-sitter )     ":kak-tree-sitter-req-nav '""last_sibling""'<ret>"                            -docstring 'select last sibling'
 map global tree-sitter T     ':enter-user-mode tree-sitter-nav-sticky<ret>'                                -docstring 'sticky tree navigation'
 
 map global tree-sitter-search f ':kak-tree-sitter-req-text-objects function.around search_next<ret>'  -docstring 'function'
@@ -83,8 +86,13 @@ define-command -hidden kak-tree-sitter-nav-sticky-parent %{
   enter-user-mode tree-sitter-nav-sticky
 }
 
-define-command -hidden kak-tree-sitter-nav-sticky-1st-child %{
+define-command -hidden kak-tree-sitter-nav-sticky-first-child %{
   kak-tree-sitter-req-nav '"first_child"'
+  enter-user-mode tree-sitter-nav-sticky
+}
+
+define-command -hidden kak-tree-sitter-nav-sticky-last-child %{
+  kak-tree-sitter-req-nav '"last_child"'
   enter-user-mode tree-sitter-nav-sticky
 }
 
@@ -98,10 +106,23 @@ define-command -hidden kak-tree-sitter-nav-sticky-next-sibling -params 1 %{
   enter-user-mode tree-sitter-nav-sticky
 }
 
-map global tree-sitter-nav-sticky s ':kak-tree-sitter-nav-sticky-parent<ret>'             -docstring 'select parent'
-map global tree-sitter-nav-sticky t ':kak-tree-sitter-nav-sticky-1st-child<ret>'          -docstring 'select first child'
-map global tree-sitter-nav-sticky C ':kak-tree-sitter-nav-sticky-prev-sibling true<ret>'  -docstring 'select previous sibling (cousin)'
-map global tree-sitter-nav-sticky R ':kak-tree-sitter-nav-sticky-next-sibling true<ret>'  -docstring 'select next sibling (cousin)'
-map global tree-sitter-nav-sticky c ':kak-tree-sitter-nav-sticky-prev-sibling false<ret>' -docstring 'select previous sibling'
-map global tree-sitter-nav-sticky r ':kak-tree-sitter-nav-sticky-next-sibling false<ret>' -docstring 'select next sibling'
-map global tree-sitter-nav-sticky u ':kak-tree-sitter-nav-sticky-undo<ret>'               -docstring 'undo selection'
+define-command -hidden kak-tree-sitter-nav-sticky-first-sibling %{
+  kak-tree-sitter-req-nav '"first_sibling"'
+  enter-user-mode tree-sitter-nav-sticky
+}
+
+define-command -hidden kak-tree-sitter-nav-sticky-last-sibling %{
+  kak-tree-sitter-req-nav '"last_sibling"'
+  enter-user-mode tree-sitter-nav-sticky
+}
+
+map global tree-sitter-nav-sticky s     ':kak-tree-sitter-nav-sticky-parent<ret>'             -docstring 'select parent'
+map global tree-sitter-nav-sticky t     ':kak-tree-sitter-nav-sticky-first-child<ret>'        -docstring 'select first child'
+map global tree-sitter-nav-sticky <c-t> ':kak-tree-sitter-nav-sticky-first-child<ret>'        -docstring 'select last child'
+map global tree-sitter-nav-sticky C     ':kak-tree-sitter-nav-sticky-prev-sibling true<ret>'  -docstring 'select previous sibling (cousin)'
+map global tree-sitter-nav-sticky R     ':kak-tree-sitter-nav-sticky-next-sibling true<ret>'  -docstring 'select next sibling (cousin)'
+map global tree-sitter-nav-sticky c     ':kak-tree-sitter-nav-sticky-prev-sibling false<ret>' -docstring 'select previous sibling'
+map global tree-sitter-nav-sticky r     ':kak-tree-sitter-nav-sticky-next-sibling false<ret>' -docstring 'select next sibling'
+map global tree-sitter-nav-sticky (     ':kak-tree-sitter-nav-sticky-first-sibling<ret>'      -docstring 'select first sibling'
+map global tree-sitter-nav-sticky )     ':kak-tree-sitter-nav-sticky-last-sibling<ret>'       -docstring 'select last sibling'
+map global tree-sitter-nav-sticky u     ':kak-tree-sitter-nav-sticky-undo<ret>'               -docstring 'undo selection'

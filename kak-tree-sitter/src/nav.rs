@@ -14,15 +14,15 @@ pub enum Dir {
   /// First child of the current node, if any.
   FirstChild,
 
-  // NOTE: currently not available due to tree-sitter version
-  // /// Last child of the current node, if any.
-  // LastChild,
+  // Last child of the current node, if any.
+  LastChild,
+
   /// First sibling of the current node, if any.
   FirstSibling,
 
-  // NOTE: currently not available due to tree-sitter version
-  // /// Last sibling of the current node if any.
-  // LastSibling,
+  /// Last sibling of the current node if any.
+  LastSibling,
+
   /// Previous sibiling of the current node, if any.
   PrevSibling {
     /// Should we take cousins into account?
