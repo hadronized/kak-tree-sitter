@@ -24,8 +24,15 @@ pub enum Dir {
   // /// Last sibling of the current node if any.
   // LastSibling,
   /// Previous sibiling of the current node, if any.
-  PrevSibling,
+  PrevSibling {
+    /// Should we take cousins into account?
+    #[serde(default)]
+    cousin: bool,
+  },
 
   /// Next sibling of the current node, if any.
-  NextSibling,
+  NextSibling {
+    /// Should we take cousins into account?
+    cousin: bool,
+  },
 }

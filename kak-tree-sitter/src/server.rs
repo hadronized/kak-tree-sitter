@@ -870,7 +870,7 @@ impl FifoHandler {
           buffer: buffer.clone(),
           lang: lang.clone(),
           selections,
-          dir: dir.clone(),
+          dir: *dir,
         };
 
         Ok(None)
