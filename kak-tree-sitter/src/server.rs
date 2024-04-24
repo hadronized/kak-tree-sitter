@@ -889,17 +889,25 @@ impl FifoHandler {
       session_name = session.name()
     );
 
-    if let Err(err) = file.read_to_string(buffer) {
-      if err.kind() == io::ErrorKind::WouldBlock {
-        log::debug!("buffer FIFO is not ready");
-        return Ok(());
-      } else {
-        return Err(OhNo::InvalidRequest {
-          req: "<buf>".to_owned(),
-          err: err.to_string(),
-        });
+    let mut tmp = String::new();
+    loop {
+      match file.read_to_string(&mut tmp) {
+        Ok(0) => break,
+        Ok(_) => buffer.push_str(&tmp),
+        Err(err) => {
+          if err.kind() == io::ErrorKind::WouldBlock {
+            log::debug!("buffer FIFO is not ready");
+            continue;
+            // return Ok(());
+          } else {
+            return Err(OhNo::InvalidRequest {
+              req: "<buf>".to_owned(),
+              err: err.to_string(),
+            });
+          }
+        }
       }
-    };
+    }
 
     let res = self.process_buf(session, buffer);
     buffer.clear();
