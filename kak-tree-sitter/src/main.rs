@@ -1,6 +1,7 @@
 mod buffer;
 mod cli;
 mod error;
+mod fifo;
 mod handler;
 mod highlighting;
 mod languages;
