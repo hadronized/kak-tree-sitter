@@ -1,15 +1,8 @@
 use std::{
   collections::HashSet,
-  ffi::CString,
-  fs::{self, File, OpenOptions},
+  fs::{self, File},
   io::{self, Read, Write},
-  os::{
-    fd::AsRawFd,
-    unix::{
-      net::UnixStream,
-      prelude::{OpenOptionsExt, OsStrExt},
-    },
-  },
+  os::unix::net::UnixStream,
   path::{Path, PathBuf},
   process::{Command, Stdio},
   sync::{
@@ -27,11 +20,12 @@ use crate::{
   buffer::BufferId,
   cli::Cli,
   error::OhNo,
+  fifo::{Fifo, FifoKind},
   handler::Handler,
   request::{Request, UnixRequest},
   response::{ConnectedResponse, Response},
   selection::Sel,
-  session::{Fifo, Session, SessionState, SessionTracker},
+  session::{Session, SessionState, SessionTracker},
 };
 
 /// Feedback provided after a request has finished. Mainly used to shutdown.
@@ -533,7 +527,7 @@ impl UnixHandler {
         log::info!("registering session {name}");
 
         let (cmd_fifo_path, buf_fifo_path) =
-          self.track_session(poll, token_provider, session_tracker, name.clone())?;
+          self.track_session(poll, token_provider, session_tracker, &name)?;
 
         let resp = Response::Init {
           cmd_fifo_path,
@@ -577,99 +571,42 @@ impl UnixHandler {
     poll: &mut Poll,
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
-    session_name: impl Into<String>,
+    session_name: &str,
   ) -> Result<(PathBuf, PathBuf), OhNo> {
-    let session_name = session_name.into();
-
-    let cmd_fifo_path = Self::create_fifo(&self.resources, Path::new("commands"), &session_name)?;
-    let cmd_fifo_file = Self::open_nonblocking_fifo(&cmd_fifo_path)?;
+    let cmd_fifo =
+      Fifo::open_nonblocking(&self.resources.runtime_dir, FifoKind::Cmd, session_name)?;
+    let cmd_path = cmd_fifo.path().to_owned();
     let cmd_token = token_provider.create();
 
-    let buf_fifo_path = Self::create_fifo(&self.resources, Path::new("buffers"), &session_name)?;
-    let buf_fifo_file = Self::open_nonblocking_fifo(&buf_fifo_path)?;
+    let buf_fifo =
+      Fifo::open_nonblocking(&self.resources.runtime_dir, FifoKind::Buf, session_name)?;
+    let buf_path = buf_fifo.path().to_owned();
     let buf_token = token_provider.create();
 
     let registry = poll.registry();
     registry
       .register(
-        &mut SourceFd(&cmd_fifo_file.as_raw_fd()),
+        &mut SourceFd(&cmd_fifo.as_raw_fd()),
         cmd_token,
         Interest::READABLE,
       )
       .map_err(|err| OhNo::PollError { err })?;
     registry
       .register(
-        &mut SourceFd(&buf_fifo_file.as_raw_fd()),
+        &mut SourceFd(&buf_fifo.as_raw_fd()),
         buf_token,
         Interest::READABLE,
       )
       .map_err(|err| OhNo::PollError { err })?;
 
     session_tracker.track(
-      session_name.clone(),
-      Session::new(session_name.clone(), cmd_token, buf_token),
-      Fifo::Cmd {
-        session_name: session_name.clone(),
-        file: cmd_fifo_file,
-        buffer: String::new(),
-      },
-      Fifo::Buf {
-        session_name,
-        file: buf_fifo_file,
-        buffer: String::new(),
-      },
+      session_name,
+      Session::new(session_name, cmd_token, buf_token),
+      cmd_fifo,
+      buf_fifo,
     );
 
-    Ok((cmd_fifo_path, buf_fifo_path))
-  }
-
-  fn create_fifo(
-    resources: &ServerResources,
-    prefix: &Path,
-    session_name: &str,
-  ) -> Result<PathBuf, OhNo> {
-    let dir = resources.runtime_dir.join(prefix);
-    let path = dir.join(session_name);
-
-    // if the file doesn’t already exist, create it
-    if let Ok(false) = path.try_exists() {
-      // ensure the directory exists
-      fs::create_dir_all(&dir).map_err(|err| OhNo::CannotCreateFifo {
-        err: format!("cannot create directory {dir}: {err}", dir = dir.display()),
-      })?;
-
-      let path_bytes = path.as_os_str().as_bytes();
-      let c_path = CString::new(path_bytes).map_err(|err| OhNo::CannotCreateFifo {
-        err: err.to_string(),
-      })?;
-
-      let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o644) };
-      if c_err != 0 {
-        return Err(OhNo::CannotCreateFifo {
-          err: format!(
-            "cannot create FIFO file for session {session_name} at path {path}",
-            path = path.display()
-          ),
-        });
-      }
-    }
-
-    Ok(path)
-  }
-
-  /// Open a FIFO and obtain a non-blocking [`File`].
-  fn open_nonblocking_fifo(path: &Path) -> Result<File, OhNo> {
-    let fifo = OpenOptions::new()
-      .read(true)
-      .custom_flags(libc::O_NONBLOCK)
-      .open(path)
-      .map_err(|err| OhNo::CannotCreateFifo {
-        err: format!(
-          "cannot open non-blocking FIFO {path}: {err}",
-          path = path.display()
-        ),
-      })?;
-    Ok(fifo)
+    Ok((cmd_path, buf_path))
   }
 
   /// Recycle a session by removing the session from the session tracker and recycling the token in the token provider.
@@ -687,14 +624,14 @@ impl UnixHandler {
       if let Some(cmd_fifo) = cmd_fifo {
         poll
           .registry()
-          .deregister(&mut SourceFd(&cmd_fifo.file().as_raw_fd()))
+          .deregister(&mut SourceFd(&cmd_fifo.as_raw_fd()))
           .map_err(|err| OhNo::PollError { err })?;
       }
 
       if let Some(buf_fifo) = buf_fifo {
         poll
           .registry()
-          .deregister(&mut SourceFd(&buf_fifo.file().as_raw_fd()))
+          .deregister(&mut SourceFd(&buf_fifo.as_raw_fd()))
           .map_err(|err| OhNo::PollError { err })?;
       }
 
@@ -739,47 +676,29 @@ impl FifoHandler {
   /// Dispatch FIFO reads.
   pub fn accept(&mut self, session_tracker: &mut SessionTracker, token: Token) -> Result<(), OhNo> {
     if let Some((session, fifo)) = session_tracker.by_token(token) {
-      match fifo {
-        Fifo::Cmd { file, buffer, .. } => self.accept_cmd(session, file, buffer)?,
-        Fifo::Buf { file, buffer, .. } => self.accept_buf(session, file, buffer)?,
+      match fifo.kind() {
+        FifoKind::Cmd => self.accept_cmd(session, fifo)?,
+        FifoKind::Buf => self.accept_buf(session, fifo)?,
       }
     }
 
     Ok(())
   }
 
-  fn accept_cmd(
-    &mut self,
-    session: &mut Session,
-    file: &mut File,
-    buffer: &mut String,
-  ) -> Result<(), OhNo> {
+  fn accept_cmd(&mut self, session: &mut Session, fifo: &mut Fifo) -> Result<(), OhNo> {
     log::debug!(
       "reading command FIFO for session {session_name}…",
       session_name = session.name()
     );
 
-    if let Err(err) = file.read_to_string(buffer) {
-      if err.kind() == io::ErrorKind::WouldBlock {
-        log::debug!("command FIFO is not ready");
-        return Ok(());
-      } else {
-        buffer.clear();
-        return Err(OhNo::InvalidRequest {
-          req: "<cmd>".to_owned(),
-          err: err.to_string(),
-        });
-      }
-    };
+    let buffer = fifo.read_all()?;
 
     log::info!("FIFO request: {buffer}");
 
     let req = serde_json::from_str::<Request>(buffer).map_err(|err| OhNo::InvalidRequest {
-      req: buffer.clone(),
+      req: buffer.to_owned(),
       err: err.to_string(),
     });
-
-    buffer.clear();
 
     match req {
       Ok(req) => match self.process_cmd(session, &req) {
@@ -878,41 +797,14 @@ impl FifoHandler {
     }
   }
 
-  fn accept_buf(
-    &mut self,
-    session: &mut Session,
-    file: &mut File,
-    buffer: &mut String,
-  ) -> Result<(), OhNo> {
+  fn accept_buf(&mut self, session: &mut Session, fifo: &mut Fifo) -> Result<(), OhNo> {
     log::debug!(
       "reading buffer FIFO for session {session_name}…",
       session_name = session.name()
     );
 
-    let mut tmp = String::new();
-    loop {
-      match file.read_to_string(&mut tmp) {
-        Ok(0) => break,
-        Ok(_) => buffer.push_str(&tmp),
-        Err(err) => {
-          if err.kind() == io::ErrorKind::WouldBlock {
-            log::debug!("buffer FIFO is not ready");
-            continue;
-            // return Ok(());
-          } else {
-            return Err(OhNo::InvalidRequest {
-              req: "<buf>".to_owned(),
-              err: err.to_string(),
-            });
-          }
-        }
-      }
-    }
-
-    let res = self.process_buf(session, buffer);
-    buffer.clear();
-
-    res
+    let buffer = fifo.read_all()?;
+    self.process_buf(session, buffer)
   }
 
   fn process_buf(&mut self, session: &mut Session, buf: &str) -> Result<(), OhNo> {

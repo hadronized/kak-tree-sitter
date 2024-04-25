@@ -1,8 +1,8 @@
-use std::{collections::HashMap, fs::File};
+use std::collections::HashMap;
 
 use mio::Token;
 
-use crate::{nav::Dir, selection::Sel, text_objects};
+use crate::{fifo::Fifo, nav::Dir, selection::Sel, text_objects};
 
 /// Session tracker,
 ///
@@ -94,40 +94,6 @@ impl Session {
 
   pub fn state_mut(&mut self) -> &mut SessionState {
     &mut self.state
-  }
-}
-
-/// A FIFO recognized by the server.
-///
-/// Currently, a FIFO can be used to either send commands, or stream buffer content.
-#[derive(Debug)]
-pub enum Fifo {
-  Cmd {
-    session_name: String,
-    file: File,
-    buffer: String,
-  },
-
-  Buf {
-    session_name: String,
-    file: File,
-    buffer: String,
-  },
-}
-
-impl Fifo {
-  pub fn file(&self) -> &File {
-    match self {
-      Fifo::Cmd { file, .. } => file,
-      Fifo::Buf { file, .. } => file,
-    }
-  }
-
-  pub fn session(&self) -> &str {
-    match self {
-      Fifo::Cmd { session_name, .. } => session_name.as_str(),
-      Fifo::Buf { session_name, .. } => session_name.as_str(),
-    }
   }
 }
 
