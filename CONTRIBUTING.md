@@ -1,36 +1,51 @@
 # How to contribute
 
-Everyone is welcome to contribute. There is no small contributions. Have a look at the
-[issue tracker](https://github.com/hadronized/kak-tree-sitter/issues), comment on it that you would like to work on the
-topic and open a PR linking to the issue once you are ready to get your work merged.
+Everyone is welcome to contribute. There is no small contributions. Please take the time to read this document before
+starting.
 
-## Issues
+## Important links
 
-Bugs, small improvements, feature requests, etc. are welcome, but because the scope of the project needs to remain
-small, **you should open an issue to discuss both the matter and the potential design beforehand**. It’s up to you to
-start working on an implementation, but remember that if your ideas / features don’t align with the project, your
-contribution might get rejected and you will have worked on something for nothing.
+There are several places where you hang around to both know what you can work on, and how you can communicate about it.
+First thing first, you need to know that communication happen by **plain text** emails, and so, you might want to
+subscribe to the following mailing lists:
 
-That even applies to bug fixes, because sometimes, fixing something by slightly changing the design is far better than
-blindly patching here and there.
+- The [discuss list](https://lists.sr.ht/~hadronized/kak-tree-sitter-discuss), that you can use to ask any question,
+  share your experience, etc.
+- The [devel list](https://lists.sr.ht/~hadronized/kak-tree-sitter-devel), that you will have to use to send patches and
+  talk about the development of the project. More on that below.
+- The [announcement list](https://lists.sr.ht/~hadronized/kak-tree-sitter-announce), which is used to communicate about
+  new releases and various official announcements about the project.
+
+Additionally, you want to have a look at the following trackers:
+
+- The [feature tracker](https://todo.sr.ht/~hadronized/kak-tree-sitter-features), that you can use to create feature
+  requests.
+- The [bug tracker](https://todo.sr.ht/~hadronized/kak-tree-sitter-bugs), where you can report a bug.
+
+## How to start contributing
+
+There are two main ways of contributing:
+
+- You read the feature/bug tracker and spotted something no one is actively working on.
+- You have a new feature requests or you have found a new bug.
+
+Whatever you decide, a ticket should exist for what you are working on, so that it’s easier for everyone to know what’s
+being worked on. So if you find a bug, please open an issue on the bug tracker first before even trying to fix it. Who
+knows, maybe that bug is already fixed by someone’s else patch?
 
 ## Contribution format
 
-We use GitHub Issues and Pull Requests. You should create a branch that targets `master`, and name your branch
-`<issue-nb>-<description>`. `<description>` should be small, and is free — it can contain `fix-blabla`, `design-foo`,
-or even just `blabla` or `foo`. However, `issue-nb` should be a valid issue number, without the leading hash.
+We implement an email-based git flow; summary:
 
-If you want to start something on something that doesn’t have an issue yet, please:
+1. Clone the project
+2. Ensure to switch to the `master` branch, and keep in sync with the remote branch (`git pull --rebase` or
+  `git fetch <upstream>` + `git rebase <upstream>/master`.
+3. Create your commits, either on your `master` branch, or feature branches. That part of the workflow is totally local
+  and up to you.
+4. Once you are done, generate a patch and email it to the `~hadronized/kak-tree-sitter-devel@lists.sr.ht` development
+  list.
 
-1. Search for a similar issue. It’s not impossible someone else opened an issue already.
-2. If you haven’t found anything, please create an issue. That will give everyone the context of your PR, and you will
-  get an issue number.
-3. If you are fixing a small bug, you don’t have to wait for feedback. For anything else, you should explain the problem
-  and synchronize with the maintainers; maybe there’s a simpler solution to your problem.
-4. If your solution still seems to be the right approach, start working on it and open a PR when ready.
-
-> Note: if you really insist on opening a PR to show some implementatino because you are almost sure we want to go that
-> way, feel free to open a draft PR as you go through the implementation to show how you progress on it.
+More on how to contribute via email [here](https://git-send-email.io).
 
 ## Contributing language support
 
@@ -57,34 +72,29 @@ in [our runtime/queries](./runtime/queries) directory. Refer to already existing
 must credit the source, license terms and copy the `LICENSE` file in the language directory**. FOSS should be respected;
 let us be an example.
 
-## Contributing to Rust code
+## General contribution advices
 
 ### Tooling
 
-In terms of tooling, you should be using a recent Rust compiler, along with `rustfmt`. Always format your code, as the
-CI will test that your code is correctly formatted.
+In terms of tooling, you should be using a recent Rust compiler, along with `rustfmt`. If you are not sure, update
+your toolchain with `rustup update` and ensure you have `rustfmt` installed with `rustup component add rustfmt`.
 
-The CI also enforces `clippy`, so you should have it installed and check your code with it.
+Always format your code, as the CI will test that your code is correctly formatted. The CI also enforces `clippy`, so
+you should have it installed and check your code with it.
 
 ### Commit and PR hygiene
 
-Please refrain from creating gigantic commits. I reserve the right to refuse your PR if it’s not atomic enough: I
-engage my spare-time to review and understand your code so **please please** keep that in mind.
+Please refrain from creating gigantic commits. I reserve the right to refuse your patch if it’s not atomic enough: I
+engage my spare-time to review and understand your code so **please** keep that in mind.
 
-There is no limit on the number of commits per PR, but keep in mind that PR should still remain small enough to be
-easily reviewable. Try to scope a PR down to a single “domain.”
+There is no limit on the number of commits per patch, but keep in mind that individual commits should still remain small
+enough to be easily reviewable. Try to scope a patch down to a single ticket, or even subpart of a ticket if you think
+it makes sense.
 
-By _gigantic commit_ we mean touching on too many different things. Examples of non-atomic commits:
-
-- A commit that optimizes the usage of a scarce resource but also changes configuration.
-- A commit that introduces a new feature but also improves some code somewhere else.
-- A commit that bumps several dependencies’ version at once.
-- A commit that bumps a dependency version and that contains changes not related to any breaking change of that bump.
-- Etc.
-
-Also, remember to include the issue number in your commit, and to write concise but acute commit messages. Those are
+Also, remember to include the ticket link in your commit, and to write concise but acute commit messages. Those are
 used for writing changelog, so please keep that in mind.
 
-Finally, **merging `master` into your branch is not appreciated**. If you want to “synchronize” your work with the recent
-changes, please use `git rebase origin/master` and force-push to your remote branch.
+Finally, **merging `master` into your branch is not appreciated**. If you want to “synchronize” your work with the
+recent changes, please use `git rebase origin/master` and force-push to your remote branch. Please read on the TODO
+tooling.
 

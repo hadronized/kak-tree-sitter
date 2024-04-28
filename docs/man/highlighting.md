@@ -154,4 +154,4 @@ at all.
   - `ts_variable_parameter`
 - `ts_warning`
 
-[kakoune-tree-sitter-themes]: https://github.com/hadronized/kakoune-tree-sitter-themes
+[kakoune-tree-sitter-themes]: https://git.sr.ht/~hadronized/kakoune-tree-sitter-themes

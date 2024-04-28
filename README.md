@@ -4,7 +4,7 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 [kakoune](https://kakoune.org/).
 
 > Important note: by default, no colorscheme supporting tree-sitter is set for you. You have to pick one or write your
-> own. See [this section from the wiki](https://github.com/hadronized/kak-tree-sitter/wiki/Colorscheme) for further information.
+> own. See [this section from the man](./docs/man/highlighting.md) for further information.
 
 [![asciicast](https://asciinema.org/a/606062.svg)](https://asciinema.org/a/606062)
 
@@ -29,10 +29,6 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 - [x] Ships with no mappings, defined options, but allows to use well-crafted values, user-modes, mappings and
   commands by picking them by hand.
 - [x] Transformation-oriented; actual data (i.e. grammars, queries, etc.) can be used from any sources.
-
-## Roadmap
-
-See [the milestones](https://github.com/hadronized/kak-tree-sitter/milestones).
 
 ## User manual
 

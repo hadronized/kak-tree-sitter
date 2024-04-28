@@ -38,9 +38,9 @@ impl Resources {
 
   /// Source directory for a given URL (get a stable path for a given URL to work in).
   /// This function only supports http:// and https:// links. For instance,
-  /// https://github.com/hadronized/kak-tree-sitter will get a directory created in the form of:
+  /// https://git.sr.ht/~hadronized/kak-tree-sitter will get a directory created in the form of:
   ///
-  ///   <resources-root>/sources/github.com/hadronized/kak-tree-sitter
+  ///   <resources-root>/sources/git.sr.ht/~hadronized/kak-tree-sitter
   ///
   /// Note: this function doesn’t perform any cleaning of the input URL, and it doesn’t perform any IO.
   pub fn sources_dir(&self, url: &str) -> PathBuf {

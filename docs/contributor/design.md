@@ -89,10 +89,6 @@ fetch grammars and queries) is completely arbritrary. We default to
 [https://github.com/helix-editor/helix](https://github.com/helix-editor/helix) for queries, but that is not an
 obligation.
 
-The end goal is to make `ktsctl` always target
-[https://github.com/hadronized/kak-tree-sitter](https://github.com/hadronized/kak-tree-sitter) for both grammars and queries,
-but that will require adding support for the languages manually / hand-crafting a bit.
-
 ## Colorschemes
 
 When highlighting a buffer, `kak-tree-sitter` traverses tree-sitter capture groups and transforms them to make them

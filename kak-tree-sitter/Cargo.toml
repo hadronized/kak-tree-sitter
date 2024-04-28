@@ -2,12 +2,12 @@
 name = "kak-tree-sitter"
 version = "0.6.0-dev"
 license = "BSD-3-Clause"
-authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
+authors = ["Dimitri Sabadie <hadronized@strongly-typed-thoughts.net>"]
 description = "Server between Kakoune and tree-sitter"
 keywords = ["tree-sitter", "kakoune"]
 categories = ["text-editors"]
-homepage = "https://github.com/hadronized/kak-tree-sitter"
-repository = "https://github.com/hadronized/kak-tree-sitter"
+homepage = "https://git.sr.ht/~hadronized/kak-tree-sitter/"
+repository = "https://git.sr.ht/~hadronized/kak-tree-sitter/"
 readme = "../README.md"
 edition = "2021"
 rust-version = "1.65.0"
