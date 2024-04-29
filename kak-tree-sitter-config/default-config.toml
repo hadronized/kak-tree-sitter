@@ -1376,4 +1376,22 @@ path = "runtime/queries/yaml"
 # TODO
 
 # zig
-# TODO
+[language.zig.grammar.source.git]
+url = "https://github.com/maxxnino/tree-sitter-zig"
+pin = "0d08703e4c3f426ec61695d7617415fff97029bd"
+
+[language.zig.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "zig.so"]
+link_flags = ["-O3"]
+
+[language.zig.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "bc737404e8ad462b4101987730f4a76658d132ad"
+
+[language.zig.queries]
+path = "runtime/queries/zig"
