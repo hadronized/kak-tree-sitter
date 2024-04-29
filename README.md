@@ -1,5 +1,7 @@
 # kak-tree-sitter
 
+> **Archive note: the project is still active, but has moved to <https://sr.ht/~hadronized/kak-tree-sitter/>.**
+
 This is a binary server that interfaces [tree-sitter](https://tree-sitter.github.io/) with
 [kakoune](https://kakoune.org/).
 
