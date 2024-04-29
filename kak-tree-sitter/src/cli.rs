@@ -2,7 +2,7 @@ use clap::Parser;
 
 #[derive(Debug, Parser)]
 #[clap(
-  author = "Dimitri Sabadie <dimitri.sabadie@gmail.com>",
+  author = "Dimitri Sabadie <hadronized@strongly-typed-thoughts.net>",
   name = "kak-tree-sitter",
   version = concat!(env!("CARGO_PKG_VERSION"), "-", env!("GIT_HEAD")),
   about = "A client/server interface between Kakoune and tree-sitter."

@@ -2,7 +2,7 @@ use clap::{Parser, Subcommand};
 
 #[derive(Debug, Parser)]
 #[clap(
-  author = "Dimitri Sabadie <dimitri.sabadie@gmail.com>",
+  author = "Dimitri Sabadie <hadronized@strongly-typed-thoughts.net>",
   name = "ktsctl",
   version = concat!(env!("CARGO_PKG_VERSION"), "-", env!("GIT_HEAD")),
   about = "CLI controler for kak-tree-sitter"
