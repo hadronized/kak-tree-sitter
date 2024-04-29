@@ -57,6 +57,19 @@ impl Server {
     let runtime_dir = ServerState::runtime_dir()?;
     log::info!("running in {}", runtime_dir.display());
 
+    log::debug!("ensuring that runtime directories exist (creating if not)");
+    let commands_dir = runtime_dir.join("commands");
+    fs::create_dir_all(&commands_dir).map_err(|err| OhNo::CannotCreateDir {
+      dir: commands_dir,
+      err,
+    })?;
+
+    let buffers_dir = runtime_dir.join("buffers");
+    fs::create_dir_all(&buffers_dir).map_err(|err| OhNo::CannotCreateDir {
+      dir: buffers_dir,
+      err,
+    })?;
+
     let pid_file = runtime_dir.join("pid");
 
     // check whether a pid file exists and can be read
@@ -92,19 +105,6 @@ impl Server {
         })?;
       }
     }
-
-    // ensure that the runtime directory exists, along with commands and buffers subdirectory
-    let commands_dir = runtime_dir.join("commands");
-    fs::create_dir_all(&commands_dir).map_err(|err| OhNo::CannotCreateDir {
-      dir: commands_dir,
-      err,
-    })?;
-
-    let buffers_dir = runtime_dir.join("buffers");
-    fs::create_dir_all(&buffers_dir).map_err(|err| OhNo::CannotCreateDir {
-      dir: buffers_dir,
-      err,
-    })?;
 
     if cli.daemonize {
       // create stdout / stderr files
