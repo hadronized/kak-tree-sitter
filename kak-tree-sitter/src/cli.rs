@@ -56,3 +56,9 @@ pub struct Cli {
   #[arg(long)]
   pub with_text_objects: bool,
 }
+
+impl Cli {
+  pub fn is_standalone(&self) -> bool {
+    !self.kakoune
+  }
+}

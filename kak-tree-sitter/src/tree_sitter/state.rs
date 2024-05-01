@@ -4,12 +4,13 @@ use tree_sitter::{Node, Parser, QueryCursor};
 
 use crate::{
   error::OhNo,
-  highlighting::KakHighlightRange,
-  languages::Language,
-  nav::Dir,
-  selection::{ObjectFlags, Pos, Sel, SelectMode},
-  text_objects::OperationMode,
+  kakoune::{
+    selection::{ObjectFlags, Pos, Sel, SelectMode},
+    text_objects::OperationMode,
+  },
 };
+
+use super::{highlighting::KakHighlightRange, languages::Language, nav};
 
 /// State around a tree.
 ///
@@ -380,7 +381,7 @@ impl TreeState {
   /// This function will apply the direction on all selections, expanding or collapsing them. If a selection is not
   /// spanning on a node, the closet node is selected first, so that if you have the cursor and anchor at the same
   /// location and you want to select the next child, your cursor will expand to the whole nearest enclosing node first.
-  pub fn nav_tree(&self, selections: &[Sel], dir: Dir) -> Vec<Sel> {
+  pub fn nav_tree(&self, selections: &[Sel], dir: nav::Dir) -> Vec<Sel> {
     selections
       .iter()
       .map(|sel| {
@@ -399,23 +400,27 @@ impl TreeState {
             log::debug!("  next sibling: {:?}", node.next_sibling());
 
             let res = match dir {
-              Dir::Parent => node.parent(),
-              Dir::FirstChild => node.child(0),
-              Dir::LastChild => node
+              nav::Dir::Parent => node.parent(),
+              nav::Dir::FirstChild => node.child(0),
+              nav::Dir::LastChild => node
                 .child_count()
                 .checked_sub(1)
                 .and_then(|i| node.child(i)),
-              Dir::FirstSibling => node.parent().and_then(|parent| parent.child(0)),
-              Dir::LastSibling => node.parent().and_then(|parent| {
+              nav::Dir::FirstSibling => node.parent().and_then(|parent| parent.child(0)),
+              nav::Dir::LastSibling => node.parent().and_then(|parent| {
                 parent
                   .child_count()
                   .checked_sub(1)
                   .and_then(|i| parent.child(i))
               }),
-              Dir::PrevSibling { cousin } if cousin => Self::find_prev_sibling_or_cousin(&node),
-              Dir::NextSibling { cousin } if cousin => Self::find_next_sibling_or_cousin(&node),
-              Dir::PrevSibling { .. } => node.prev_sibling(),
-              Dir::NextSibling { .. } => node.next_sibling(),
+              nav::Dir::PrevSibling { cousin } if cousin => {
+                Self::find_prev_sibling_or_cousin(&node)
+              }
+              nav::Dir::NextSibling { cousin } if cousin => {
+                Self::find_next_sibling_or_cousin(&node)
+              }
+              nav::Dir::PrevSibling { .. } => node.prev_sibling(),
+              nav::Dir::NextSibling { .. } => node.next_sibling(),
             };
 
             log::debug!("navigated to node: {res:?}");

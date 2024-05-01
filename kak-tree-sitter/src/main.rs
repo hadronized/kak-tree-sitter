@@ -1,31 +1,18 @@
-mod buffer;
 mod cli;
 mod error;
-mod fifo;
-mod handler;
-mod highlighting;
-mod languages;
+mod kakoune;
 mod logging;
-mod nav;
-mod queries;
-mod rc;
-mod request;
-mod response;
-mod selection;
 mod server;
-mod session;
-mod text_objects;
-mod tree_sitter_state;
+mod tree_sitter;
 
 use clap::Parser;
 use cli::Cli;
 use error::OhNo;
 use kak_tree_sitter_config::Config;
 use logging::Verbosity;
-use request::UnixRequest;
-use server::Server;
+use server::{request::UnixRequest, resources::ServerResources, Server};
 
-use crate::logging::KakouneLogger;
+use crate::{kakoune::rc, logging::KakouneLogger};
 
 fn main() {
   if let Err(err) = start() {
@@ -53,10 +40,16 @@ fn start() -> Result<(), OhNo> {
     println!("{}", rc::text_objects_kak());
   }
 
+  // whatever we do, we will need to know about where the resources are
+  let resources = ServerResources::new()?;
+
   if cli.server {
     let config = Config::load_default_user()?;
+
     log::trace!("running with configuration:\n{config:#?}");
-    return Server::bootstrap(&config, &cli);
+    let server = Server::new(&config, &cli, resources)?;
+    server.prepare(cli.daemonize)?;
+    return server.start();
   }
 
   if let Some(request) = cli.request {
@@ -72,7 +65,7 @@ fn start() -> Result<(), OhNo> {
       req
     };
 
-    return Server::send_request(req);
+    return req.send(&resources);
   }
 
   Err(OhNo::NothingToDo)

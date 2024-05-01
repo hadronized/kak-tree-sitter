@@ -9,7 +9,7 @@ use libloading::Symbol;
 use tree_sitter::Query;
 use tree_sitter_highlight::HighlightConfiguration;
 
-use crate::{error::OhNo, queries::Queries};
+use crate::{error::OhNo, tree_sitter::queries::Queries};
 
 pub struct Language {
   pub hl_config: HighlightConfiguration,

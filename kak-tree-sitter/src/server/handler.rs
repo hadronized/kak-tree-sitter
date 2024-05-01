@@ -3,20 +3,20 @@ use std::collections::{hash_map::Entry, HashMap};
 use kak_tree_sitter_config::Config;
 
 use crate::{
-  buffer::BufferId,
   error::OhNo,
-  languages::{Language, Languages},
-  nav::Dir,
-  response::Response,
-  selection::Sel,
-  text_objects::OperationMode,
-  tree_sitter_state::TreeState,
+  kakoune::{buffer::BufferId, selection::Sel, text_objects::OperationMode},
+  server::response::Response,
+  tree_sitter::{
+    languages::{Language, Languages},
+    nav,
+    state::TreeState,
+  },
 };
 
 /// Type responsible for handling requests.
 ///
-/// This type is stateful, as requests might have side-effect (i.e. tree-sitter parsing generates trees/highlighters
-/// that can be reused, for instance).
+/// This type is stateful, as requests might have side-effect (i.e. tree-sitter
+/// parsing generates trees/highlighters that can be reused, for instance).
 pub struct Handler {
   /// Tree-sitter trees associated with a [`BufferId`].
   trees: HashMap<BufferId, TreeState>,
@@ -134,7 +134,7 @@ impl Handler {
     lang_name: &str,
     buf: &str,
     selections: &[Sel],
-    dir: Dir,
+    dir: nav::Dir,
   ) -> Result<Response, OhNo> {
     log::debug!("nav {dir:?} for buffer {buffer_id:?}, lang {lang_name}");
 

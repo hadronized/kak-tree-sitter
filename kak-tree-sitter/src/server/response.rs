@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use itertools::Itertools;
 
-use crate::{highlighting::KakHighlightRange, selection::Sel};
+use crate::{kakoune::selection::Sel, tree_sitter::highlighting::KakHighlightRange};
 
 /// Response sent by the daemon to Kakoune.
 #[derive(Debug, Eq, PartialEq)]

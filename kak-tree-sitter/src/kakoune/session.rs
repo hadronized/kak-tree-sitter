@@ -2,11 +2,14 @@ use std::collections::HashMap;
 
 use mio::Token;
 
-use crate::{fifo::Fifo, nav::Dir, selection::Sel, text_objects};
+use crate::{server::fifo::Fifo, tree_sitter::nav};
+
+use super::{selection::Sel, text_objects::OperationMode};
 
 /// Session tracker,
 ///
-/// Responsible for tracking sessions (by names) along with the associated command token and buffer token.
+/// Responsible for tracking sessions (by names) along with the associated
+/// command and buffer tokens.
 #[derive(Debug, Default)]
 pub struct SessionTracker {
   sessions: HashMap<String, Session>,
@@ -118,7 +121,7 @@ pub enum SessionState {
     lang: String,
     pattern: String,
     selections: Vec<Sel>,
-    mode: text_objects::OperationMode,
+    mode: OperationMode,
   },
 
   /// The session requested navigation and we are waiting for the buffer content.
@@ -127,7 +130,7 @@ pub enum SessionState {
     buffer: String,
     lang: String,
     selections: Vec<Sel>,
-    dir: Dir,
+    dir: nav::Dir,
   },
 }
 

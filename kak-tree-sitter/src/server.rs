@@ -1,31 +1,42 @@
+mod event_loop;
+pub mod fifo;
+pub mod handler;
+pub mod request;
+pub mod resources;
+pub mod response;
+
 use std::{
   collections::HashSet,
   fs::{self, File},
-  io::{self, Read, Write},
-  os::unix::net::UnixStream,
+  io::{Read, Write},
+  os::fd::{AsRawFd, RawFd},
   path::{Path, PathBuf},
   process::{Command, Stdio},
-  sync::{
-    atomic::{AtomicBool, Ordering},
-    mpsc::{channel, Receiver, Sender},
-    Arc,
-  },
+  sync::mpsc::{channel, Receiver, Sender},
   thread::{spawn, JoinHandle},
 };
 
 use kak_tree_sitter_config::Config;
-use mio::{net::UnixListener, unix::SourceFd, Events, Interest, Poll, Token, Waker};
+use mio::{net::UnixListener, unix::SourceFd, Token};
 
 use crate::{
-  buffer::BufferId,
   cli::Cli,
   error::OhNo,
+  kakoune::{
+    buffer::BufferId,
+    selection::Sel,
+    session::{Session, SessionState, SessionTracker},
+  },
+  server::{event_loop::Await, request::Request},
+};
+
+use self::{
+  event_loop::{EventLoop, TokenProvider},
   fifo::{Fifo, FifoKind},
   handler::Handler,
-  request::{Request, UnixRequest},
+  request::UnixRequest,
+  resources::ServerResources,
   response::{ConnectedResponse, Response},
-  selection::Sel,
-  session::{Session, SessionState, SessionTracker},
 };
 
 /// Feedback provided after a request has finished. Mainly used to shutdown.
@@ -36,74 +47,59 @@ pub enum Feedback {
 }
 
 pub struct Server {
-  server_state: ServerState,
+  resources: ServerResources,
+  event_loop: EventLoop,
+  _resp_queue_handle: JoinHandle<()>,
+  resp_sender: Sender<ConnectedResponse>,
+  unix_handler: UnixHandler,
+  fifo_handler: FifoHandler,
+  session_tracker: SessionTracker,
+  token_provider: TokenProvider,
 }
 
 impl Server {
-  fn new(config: &Config, is_standalone: bool, with_highlighting: bool) -> Result<Self, OhNo> {
-    let server_state = ServerState::new(config, is_standalone, with_highlighting)?;
-    Ok(Self { server_state })
+  pub fn new(config: &Config, cli: &Cli, resources: ServerResources) -> Result<Self, OhNo> {
+    let event_loop = EventLoop::new()?;
+
+    let (resp_queue, resp_sender) = ResponseQueue::new();
+    let unix_handler = UnixHandler::new(
+      cli.is_standalone(),
+      cli.with_highlighting,
+      resources.clone(),
+      resources.socket_path(),
+      resp_sender.clone(),
+    )?;
+    event_loop.register(
+      &mut SourceFd(&unix_handler.as_raw_fd()),
+      TokenProvider::UNIX_LISTENER_TOKEN,
+    )?;
+
+    let fifo_handler = FifoHandler::new(config, resp_sender.clone())?;
+    let session_tracker = SessionTracker::default();
+    let token_provider = TokenProvider::default();
+
+    let _resp_queue_handle = resp_queue.run();
+
+    Ok(Server {
+      resources,
+      event_loop,
+      _resp_queue_handle,
+      resp_sender,
+      unix_handler,
+      fifo_handler,
+      session_tracker,
+      token_provider,
+    })
   }
 
-  /// Bootstrap the server from the `config` and `cli`.
-  pub fn bootstrap(config: &Config, cli: &Cli) -> Result<(), OhNo> {
-    // find a runtime directory to write in
-    let runtime_dir = ServerState::runtime_dir()?;
-    log::info!("running in {}", runtime_dir.display());
+  /// Prepare the server, daemonizing if required, and writing the PID file.
+  pub fn prepare(&self, daemonize: bool) -> Result<(), OhNo> {
+    let pid_file = self.resources.pid_path();
 
-    log::debug!("ensuring that runtime directories exist (creating if not)");
-    let commands_dir = runtime_dir.join("commands");
-    fs::create_dir_all(&commands_dir).map_err(|err| OhNo::CannotCreateDir {
-      dir: commands_dir,
-      err,
-    })?;
-
-    let buffers_dir = runtime_dir.join("buffers");
-    fs::create_dir_all(&buffers_dir).map_err(|err| OhNo::CannotCreateDir {
-      dir: buffers_dir,
-      err,
-    })?;
-
-    let pid_file = runtime_dir.join("pid");
-
-    // check whether a pid file exists and can be read
-    if let Ok(pid) = std::fs::read_to_string(&pid_file) {
-      let pid = pid.trim();
-      log::debug!("checking whether PID {pid} is still up…");
-
-      // if the contained pid corresponds to a running process, stop right away
-      // otherwise, remove the previous PID and socket files
-      if Command::new("ps")
-        .args(["-p", pid])
-        .output()
-        .is_ok_and(|o| o.status.success())
-      {
-        log::debug!("kak-tree-sitter already running; not starting a new server");
-        return Ok(());
-      } else {
-        log::debug!("removing previous PID file");
-        std::fs::remove_file(&pid_file).map_err(|err| OhNo::CannotStartDaemon {
-          err: format!(
-            "cannot remove previous PID file {path}: {err}",
-            path = pid_file.display()
-          ),
-        })?;
-
-        log::debug!("removing previous socket file");
-        let socket_file = runtime_dir.join("socket");
-        std::fs::remove_file(&socket_file).map_err(|err| OhNo::CannotStartDaemon {
-          err: format!(
-            "cannot remove previous socket file {path}: {err}",
-            path = socket_file.display()
-          ),
-        })?;
-      }
-    }
-
-    if cli.daemonize {
+    if daemonize {
       // create stdout / stderr files
-      let stdout_path = runtime_dir.join("stdout.txt");
-      let stderr_path = runtime_dir.join("stderr.txt");
+      let stdout_path = self.resources.runtime_dir.join("stdout.txt");
+      let stderr_path = self.resources.runtime_dir.join("stderr.txt");
       let stdout = File::create(&stdout_path).map_err(|err| OhNo::CannotCreateFile {
         file: stdout_path,
         err,
@@ -130,166 +126,7 @@ impl Server {
       })?;
     }
 
-    Server::new(config, !cli.kakoune, cli.with_highlighting)?.start()?;
-
     Ok(())
-  }
-
-  fn start(mut self) -> Result<(), OhNo> {
-    // search for already existing sessions, and if so, register them ahead of time
-    if let Err(err) = self.server_state.register_already_existing_sessions() {
-      log::error!("error while registering already existing sessions: {err}");
-    }
-
-    self.server_state.start()
-  }
-
-  pub fn send_request(req: UnixRequest) -> Result<(), OhNo> {
-    // serialize the request
-    let serialized = serde_json::to_string(&req).map_err(|err| OhNo::CannotSendRequest {
-      err: err.to_string(),
-    })?;
-
-    log::debug!("sending request {req:?}");
-
-    // connect and send the request to the daemon
-    UnixStream::connect(ServerState::runtime_dir()?.join("socket"))
-      .map_err(|err| OhNo::CannotConnectToServer { err })?
-      .write_all(serialized.as_bytes())
-      .map_err(|err| OhNo::CannotSendRequest {
-        err: err.to_string(),
-      })
-  }
-}
-
-/// Resources requiring a special drop implementation.
-#[derive(Clone, Debug)]
-pub struct ServerResources {
-  pub runtime_dir: PathBuf,
-}
-
-impl ServerResources {
-  fn new(runtime_dir: PathBuf) -> Self {
-    Self { runtime_dir }
-  }
-}
-
-impl Drop for ServerResources {
-  fn drop(&mut self) {
-    let _ = std::fs::remove_dir_all(self.runtime_dir.join("pid"));
-  }
-}
-
-/// Token distribution.
-#[derive(Debug)]
-struct TokenProvider {
-  // next available token
-  next_token: Token,
-
-  // available tokens (i.e. dead sessions’ tokens)
-  free_tokens: Vec<Token>,
-}
-
-impl Default for TokenProvider {
-  fn default() -> Self {
-    Self {
-      next_token: Self::CMD_FIFO_FIRST_TOKEN,
-      free_tokens: Vec::default(),
-    }
-  }
-}
-
-impl TokenProvider {
-  const WAKER_TOKEN: Token = Token(0);
-  const UNIX_LISTENER_TOKEN: Token = Token(1);
-  const CMD_FIFO_FIRST_TOKEN: Token = Token(2);
-
-  /// Get a new token for a new session.
-  fn create(&mut self) -> Token {
-    self.free_tokens.pop().unwrap_or_else(|| {
-      let token = self.next_token;
-      self.next_token = Token(token.0 + 1);
-      token
-    })
-  }
-
-  fn recycle(&mut self, token: Token) {
-    self.free_tokens.push(token);
-  }
-}
-
-pub struct ServerState {
-  resources: ServerResources,
-  poll: Poll,
-  _resp_queue_handle: JoinHandle<()>,
-  resp_sender: Sender<ConnectedResponse>,
-  unix_handler: UnixHandler,
-  fifo_handler: FifoHandler,
-  shutdown: Arc<AtomicBool>,
-  session_tracker: SessionTracker,
-  token_provider: TokenProvider,
-}
-
-impl ServerState {
-  pub fn new(config: &Config, is_standalone: bool, with_highlighting: bool) -> Result<Self, OhNo> {
-    let resources = ServerResources::new(Self::runtime_dir()?);
-    let mut poll = Poll::new().map_err(|err| OhNo::CannotStartPoll { err })?;
-    let waker = Arc::new(
-      Waker::new(poll.registry(), TokenProvider::WAKER_TOKEN)
-        .map_err(|err| OhNo::CannotStartServer { err })?,
-    );
-    let (resp_queue, resp_sender) = ResponseQueue::new();
-    let mut unix_handler = UnixHandler::new(
-      is_standalone,
-      with_highlighting,
-      resources.clone(),
-      ServerState::socket_path()?,
-      resp_sender.clone(),
-    )?;
-    let fifo_handler = FifoHandler::new(config, resp_sender.clone())?;
-    let shutdown = Arc::new(AtomicBool::new(false));
-    let session_tracker = SessionTracker::default();
-    let token_provider = TokenProvider::default();
-
-    // SIGINT handler; we just ask to shutdown the server
-    {
-      let shutdown = shutdown.clone();
-      ctrlc::set_handler(move || {
-        log::warn!("received SIGINT");
-        shutdown.store(true, Ordering::Relaxed);
-        waker.wake().unwrap();
-      })
-      .map_err(|err| OhNo::SigIntHandlerError { err })?;
-    }
-
-    unix_handler.register_poll(&mut poll)?;
-
-    let _resp_queue_handle = resp_queue.run();
-
-    Ok(ServerState {
-      resources,
-      poll,
-      _resp_queue_handle,
-      resp_sender,
-      unix_handler,
-      fifo_handler,
-      shutdown,
-      session_tracker,
-      token_provider,
-    })
-  }
-
-  pub fn runtime_dir() -> Result<PathBuf, OhNo> {
-    let dir = dirs::runtime_dir()
-      .or_else(||
-        // macOS doesn’t implement XDG, yay…
-        std::env::var("TMPDIR").map(PathBuf::from).ok())
-      .ok_or_else(|| OhNo::NoRuntimeDir)?;
-    Ok(dir.join("kak-tree-sitter"))
-  }
-
-  pub fn socket_path() -> Result<PathBuf, OhNo> {
-    Ok(Self::runtime_dir()?.join("socket"))
   }
 
   fn register_already_existing_sessions(&mut self) -> Result<(), OhNo> {
@@ -312,7 +149,7 @@ impl ServerState {
         }
 
         if let Err(err) = self.unix_handler.process_req(
-          &mut self.poll,
+          &self.event_loop,
           &mut self.token_provider,
           &mut self.session_tracker,
           &mut self.fifo_handler,
@@ -370,53 +207,41 @@ impl ServerState {
   }
 
   /// Start the server state and wait for events to be dispatched.
-  pub fn start(&mut self) -> Result<(), OhNo> {
+  pub fn start(mut self) -> Result<(), OhNo> {
     log::info!("starting server");
 
-    let mut events = Events::with_capacity(1024);
+    // search for already existing sessions, and if so, register them ahead of time
+    if let Err(err) = self.register_already_existing_sessions() {
+      log::error!("error while registering already existing sessions: {err}");
+    }
+
     loop {
-      if self.shutdown.load(Ordering::Relaxed) {
-        break;
-      }
+      self.event_loop.run()?;
+      match self.event_loop.events() {
+        Await::Shutdown => break,
+        Await::Tokens(tokens) => {
+          for token in tokens.into_iter() {
+            match token {
+              TokenProvider::UNIX_LISTENER_TOKEN => {
+                match self.unix_handler.accept(
+                  &self.event_loop,
+                  &mut self.token_provider,
+                  &mut self.session_tracker,
+                  &mut self.fifo_handler,
+                ) {
+                  Ok(Feedback::ShouldExit) => self.event_loop.stop(),
 
-      log::debug!("waiting on poll…");
-      if let Err(err) = self.poll.poll(&mut events, None) {
-        if err.kind() == io::ErrorKind::Interrupted {
-          log::warn!("mio interrupted");
-        } else {
-          return Err(OhNo::PollError { err });
-        }
-      }
+                  Err(err) => {
+                    log::error!("{err}");
+                  }
 
-      for event in &events {
-        log::trace!("mio event: {event:#?}");
-
-        match event.token() {
-          TokenProvider::WAKER_TOKEN => {
-            log::debug!("waking up mio poll before shutting down");
-            break;
-          }
-
-          TokenProvider::UNIX_LISTENER_TOKEN if event.is_readable() => {
-            match self.unix_handler.accept(
-              &mut self.poll,
-              &mut self.token_provider,
-              &mut self.session_tracker,
-              &mut self.fifo_handler,
-            ) {
-              Ok(Feedback::ShouldExit) => self.shutdown.store(true, Ordering::Relaxed),
-
-              Err(err) => {
-                log::error!("{err}");
+                  _ => (),
+                }
               }
 
-              _ => (),
+              _ => self.fifo_handler.accept(&mut self.session_tracker, token)?,
             }
           }
-
-          tkn if event.is_readable() => self.fifo_handler.accept(&mut self.session_tracker, tkn)?,
-
-          _ => (),
         }
       }
     }
@@ -469,21 +294,13 @@ impl UnixHandler {
     })
   }
 
-  /// Register the Unix handler to a Poll.
-  fn register_poll(&mut self, poll: &mut Poll) -> Result<(), OhNo> {
-    poll
-      .registry()
-      .register(
-        &mut self.unix_listener,
-        TokenProvider::UNIX_LISTENER_TOKEN,
-        Interest::READABLE,
-      )
-      .map_err(|err| OhNo::CannotStartPoll { err })
+  pub fn as_raw_fd(&self) -> RawFd {
+    self.unix_listener.as_raw_fd()
   }
 
   fn accept(
     &mut self,
-    poll: &mut Poll,
+    event_loop: &EventLoop,
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
     fifo_handler: &mut FifoHandler,
@@ -511,12 +328,18 @@ impl UnixHandler {
         err: err.to_string(),
       })?;
 
-    self.process_req(poll, token_provider, session_tracker, fifo_handler, req)
+    self.process_req(
+      event_loop,
+      token_provider,
+      session_tracker,
+      fifo_handler,
+      req,
+    )
   }
 
   fn process_req(
     &mut self,
-    poll: &mut Poll,
+    event_loop: &EventLoop,
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
     fifo_handler: &mut FifoHandler,
@@ -527,7 +350,7 @@ impl UnixHandler {
         log::info!("registering session {name}");
 
         let (cmd_fifo_path, buf_fifo_path) =
-          self.track_session(poll, token_provider, session_tracker, &name)?;
+          self.track_session(event_loop, token_provider, session_tracker, &name)?;
 
         let resp = Response::Init {
           cmd_fifo_path,
@@ -547,7 +370,7 @@ impl UnixHandler {
       }
 
       UnixRequest::SessionExit { name } => {
-        self.recycle_session(poll, session_tracker, token_provider, name)?;
+        self.recycle_session(event_loop, session_tracker, token_provider, name)?;
 
         // only shutdown if were started with an initial session (non standalone)
         let feedback = if !self.is_standalone && session_tracker.is_empty() {
@@ -568,7 +391,7 @@ impl UnixHandler {
 
   fn track_session(
     &mut self,
-    poll: &mut Poll,
+    event_loop: &EventLoop,
     token_provider: &mut TokenProvider,
     session_tracker: &mut SessionTracker,
     session_name: &str,
@@ -583,21 +406,8 @@ impl UnixHandler {
     let buf_path = buf_fifo.path().to_owned();
     let buf_token = token_provider.create();
 
-    let registry = poll.registry();
-    registry
-      .register(
-        &mut SourceFd(&cmd_fifo.as_raw_fd()),
-        cmd_token,
-        Interest::READABLE,
-      )
-      .map_err(|err| OhNo::PollError { err })?;
-    registry
-      .register(
-        &mut SourceFd(&buf_fifo.as_raw_fd()),
-        buf_token,
-        Interest::READABLE,
-      )
-      .map_err(|err| OhNo::PollError { err })?;
+    event_loop.register(&mut SourceFd(&cmd_fifo.as_raw_fd()), cmd_token)?;
+    event_loop.register(&mut SourceFd(&buf_fifo.as_raw_fd()), buf_token)?;
 
     session_tracker.track(
       session_name,
@@ -612,7 +422,7 @@ impl UnixHandler {
   /// Recycle a session by removing the session from the session tracker and recycling the token in the token provider.
   fn recycle_session(
     &mut self,
-    poll: &mut Poll,
+    event_loop: &EventLoop,
     session_tracker: &mut SessionTracker,
     token_provider: &mut TokenProvider,
     session_name: impl AsRef<str>,
@@ -622,17 +432,11 @@ impl UnixHandler {
     log::info!("recycling session {session_name}");
     if let Some((session, cmd_fifo, buf_fifo)) = session_tracker.untrack(session_name) {
       if let Some(cmd_fifo) = cmd_fifo {
-        poll
-          .registry()
-          .deregister(&mut SourceFd(&cmd_fifo.as_raw_fd()))
-          .map_err(|err| OhNo::PollError { err })?;
+        event_loop.unregister(&mut SourceFd(&cmd_fifo.as_raw_fd()))?;
       }
 
       if let Some(buf_fifo) = buf_fifo {
-        poll
-          .registry()
-          .deregister(&mut SourceFd(&buf_fifo.as_raw_fd()))
-          .map_err(|err| OhNo::PollError { err })?;
+        event_loop.unregister(&mut SourceFd(&buf_fifo.as_raw_fd()))?;
       }
 
       token_provider.recycle(session.cmd_token());

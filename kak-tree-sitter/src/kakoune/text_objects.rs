@@ -8,7 +8,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::selection::SelectMode;
+use crate::kakoune::selection::SelectMode;
 
 /// Text-objects can be manipulated in two different ways:
 ///
@@ -64,9 +64,7 @@ pub enum OperationMode {
 
 #[cfg(test)]
 mod tests {
-  use crate::selection::SelectMode;
-
-  use super::OperationMode;
+  use crate::kakoune::{selection::SelectMode, text_objects::OperationMode};
 
   #[test]
   fn deser() {

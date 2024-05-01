@@ -1,10 +1,12 @@
 //! Requests that can be sent to the server from Kakoune.
 
-use std::fmt::Debug;
+use std::{fmt::Debug, io::Write, os::unix::net::UnixStream};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{nav::Dir, text_objects::OperationMode};
+use crate::{error::OhNo, kakoune::text_objects::OperationMode, tree_sitter::nav};
+
+use super::resources::ServerResources;
 
 /// Unidentified request (i.e. not linked to a given session).
 #[derive(Debug, Deserialize, Serialize)]
@@ -36,6 +38,23 @@ impl UnixRequest {
       UnixRequest::SessionExit { .. } => UnixRequest::SessionExit { name },
       _ => self,
     }
+  }
+
+  pub fn send(&self, resources: &ServerResources) -> Result<(), OhNo> {
+    // serialize the request
+    let serialized = serde_json::to_string(&self).map_err(|err| OhNo::CannotSendRequest {
+      err: err.to_string(),
+    })?;
+
+    log::debug!("sending request {self:?}");
+
+    // connect and send the request to the daemon
+    UnixStream::connect(resources.socket_path())
+      .map_err(|err| OhNo::CannotConnectToServer { err })?
+      .write_all(serialized.as_bytes())
+      .map_err(|err| OhNo::CannotSendRequest {
+        err: err.to_string(),
+      })
   }
 }
 
@@ -78,7 +97,7 @@ pub enum Request {
     buffer: String,
     lang: String,
     selections: String,
-    dir: Dir,
+    dir: nav::Dir,
   },
 }
 
