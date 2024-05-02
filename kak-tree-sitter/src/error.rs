@@ -61,6 +61,12 @@ pub enum OhNo {
   #[error("cannot read tmp file: {err}")]
   CannotReadTmpFile { err: io::Error },
 
+  #[error("cannot decode buffer view at path {path}: {err}")]
+  BufferViewDecodeError { path: PathBuf, err: String },
+
+  #[error("cannot start buffer watch: {err}")]
+  BufferWatchError { err: String },
+
   #[error("cannot start server: {err}")]
   CannotStartServer { err: io::Error },
 

@@ -6,7 +6,7 @@
 //!
 //! Once a file is read, it’s automatically deleted by the server.
 
-use std::{fs::File, io::Read, path::PathBuf};
+use std::path::{Path, PathBuf};
 
 use crate::error::OhNo;
 
@@ -20,17 +20,15 @@ impl TmpFile {
     Self { path: path.into() }
   }
 
+  pub fn path(&self) -> &Path {
+    &self.path
+  }
+
   /// Read the temporary file and drop it.
   ///
   /// Once the file is dropped, it is removed from the tmpfs.
   pub fn into_string(self) -> Result<String, OhNo> {
-    let mut file = File::open(&self.path).map_err(|err| OhNo::CannotReadTmpFile { err })?;
-    let mut s = String::default();
-
-    file
-      .read_to_string(&mut s)
-      .map_err(|err| OhNo::CannotReadTmpFile { err })?;
-
+    let s = std::fs::read_to_string(&self.path).map_err(|err| OhNo::CannotReadTmpFile { err })?;
     Ok(s)
   }
 }

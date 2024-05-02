@@ -1,3 +1,4 @@
+mod buffer_watch;
 mod event_loop;
 pub mod fifo;
 mod handler;
