@@ -58,6 +58,9 @@ pub enum OhNo {
   #[error("cannot read FIFO: {err}")]
   CannotReadFifo { err: io::Error },
 
+  #[error("cannot read tmp file: {err}")]
+  CannotReadTmpFile { err: io::Error },
+
   #[error("cannot start server: {err}")]
   CannotStartServer { err: io::Error },
 

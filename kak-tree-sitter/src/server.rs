@@ -1,9 +1,10 @@
 mod event_loop;
 pub mod fifo;
-pub mod handler;
+mod handler;
 pub mod request;
 pub mod resources;
 pub mod response;
+mod tmpfs;
 
 use std::{
   collections::HashSet,
