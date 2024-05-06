@@ -13,6 +13,8 @@ use crate::{
   },
 };
 
+use super::buffer_watch::BufferView;
+
 /// Type responsible for handling requests.
 ///
 /// This type is stateful, as requests might have side-effect (i.e. tree-sitter
@@ -54,6 +56,22 @@ impl Handler {
         Ok(entry.into_mut())
       }
     }
+  }
+
+  /// Update a buffer if it has changed.
+  pub fn update_buffer(
+    &mut self,
+    session_name: impl AsRef<str>,
+    update: BufferView,
+  ) -> Result<(), OhNo> {
+    let session_name = session_name.as_ref();
+    let id = BufferId::new(session_name, update.name());
+
+    log::info!("updating buffer {id:?}, session {session_name}");
+
+    // TODO: how do I get the lang there?
+    Self::compute_tree(&mut self.trees, lang, buffer_id, update.content())?;
+    Ok(())
   }
 
   pub fn handle_try_enable_highlight(

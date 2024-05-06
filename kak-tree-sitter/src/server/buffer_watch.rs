@@ -1,16 +1,18 @@
 //! Watch over buffer content as they changed on the tmpfs.
 
 use std::{
-  collections::HashMap,
-  path::{Path, PathBuf},
-  sync::{Arc, Mutex, RwLock},
+  path::Path,
+  sync::{
+    mpsc::{channel, Receiver},
+    Arc,
+  },
   time::Duration,
 };
 
-use notify::{recommended_watcher, RecommendedWatcher};
+use mio::Waker;
 use notify_debouncer_full::{
-  notify::{event::CreateKind, EventKind},
-  Debouncer, FileIdMap,
+  notify::{event::CreateKind, EventKind, RecommendedWatcher, RecursiveMode, Watcher},
+  DebouncedEvent, Debouncer, FileIdMap,
 };
 
 use crate::error::OhNo;
@@ -54,35 +56,69 @@ impl BufferView {
       content,
     })
   }
+
+  pub fn name(&self) -> &str {
+    &self.name
+  }
+
+  pub fn content(&self) -> &str {
+    &self.content
+  }
 }
 
 /// Watch over buffers, updating them when new buffers are written.
 #[derive(Debug)]
 pub struct BufferWatch {
   watcher: Debouncer<RecommendedWatcher, FileIdMap>,
-  views: Arc<Mutex<HashMap<String, BufferView>>>,
+  update_rx: Receiver<BufferView>,
 }
 
 impl BufferWatch {
-  pub fn new(buffer_dir: impl AsRef<Path>) -> Result<Self, OhNo> {
-    let views = Arc::new(Mutex::new(HashMap::default()));
+  pub fn new(buffer_dir: impl AsRef<Path>, waker: Arc<Waker>) -> Result<Self, OhNo> {
+    let (update_tx, update_rx) = channel();
+    let mut watcher = notify_debouncer_full::new_debouncer(
+      Duration::from_millis(80),
+      None,
+      move |events: Result<Vec<DebouncedEvent>, _>| {
+        if let Ok(events) = events {
+          for event in events {
+            if let EventKind::Create(CreateKind::File) = event.kind {
+              for path in &event.paths {
+                log::debug!("detected new file creation: {}", path.display());
 
-    let views_ = views.clone();
-    let watcher = notify_debouncer_full::new_debouncer(Duration::from_millis(80), None, |events| {
-      if let Ok(events) = events {
-        for event in events {
-          match event.kind {
-            EventKind::Create(CreateKind::File) => {
-              let views = views_.lock().expect("poisoned");
+                match BufferView::new(TmpFile::new(path)) {
+                  Ok(bv) => {
+                    if let Err(err) = update_tx.send(bv) {
+                      log::error!("cannot send buffer view update; channel error: {err}");
+                    } else if let Err(err) = waker.wake() {
+                      log::error!("cannot wake poll thread: {err}");
+                    }
+                  }
+                  Err(err) => {
+                    log::error!("error while creating buffer view: {err}");
+                  }
+                }
+              }
             }
-
-            _ => (),
           }
         }
-      }
-    })
+      },
+    )
     .map_err(|err| OhNo::BufferWatchError {
       err: format!("{err}"),
     })?;
+
+    watcher
+      .watcher()
+      .watch(buffer_dir.as_ref(), RecursiveMode::NonRecursive)
+      .map_err(|err| OhNo::BufferWatchError {
+        err: format!("{err}"),
+      })?;
+
+    Ok(Self { watcher, update_rx })
+  }
+
+  pub fn updates(&self) -> impl '_ + Iterator<Item = BufferView> {
+    self.update_rx.try_iter()
   }
 }

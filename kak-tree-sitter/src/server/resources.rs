@@ -98,6 +98,22 @@ impl ServerResources {
   pub fn pid_path(&self) -> PathBuf {
     self.runtime_dir.join("pid")
   }
+
+  pub fn stdout(&self) -> PathBuf {
+    self.runtime_dir.join("stdout.txt")
+  }
+
+  pub fn stderr(&self) -> PathBuf {
+    self.runtime_dir.join("stderr.txt")
+  }
+
+  pub fn cmd_dir(&self) -> PathBuf {
+    self.runtime_dir.join("cmds")
+  }
+
+  pub fn buf_dir(&self) -> PathBuf {
+    self.runtime_dir.join("bufs")
+  }
 }
 
 impl Drop for ServerResources {

@@ -52,6 +52,7 @@ impl TokenProvider {
 #[derive(Debug)]
 pub struct EventLoop {
   poll: Poll,
+  waker: Arc<Waker>,
   shutdown: Arc<AtomicBool>,
   events: Events,
 }
@@ -66,7 +67,9 @@ impl EventLoop {
 
     // SIGINT handler; we just ask to shutdown the server
     let shutdown = Arc::new(AtomicBool::new(false));
+
     {
+      let waker = waker.clone();
       let shutdown = shutdown.clone();
       ctrlc::set_handler(move || {
         log::warn!("received SIGINT");
@@ -80,6 +83,7 @@ impl EventLoop {
 
     Ok(Self {
       poll,
+      waker,
       shutdown,
       events,
     })
@@ -107,6 +111,10 @@ impl EventLoop {
       .map_err(|err| OhNo::PollError { err })?;
 
     Ok(())
+  }
+
+  pub fn waker(&self) -> Arc<Waker> {
+    self.waker.clone()
   }
 
   pub fn run(&mut self) -> Result<&Self, OhNo> {
@@ -154,6 +162,8 @@ impl<'a> Tokens<'a> {
       .events
       .iter()
       .filter(|event| event.is_readable())
+			// we do not expose the waker token
+      .filter(|event| event.token() != TokenProvider::WAKER_TOKEN)
       .map(|event| event.token())
   }
 }

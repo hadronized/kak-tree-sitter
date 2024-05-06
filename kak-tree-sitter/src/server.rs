@@ -33,6 +33,7 @@ use crate::{
 };
 
 use self::{
+  buffer_watch::{BufferView, BufferWatch},
   event_loop::{EventLoop, TokenProvider},
   fifo::{Fifo, FifoKind},
   handler::Handler,
@@ -51,6 +52,7 @@ pub enum Feedback {
 pub struct Server {
   resources: ServerResources,
   event_loop: EventLoop,
+  buffer_watch: BufferWatch,
   _resp_queue_handle: JoinHandle<()>,
   resp_sender: Sender<ConnectedResponse>,
   unix_handler: UnixHandler,
@@ -62,6 +64,8 @@ pub struct Server {
 impl Server {
   pub fn new(config: &Config, cli: &Cli, resources: ServerResources) -> Result<Self, OhNo> {
     let event_loop = EventLoop::new()?;
+
+    let buffer_watch = BufferWatch::new(resources.buf_dir(), event_loop.waker())?;
 
     let (resp_queue, resp_sender) = ResponseQueue::new();
     let unix_handler = UnixHandler::new(
@@ -85,6 +89,7 @@ impl Server {
     Ok(Server {
       resources,
       event_loop,
+      buffer_watch,
       _resp_queue_handle,
       resp_sender,
       unix_handler,
@@ -100,8 +105,8 @@ impl Server {
 
     if daemonize {
       // create stdout / stderr files
-      let stdout_path = self.resources.runtime_dir.join("stdout.txt");
-      let stderr_path = self.resources.runtime_dir.join("stderr.txt");
+      let stdout_path = self.resources.stdout();
+      let stderr_path = self.resources.stderr();
       let stdout = File::create(&stdout_path).map_err(|err| OhNo::CannotCreateFile {
         file: stdout_path,
         err,
@@ -135,8 +140,8 @@ impl Server {
     let sessions = Self::get_running_sessions();
 
     // we use command FIFOs for that
-    let fifo_dir = self.resources.runtime_dir.join("commands");
-    for dentry in fifo_dir
+    let cmd_dir = self.resources.cmd_dir();
+    for dentry in cmd_dir
       .read_dir()
       .map_err(|err| OhNo::CannotGetSessions {
         err: err.to_string(),
@@ -185,25 +190,11 @@ impl Server {
   fn cleanup_session_data(&mut self, session: &str) {
     log::warn!("removing session '{session}' data");
 
-    let command_fifo = self
-      .resources
-      .runtime_dir
-      .join(format!("commands/{session}"));
+    let command_fifo = self.resources.cmd_dir().join(session);
     if let Err(err) = std::fs::remove_file(&command_fifo) {
       log::warn!(
         "cannot remove command FIFO at {path}: {err}",
         path = command_fifo.display()
-      );
-    }
-
-    let buf_fifo = self
-      .resources
-      .runtime_dir
-      .join(format!("buffers/{session}"));
-    if let Err(err) = std::fs::remove_file(&buf_fifo) {
-      log::warn!(
-        "cannot remove buffer FIFO at {path}: {err}",
-        path = buf_fifo.display()
       );
     }
   }
@@ -219,6 +210,13 @@ impl Server {
 
     loop {
       self.event_loop.run()?;
+
+      // check whether we have buffer update first
+      for update in self.buffer_watch.updates() {
+        log::debug!("buffer update: {update:?}");
+      }
+
+      // then regular events
       match self.event_loop.events() {
         Await::Shutdown => break,
         Await::Tokens(tokens) => {
