@@ -10,11 +10,11 @@ homepage = "https://git.sr.ht/~hadronized/kak-tree-sitter"
 repository = "https://git.sr.ht/~hadronized/kak-tree-sitter"
 readme = "README.md"
 edition = "2021"
-rust-version = "1.65.0"
+rust-version = "1.70.0"
 
 [dependencies]
-dirs = "5.0.1"
-log = "0.4.21"
-serde = { version = "1.0.198", features = ["derive"] }
-thiserror = "1.0.59"
+dirs = "5.0"
+log = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0.60"
 toml = "0.8.12"
