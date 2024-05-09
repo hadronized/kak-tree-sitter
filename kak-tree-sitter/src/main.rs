@@ -44,6 +44,9 @@ fn start() -> Result<(), OhNo> {
   let resources = ServerResources::new()?;
 
   if cli.server {
+    if resources.is_server_running() {
+        return Ok(())
+    }
     let config = Config::load_default_user()?;
 
     log::trace!("running with configuration:\n{config:#?}");

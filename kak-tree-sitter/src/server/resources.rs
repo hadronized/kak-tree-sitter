@@ -83,6 +83,13 @@ impl ServerResources {
       .is_ok_and(|o| o.status.success())
   }
 
+  pub fn is_server_running(&self) -> bool {
+    match std::fs::read_to_string(&self.pid_path()) {
+        Err(_) => false,
+        Ok(pid) => Self::is_running(pid.trim()),
+    }
+  }
+
   /// Socket used by the server to receive initial commands.
   pub fn socket_path(&self) -> PathBuf {
     self.runtime_dir.join("socket")
