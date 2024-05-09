@@ -2,9 +2,7 @@ mod buffer_watch;
 mod event_loop;
 pub mod fifo;
 mod handler;
-pub mod request;
 pub mod resources;
-pub mod response;
 mod tmpfs;
 
 use std::{
@@ -29,17 +27,19 @@ use crate::{
     selection::Sel,
     session::{Session, SessionState, SessionTracker},
   },
-  server::{event_loop::Await, request::Request},
+  protocol::{
+    request::{Request, UnixRequest},
+    response::{ConnectedResponse, Response},
+  },
+  server::event_loop::Await,
 };
 
 use self::{
-  buffer_watch::{BufferView, BufferWatch},
+  buffer_watch::BufferWatch,
   event_loop::{EventLoop, TokenProvider},
   fifo::{Fifo, FifoKind},
   handler::Handler,
-  request::UnixRequest,
   resources::ServerResources,
-  response::{ConnectedResponse, Response},
 };
 
 /// Feedback provided after a request has finished. Mainly used to shutdown.

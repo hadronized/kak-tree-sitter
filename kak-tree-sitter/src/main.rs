@@ -1,7 +1,9 @@
 mod cli;
+mod client;
 mod error;
 mod kakoune;
 mod logging;
+mod protocol;
 mod server;
 mod tree_sitter;
 
@@ -10,7 +12,8 @@ use cli::Cli;
 use error::OhNo;
 use kak_tree_sitter_config::Config;
 use logging::Verbosity;
-use server::{request::UnixRequest, resources::ServerResources, Server};
+use protocol::request::UnixRequest;
+use server::{resources::ServerResources, Server};
 
 use crate::{kakoune::rc, logging::KakouneLogger};
 

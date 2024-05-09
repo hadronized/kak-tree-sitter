@@ -1,4 +1,4 @@
-//! Response sent from the daemon to Kakoune, typically via the socket interface (kak -p, etc.).
+//! Response sent from the daemon to Kakoune.
 
 use std::path::PathBuf;
 
@@ -10,7 +10,7 @@ use crate::{kakoune::selection::Sel, tree_sitter::highlighting::KakHighlightRang
 #[derive(Debug, Eq, PartialEq)]
 pub enum Response {
   /// Status change.
-  StatusChanged { status: String },
+  Info { status: String },
 
   /// Initial response when a session starts.
   Init {
@@ -47,15 +47,16 @@ pub enum Response {
 }
 
 impl Response {
-  pub fn status(status: impl Into<String>) -> Self {
-    Response::StatusChanged {
+  pub fn info(status: impl Into<String>) -> Self {
+    Response::Info {
       status: status.into(),
     }
   }
 
+  /// Turn the [`Response`] into a Kakoune command that can be executed remotely.
   pub fn to_kak_cmd(&self, client: Option<&str>) -> Option<String> {
     let kak_cmd = match self {
-      Response::StatusChanged { status, .. } => {
+      Response::Info { status, .. } => {
         format!("info %{{{status}}}",)
       }
 
@@ -131,30 +132,5 @@ impl Response {
     };
 
     Some(format!("eval -no-hooks {prefix}%{{{kak_cmd}}}"))
-  }
-}
-
-/// Response that can be sent to a specific session.
-#[derive(Debug, Eq, PartialEq)]
-pub struct ConnectedResponse {
-  pub session: String,
-  pub client: Option<String>,
-  pub resp: Response,
-}
-
-impl ConnectedResponse {
-  pub fn new(
-    session: impl Into<String>,
-    client: impl Into<Option<String>>,
-    resp: Response,
-  ) -> Self {
-    let session = session.into();
-    let client = client.into();
-
-    Self {
-      session,
-      client,
-      resp,
-    }
   }
 }

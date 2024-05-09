@@ -5,7 +5,7 @@ use kak_tree_sitter_config::Config;
 use crate::{
   error::OhNo,
   kakoune::{buffer::BufferId, selection::Sel, text_objects::OperationMode},
-  server::response::Response,
+  protocol::response::Response,
   tree_sitter::{
     languages::{Language, Languages},
     nav,
@@ -70,7 +70,7 @@ impl Handler {
     log::info!("updating buffer {id:?}, session {session_name}");
 
     // TODO: how do I get the lang there?
-    Self::compute_tree(&mut self.trees, lang, buffer_id, update.content())?;
+    //Self::compute_tree(&mut self.trees, lang, buffer_id, update.content())?;
     Ok(())
   }
 
@@ -109,7 +109,7 @@ impl Handler {
     log::debug!("highlight for buffer {buffer_id:?}, lang {lang_name}, timestamp {timestamp}");
 
     let Some(lang) = self.langs.get(lang_name) else {
-      return Ok(Response::status(format!(
+      return Ok(Response::info(format!(
         "unsupported language: {lang_name}"
       )));
     };
@@ -135,7 +135,7 @@ impl Handler {
     log::debug!("text-objects {pattern} for buffer {buffer_id:?}, lang {lang_name}");
 
     let Some(lang) = self.langs.get(lang_name) else {
-      return Ok(Response::status(format!(
+      return Ok(Response::info(format!(
         "unsupported language: {lang_name}"
       )));
     };
@@ -157,7 +157,7 @@ impl Handler {
     log::debug!("nav {dir:?} for buffer {buffer_id:?}, lang {lang_name}");
 
     let Some(lang) = self.langs.get(lang_name) else {
-      return Ok(Response::status(format!(
+      return Ok(Response::info(format!(
         "unsupported language: {lang_name}"
       )));
     };
