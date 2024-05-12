@@ -105,7 +105,25 @@ highlight.groups = [
 ]
 
 # astro
-# TODO
+[language.astro.grammar.source.git]
+url = "https://github.com/virchau13/tree-sitter-astro"
+pin = "4be180759ec13651f72bacee65fa477c64222a1a"
+
+[language.astro.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "astro.so"]
+link_flags = ["-O3"]
+
+[language.astro.queries.source.git]
+url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+pin = "862f6cd58b38d9d1b4abfb722b4a4b25bdae2586"
+
+[language.astro.queries]
+path = "runtime/queries/astro"
 
 # awk
 [language.awk.grammar.source.git]
