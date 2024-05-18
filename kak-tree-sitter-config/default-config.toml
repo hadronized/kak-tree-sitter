@@ -755,7 +755,7 @@ path = "runtime/queries/latex"
 # llvm
 [language.llvm.grammar.source.git]
 url = "https://github.com/benwilliamgraham/tree-sitter-llvm"
-pin = "e9948edc41e9e5869af99dddb2b5ff5cc5581af6"
+pin = "1b96e58faf558ce057d4dc664b904528aee743cb"
 
 [language.llvm.grammar]
 path = "src"
