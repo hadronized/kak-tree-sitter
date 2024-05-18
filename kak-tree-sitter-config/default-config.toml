@@ -753,7 +753,25 @@ path = "runtime/queries/latex"
 # TODO
 
 # llvm
-# TODO
+[language.llvm.grammar.source.git]
+url = "https://github.com/benwilliamgraham/tree-sitter-llvm"
+pin = "e9948edc41e9e5869af99dddb2b5ff5cc5581af6"
+
+[language.llvm.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "llvm.so"]
+link_flags = ["-O3"]
+
+[language.llvm.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "e76020ddb93eeb051de606c24f92189c3fc55547"
+
+[language.llvm.queries]
+path = "runtime/queries/llvm"
 
 # llvm-mir
 # TODO
