@@ -119,7 +119,7 @@ define-command tree-sitter-nav -params 1 %{
 # The second parameter is a boolean stating whether we should remove the default
 # highlighter.
 define-command -hidden tree-sitter-hook-install-lang -params 2 %{
-  hook -group tree-sitter global WinSetOption "tree_sitter_lang=%arg{1}" %{
+  hook -group tree-sitter global BufSetOption "tree_sitter_lang=%arg{1}" %{
     tree-sitter-buffer-metadata
     add-highlighter -override buffer/tree-sitter-highlighter ranges tree_sitter_hl_ranges
   }
@@ -136,9 +136,9 @@ define-command -hidden tree-sitter-hook-install-session %{
 
   # HACK: this is temporary; only used to ensure %opt{tree_sitter_lang} works
   # as expected; in the end, users should do that on their own
-  hook -group tree-sitter global WinSetOption filetype=(.*) %{
+  hook -group tree-sitter global BufSetOption filetype=(.*) %{
     # Forward the filetype as tree-sitter language.
-    set-option window tree_sitter_lang "%opt{filetype}"
+    set-option buffer tree_sitter_lang "%opt{filetype}"
   }
 }
 
