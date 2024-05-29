@@ -3,7 +3,6 @@ use std::{
   path::PathBuf,
   process::Command,
   sync::{Arc, Mutex},
-  time::{SystemTime, UNIX_EPOCH},
 };
 
 use mio::Registry;
@@ -166,13 +165,8 @@ impl ServerResources {
 
   /// Generate a new, unique FIFO path.
   fn new_fifo_path(&self) -> Result<PathBuf, OhNo> {
-    let duration = SystemTime::now()
-      .duration_since(UNIX_EPOCH)
-      .map_err(|err| OhNo::CannotCreateFifo {
-        err: err.to_string(),
-      })?;
-
-    Ok(self.paths.bufs_dir().join(duration.as_nanos().to_string()))
+    let name = uuid::Uuid::new_v4();
+    Ok(self.paths.bufs_dir().join(name.to_string()))
   }
 
   /// Create a new FIFO and associate it with a token on the given poll.
