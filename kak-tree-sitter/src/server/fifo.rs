@@ -1,161 +1,177 @@
-//! FIFO used for commands, buffers, etc.
+//! A simple FIFO wrapper.
 
 use std::{
   ffi::CString,
   fs::{self, File, OpenOptions},
-  io::Read,
+  io::{ErrorKind, Read},
   os::{
-    fd::{AsRawFd, RawFd},
+    fd::AsRawFd,
     unix::{ffi::OsStrExt, fs::OpenOptionsExt},
   },
   path::{Path, PathBuf},
+  sync::{Arc, Mutex},
 };
+
+use mio::{unix::SourceFd, Interest, Registry, Token};
 
 use crate::error::OhNo;
 
-/// Kind of fifo; that is, the purpose of usage.
-///
-/// That is used to, mainly, dispatch FIFO IO operations.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum FifoKind {
-  Cmd,
-  Buf,
-}
-
-impl FifoKind {
-  /// Prefix used to locate the FIFO inside a filesystem.
-  fn as_prefix(self) -> &'static str {
-    match self {
-      FifoKind::Cmd => "commands",
-      FifoKind::Buf => "buffers",
-    }
-  }
-}
+use super::tokens::Tokens;
 
 #[derive(Debug)]
 pub struct Fifo {
-  kind: FifoKind,
-
-  /// Session name the FIFO is attached to.
-  session: String,
-
-  /// FIFO file.
-  file: File,
-
-  /// Path of the FIFO.
+  registry: Arc<Registry>,
+  tokens: Arc<Mutex<Tokens>>,
   path: PathBuf,
-
-  /// Buffer used to read from the FIFO.
-  buffer: String,
+  file: File,
+  tkn: Token,
+  sentinel: String,
+  buf: String,
 }
 
 impl Fifo {
-  /// Create and open a non-blocking FIFO.
-  ///
-  /// If the FIFO doesn’t exist, it’s created before opening.
-  pub fn open_nonblocking(
-    runtime_dir: impl AsRef<Path>,
-    kind: FifoKind,
-    session: impl Into<String>,
+  /// Create a FIFO.
+  pub fn create(
+    registry: &Arc<Registry>,
+    tokens: &Arc<Mutex<Tokens>>,
+    path: impl Into<PathBuf>,
   ) -> Result<Self, OhNo> {
-    let session = session.into();
-    let path = Self::create_fifo(runtime_dir.as_ref(), kind.as_prefix(), &session)?;
-    let file = Self::open_nonblocking_fifo(path.as_ref())?;
-    let buffer = String::new();
+    let path = path.into();
+
+    Self::create_fifo(&path)?;
+    let file = Self::open_nonblocking(&path)?;
+    let tkn = Self::register(registry, tokens, &file)?;
+    let sentinel = uuid::Uuid::new_v4().to_string();
 
     Ok(Self {
-      kind,
-      session,
-      file,
+      registry: registry.clone(),
+      tokens: tokens.clone(),
       path,
-      buffer,
+      file,
+      tkn,
+      sentinel,
+      buf: String::default(),
     })
   }
 
   /// Wrap libc::mkfifo() and create the FIFO on the filesystem within the [`ServerResources`].
-  fn create_fifo(runtime_dir: &Path, prefix: &str, session_name: &str) -> Result<PathBuf, OhNo> {
-    let dir = runtime_dir.join(prefix);
-    let path = dir.join(session_name);
-
-    // if the file doesn’t already exist, create it
-    if let Ok(false) = path.try_exists() {
-      // ensure the directory exists
-      fs::create_dir_all(&dir).map_err(|err| OhNo::CannotCreateFifo {
-        err: format!("cannot create directory {dir}: {err}", dir = dir.display()),
-      })?;
-
-      let path_bytes = path.as_os_str().as_bytes();
-      let c_path = CString::new(path_bytes).map_err(|err| OhNo::CannotCreateFifo {
-        err: err.to_string(),
-      })?;
-
-      let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o644) };
-      if c_err != 0 {
-        return Err(OhNo::CannotCreateFifo {
-          err: format!(
-            "cannot create FIFO file for session {session_name} at path {path}",
-            path = path.display()
-          ),
-        });
-      }
+  fn create_fifo(path: &Path) -> Result<(), OhNo> {
+    // if the file already exists, abort
+    if let Ok(true) = path.try_exists() {
+      log::debug!("FIFO already exists for path {}", path.display());
+      return Ok(());
     }
 
-    Ok(path)
+    let path_bytes = path.as_os_str().as_bytes();
+    let c_path = CString::new(path_bytes).map_err(|err| OhNo::CannotCreateFifo {
+      err: err.to_string(),
+    })?;
+
+    let c_err = unsafe { libc::mkfifo(c_path.as_ptr(), 0o644) };
+    if c_err != 0 {
+      return Err(OhNo::CannotCreateFifo {
+        err: format!("cannot create FIFO at path {path}", path = path.display()),
+      });
+    }
+
+    Ok(())
   }
 
-  /// Open a FIFO and obtain a non-blocking [`File`].
-  fn open_nonblocking_fifo(path: &Path) -> Result<File, OhNo> {
-    let fifo = OpenOptions::new()
+  fn open_nonblocking(path: &Path) -> Result<File, OhNo> {
+    OpenOptions::new()
       .read(true)
       .custom_flags(libc::O_NONBLOCK)
       .open(path)
-      .map_err(|err| OhNo::CannotCreateFifo {
-        err: format!(
-          "cannot open non-blocking FIFO {path}: {err}",
-          path = path.display()
-        ),
-      })?;
-    Ok(fifo)
+      .map_err(|err| OhNo::CannotOpenFifo { err })
   }
 
-  pub fn kind(&self) -> FifoKind {
-    self.kind
+  fn register(
+    registry: &Arc<Registry>,
+    tokens: &Arc<Mutex<Tokens>>,
+    file: &File,
+  ) -> Result<Token, OhNo> {
+    let tkn = tokens.lock().expect("tokens").create();
+    registry
+      .register(&mut SourceFd(&file.as_raw_fd()), tkn, Interest::READABLE)
+      .map_err(|err| OhNo::PollError { err })?;
+
+    Ok(tkn)
   }
 
-  /// Session the FIFO is attached to.
-  pub fn session(&self) -> &str {
-    &self.session
-  }
-
-  /// Read on the FIFO until no data is available.
-  pub fn read_all(&mut self) -> Result<&str, OhNo> {
-    self.buffer.clear();
-
-    loop {
-      match self.file.read_to_string(&mut self.buffer) {
-        Ok(bytes) => {
-          if bytes == 0 {
-            break;
-          }
-        }
-        Err(err) => {
-          if err.kind() == std::io::ErrorKind::WouldBlock {
-            log::trace!("FIFO not ready");
-          } else {
-            return Err(OhNo::CannotReadFifo { err });
-          }
-        }
-      }
+  fn unregister(&self) {
+    if let Err(err) = self
+      .registry
+      .deregister(&mut SourceFd(&self.file.as_raw_fd()))
+    {
+      log::error!(
+        "cannot unregister FIFO {path} from poll registry: {err}",
+        path = self.path.display()
+      );
     }
 
-    Ok(self.buffer.as_str())
+    self.tokens.lock().expect("tokens").recycle(self.tkn);
   }
 
-  pub fn as_raw_fd(&self) -> RawFd {
-    self.file.as_raw_fd()
+  pub fn token(&self) -> &Token {
+    &self.tkn
   }
 
   pub fn path(&self) -> &Path {
     &self.path
+  }
+
+  pub fn sentinel(&self) -> &str {
+    &self.sentinel
+  }
+
+  pub fn read_to_buf(&mut self, target: &mut String) -> Result<bool, OhNo> {
+    loop {
+      match self.file.read_to_string(&mut self.buf) {
+        Ok(0) => break,
+        Ok(_) => continue,
+
+        Err(err) => match err.kind() {
+          ErrorKind::WouldBlock => break,
+
+          _ => {
+            // reset the buffer in case of errors
+            self.buf.clear();
+            return Err(OhNo::CannotReadFifo { err });
+          }
+        },
+      }
+    }
+
+    // search for the sentinel; if we find it, it means we have a complete
+    // buffer; cut it from the data and reset to be ready to read the next
+    // buffer
+    if let Some(index) = self.buf.find(&self.sentinel) {
+      log::trace!(
+        "found sentinel {sentinel} in buffer {path}",
+        sentinel = self.sentinel,
+        path = self.path.display()
+      );
+      target.clear();
+      target.push_str(&self.buf[..index]);
+
+      log::trace!("new buffer content:\n{target}");
+
+      self.buf.drain(..index + self.sentinel.len());
+      return Ok(true);
+    }
+
+    Ok(false)
+  }
+}
+
+// We implement Drop here because we want to clean the FIFO when the session
+// exits automatically. Failing doing so is not a hard error.
+impl Drop for Fifo {
+  fn drop(&mut self) {
+    self.unregister();
+
+    if let Err(err) = fs::remove_file(&self.path) {
+      log::warn!("cannot remove FIFO at path {}: {err}", self.path.display());
+    }
   }
 }

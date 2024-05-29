@@ -4,16 +4,60 @@ use serde::{Deserialize, Serialize};
 
 use crate::{kakoune::text_objects::OperationMode, tree_sitter::nav};
 
+use super::response::{self, Response};
+
+/// Request.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub struct Request {
+  session: String,
+  client: Option<String>,
+  buffer: Option<String>,
+  payload: Payload,
+}
+
+impl Request {
+  pub fn init_session(session: impl Into<String>) -> Self {
+    Self {
+      session: session.into(),
+      client: None,
+      buffer: None,
+      payload: Payload::SessionBegin,
+    }
+  }
+
+  pub fn session(&self) -> &str {
+    &self.session
+  }
+
+  pub fn buffer(&self) -> Option<&str> {
+    self.buffer.as_deref()
+  }
+
+  pub fn payload(&self) -> &Payload {
+    &self.payload
+  }
+
+  pub fn reply(&self, payload: response::Payload) -> Response {
+    Response::new(
+      self.session.clone(),
+      self.client.clone(),
+      self.buffer.clone(),
+      payload,
+    )
+  }
+}
+
 /// Request payload.
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
-pub enum Request {
+pub enum Payload {
   /// Inform the server that a session exists and that we should be sending back
   /// the Kakoune commands to get the server features.
-  RegisterSession,
+  SessionBegin,
 
   /// Inform the server that a session has exited.
-  SessionExit,
+  SessionEnd,
 
   /// Ask the server to reload its configuration and reload grammars / queries.
   Reload,
@@ -21,28 +65,17 @@ pub enum Request {
   /// Ask the server to shutdown.
   Shutdown,
 
-  /// Try enabling highlighting for a given filetype.
+  /// Buffer metadata.
   ///
-  /// This request starts a “highlighting session.” The response will not replay with « supports highlighting » or
-  /// « does not support highlighting », but instead will insert the Kakoune commands to ask for highlights only if the
-  /// filetype is supported.
-  TryEnableHighlight { lang: String, client: String },
+  /// This should be sent every time the buffer changes (lang, mostly).
+  BufferMetadata { lang: String },
 
-  /// Ask to highlight the given buffer.
-  ///
-  /// The content of the buffer is streamed right after in the same command FIFO file the request was sent in.
-  Highlight {
-    client: String,
-    buffer: String,
-    lang: String,
-    timestamp: u64,
-  },
+  /// Buffer close.
+  BufferClose,
 
   /// Request to apply text-objects on selections.
   TextObjects {
-    client: String,
     buffer: String,
-    lang: String,
     pattern: String,
     selections: String,
     mode: OperationMode,
@@ -50,10 +83,16 @@ pub enum Request {
 
   /// Request to navigate the tree-sitter tree on selections.
   Nav {
-    client: String,
     buffer: String,
-    lang: String,
     selections: String,
     dir: nav::Dir,
   },
+}
+
+/// Possible way of updating a buffer.
+#[derive(Debug, Deserialize, Serialize)]
+#[serde(tag = "type", rename_all = "snake_case")]
+pub enum BufferUpdate {
+  /// The full buffer is sent over the buffer FIFO.
+  Full,
 }

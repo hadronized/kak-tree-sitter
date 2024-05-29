@@ -2,8 +2,11 @@ use std::{io, path::PathBuf};
 
 use kak_tree_sitter_config::error::ConfigError;
 use log::SetLoggerError;
+use mio::Token;
 use thiserror::Error;
 use tree_sitter::{LanguageError, QueryError};
+
+use crate::kakoune::buffer::BufferId;
 
 #[derive(Debug, Error)]
 pub enum OhNo {
@@ -37,15 +40,6 @@ pub enum OhNo {
   #[error("cannot start daemon: {err}")]
   CannotStartDaemon { err: String },
 
-  #[error("cannot start poll: {err}")]
-  CannotStartPoll { err: io::Error },
-
-  #[error("poll error: {err}")]
-  PollError { err: io::Error },
-
-  #[error("cannot get already existing sessions: {err}")]
-  CannotGetSessions { err: String },
-
   #[error("cannot set SIGINT handler: {err}")]
   SigIntHandlerError {
     #[from]
@@ -55,17 +49,14 @@ pub enum OhNo {
   #[error("cannot create FIFO: {err}")]
   CannotCreateFifo { err: String },
 
+  #[error("cannot open non-blocking FIFO: {err}")]
+  CannotOpenFifo { err: io::Error },
+
   #[error("cannot read FIFO: {err}")]
   CannotReadFifo { err: io::Error },
 
-  #[error("cannot read tmp file: {err}")]
-  CannotReadTmpFile { err: io::Error },
-
-  #[error("cannot decode buffer view at path {path}: {err}")]
-  BufferViewDecodeError { path: PathBuf, err: String },
-
-  #[error("cannot start buffer watch: {err}")]
-  BufferWatchError { err: String },
+  #[error("poll error: {err}")]
+  PollError { err: io::Error },
 
   #[error("cannot start server: {err}")]
   CannotStartServer { err: io::Error },
@@ -73,8 +64,8 @@ pub enum OhNo {
   #[error("cannot load grammar for language {lang}: {err}")]
   CannotLoadGrammar { lang: String, err: String },
 
-  #[error("UNIX connection error: {err}")]
-  UnixConnectionError { err: io::Error },
+  #[error("UNIX socket error: {err}")]
+  UnixSocketError { err: io::Error },
 
   #[error("invalid request {req}: {err}")]
   InvalidRequest { req: String, err: String },
@@ -90,6 +81,15 @@ pub enum OhNo {
 
   #[error("highlight error: {err}")]
   HighlightError { err: String },
+
+  #[error("unknown language: {lang}")]
+  UnknownLang { lang: String },
+
+  #[error("unknown buffer: {id:?}")]
+  UnknownBuffer { id: BufferId },
+
+  #[error("unknown buffer token: {tkn:?}")]
+  UnknownToken { tkn: Token },
 
   #[error("language error: {err}")]
   LangError {

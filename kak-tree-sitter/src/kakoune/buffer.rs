@@ -16,4 +16,12 @@ impl BufferId {
       buffer: buffer.into(),
     }
   }
+
+  pub fn session(&self) -> &str {
+    &self.session
+  }
+
+  pub fn buffer(&self) -> &str {
+    &self.buffer
+  }
 }

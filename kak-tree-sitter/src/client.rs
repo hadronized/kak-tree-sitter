@@ -5,7 +5,7 @@
 
 use std::{io::Write, os::unix::net::UnixStream};
 
-use crate::{error::OhNo, protocol::request::Request, server::resources::ServerResources};
+use crate::{error::OhNo, protocol::request::Request, server::resources::Paths};
 
 /// Connected client (UNIX socket).
 #[derive(Debug)]
@@ -14,11 +14,17 @@ pub struct Client {
 }
 
 impl Client {
-  pub fn connect(resources: &ServerResources) -> Result<Self, OhNo> {
-    let stream = UnixStream::connect(resources.socket_path())
+  pub fn connect(paths: &Paths) -> Result<Self, OhNo> {
+    let stream = UnixStream::connect(paths.socket_path())
       .map_err(|err| OhNo::CannotConnectToServer { err })?;
 
     Ok(Self { stream })
+  }
+
+  /// Convenient method to connect to the server and initiate a session.
+  pub fn init_session(paths: &Paths, session: impl Into<String>) -> Result<(), OhNo> {
+    let mut client = Self::connect(paths)?;
+    client.send(&Request::init_session(session))
   }
 
   /// Asynchronously send a request.

@@ -12,6 +12,7 @@ use tree_sitter_highlight::HighlightConfiguration;
 use crate::{error::OhNo, tree_sitter::queries::Queries};
 
 pub struct Language {
+  pub name: String,
   pub hl_config: HighlightConfiguration,
   pub hl_names: Vec<String>,
   // whether we should remove the default highlighter when highlighting a buffer with this language
@@ -25,6 +26,10 @@ pub struct Language {
 }
 
 impl Language {
+  pub fn lang_name(&self) -> &str {
+    &self.name
+  }
+
   pub fn lang(&self) -> tree_sitter::Language {
     self.ts_lang
   }
@@ -70,7 +75,7 @@ impl Languages {
       log::info!("loading configuration for {lang_name}");
 
       if let Some(grammar_path) = LanguagesConfig::get_grammar_path(lang_config, lang_name) {
-        log::info!("  grammar path: {}", grammar_path.display());
+        log::debug!("  grammar path: {}", grammar_path.display());
 
         let (ts_lib, ts_lang) = match Self::load_grammar(lang_name, &grammar_path) {
           Ok(x) => x,
@@ -81,7 +86,7 @@ impl Languages {
         };
 
         if let Some(queries_dir) = LanguagesConfig::get_queries_dir(lang_config, lang_name) {
-          log::info!("  queries directory: {}", queries_dir.display());
+          log::debug!("  queries directory: {}", queries_dir.display());
 
           let queries = Queries::load_from_dir(queries_dir);
           let mut hl_config = HighlightConfiguration::new(
@@ -106,6 +111,7 @@ impl Languages {
             .unwrap_or_else(|| Ok(None))?;
 
           let lang = Language {
+            name: lang_name.clone(),
             hl_config,
             hl_names,
             remove_default_highlighter,
@@ -121,7 +127,14 @@ impl Languages {
     Ok(Self { langs })
   }
 
-  pub fn get(&self, filetype: impl AsRef<str>) -> Option<&Language> {
-    self.langs.get(filetype.as_ref())
+  pub fn get(&self, lang: impl AsRef<str>) -> Result<&Language, OhNo> {
+    let lang = lang.as_ref();
+    self.langs.get(lang).ok_or_else(|| OhNo::UnknownLang {
+      lang: lang.to_owned(),
+    })
+  }
+
+  pub fn langs(&self) -> impl Iterator<Item = (&str, &Language)> {
+    self.langs.iter().map(|(name, lang)| (name.as_str(), lang))
   }
 }

@@ -1,19 +1,17 @@
-use std::collections::HashMap;
+use std::{
+  collections::HashMap,
+  io::Write,
+  process::{Command, Stdio},
+};
 
-use mio::Token;
+use crate::{error::OhNo, protocol::response::Response};
 
-use crate::{server::fifo::Fifo, tree_sitter::nav};
-
-use super::{selection::Sel, text_objects::OperationMode};
-
-/// Session tracker,
+/// Session tracker.
 ///
-/// Responsible for tracking sessions (by names) along with the associated
-/// command and buffer tokens.
+/// Responsible for tracking sessions (by names).
 #[derive(Debug, Default)]
 pub struct SessionTracker {
   sessions: HashMap<String, Session>,
-  fifos: HashMap<Token, Fifo>,
 }
 
 impl SessionTracker {
@@ -21,38 +19,17 @@ impl SessionTracker {
     self.sessions.is_empty()
   }
 
-  pub fn track(
-    &mut self,
-    session_name: impl Into<String>,
-    session: Session,
-    cmd_fifo: Fifo,
-    buf_fifo: Fifo,
-  ) {
-    self.fifos.insert(session.cmd_token, cmd_fifo);
-    self.fifos.insert(session.buf_token, buf_fifo);
-    self.sessions.insert(session_name.into(), session);
+  /// Check whether a session is already tracked.
+  pub fn tracks(&self, session: &str) -> bool {
+    self.sessions.contains_key(session)
   }
 
-  pub fn untrack(
-    &mut self,
-    session_name: impl AsRef<str>,
-  ) -> Option<(Session, Option<Fifo>, Option<Fifo>)> {
-    if let Some(session) = self.sessions.remove(session_name.as_ref()) {
-      let cmd_fifo = self.fifos.remove(&session.cmd_token);
-      let buf_fifo = self.fifos.remove(&session.buf_token);
-      Some((session, cmd_fifo, buf_fifo))
-    } else {
-      None
-    }
+  pub fn track(&mut self, session: Session) {
+    self.sessions.insert(session.name.clone(), session);
   }
 
-  pub fn by_token(&mut self, token: Token) -> Option<(&mut Session, &mut Fifo)> {
-    self.fifos.get_mut(&token).and_then(|fifo| {
-      self
-        .sessions
-        .get_mut(fifo.session())
-        .map(|session| (session, fifo))
-    })
+  pub fn untrack(&mut self, session_name: impl AsRef<str>) {
+    self.sessions.remove(session_name.as_ref());
   }
 
   pub fn sessions(&self) -> impl Iterator<Item = &str> {
@@ -64,78 +41,52 @@ impl SessionTracker {
 #[derive(Debug)]
 pub struct Session {
   name: String,
-  state: SessionState,
-  cmd_token: Token,
-  buf_token: Token,
 }
 
 impl Session {
-  pub fn new(name: impl Into<String>, cmd_token: Token, buf_token: Token) -> Self {
-    Self {
-      name: name.into(),
-      state: SessionState::Idle,
-      cmd_token,
-      buf_token,
-    }
+  /// Create a new [`Session`] for the given name.
+  pub fn new(name: impl Into<String>) -> Result<Self, OhNo> {
+    Ok(Self { name: name.into() })
   }
 
-  pub fn name(&self) -> &str {
-    &self.name
-  }
+  /// Send a response back to Kakoune.
+  pub fn send_response(resp: Response) -> Result<(), OhNo> {
+    let Some(data) = resp.to_kak() else {
+      // FIXME: this is a weird situation where the [`Response`] doesn’t really
+      // have any Kakoune counterpart; I plan on removing that ~soon
+      return Ok(());
+    };
 
-  pub fn cmd_token(&self) -> Token {
-    self.cmd_token
-  }
+    // spawn the kak -p process
+    // TODO: we want to switch that from directly connecting to the UNIX socket
+    let mut child = Command::new("kak")
+      .args(["-p", resp.session()])
+      .stdin(Stdio::piped())
+      .spawn()
+      .map_err(|err| OhNo::CannotSendRequest {
+        err: err.to_string(),
+      })?;
+    let child_stdin = child
+      .stdin
+      .as_mut()
+      .ok_or_else(|| OhNo::CannotSendRequest {
+        err: "cannot pipe data to kak -p".to_owned(),
+      })?;
 
-  pub fn buf_token(&self) -> Token {
-    self.buf_token
-  }
+    child_stdin
+      .write_all(data.as_bytes())
+      .map_err(|err| OhNo::CannotSendRequest {
+        err: err.to_string(),
+      })?;
 
-  pub fn state(&self) -> &SessionState {
-    &self.state
-  }
+    child_stdin.flush().map_err(|err| OhNo::CannotSendRequest {
+      err: err.to_string(),
+    })?;
 
-  pub fn state_mut(&mut self) -> &mut SessionState {
-    &mut self.state
-  }
-}
+    child.wait().map_err(|err| OhNo::CannotSendRequest {
+      err: format!("error while waiting on kak -p: {err}"),
+    })?;
 
-/// State machine used in sessions.
-#[derive(Debug)]
-pub enum SessionState {
-  /// The session is idle.
-  Idle,
-
-  /// The session requested highlighting and we are waiting for the buffer content.
-  HighlightingWaiting {
-    client: String,
-    buffer: String,
-    lang: String,
-    timestamp: u64,
-  },
-
-  /// The session requested text-objects and we are waiting for the buffer content.
-  TextObjectsWaiting {
-    client: String,
-    buffer: String,
-    lang: String,
-    pattern: String,
-    selections: Vec<Sel>,
-    mode: OperationMode,
-  },
-
-  /// The session requested navigation and we are waiting for the buffer content.
-  NavWaiting {
-    client: String,
-    buffer: String,
-    lang: String,
-    selections: Vec<Sel>,
-    dir: nav::Dir,
-  },
-}
-
-impl SessionState {
-  pub fn idle(&mut self) {
-    *self = SessionState::Idle
+    Ok(())
   }
 }
