@@ -1,29 +1,194 @@
-# This file should be sourced only once by session. It is not recommended to source it yourself; instead, the KTS server
-# will inject it via the kak’s UNIX socket when ready to accept commands for the session.
+#  This file should be sourced only once by session. It is not recommended to
+# source it yourself; instead, when starting the KTS server, the binary will
+# inject it directly into the session.
 
-# Options used by KTS at runtime.
+# FIFO buffer path; this is used by Kakoune to write the content of buffers to
+# update the tree-sitter representation on KTS side.
+#
+# Should only be set KTS side by buffer.
+declare-option str tree_sitter_buf_fifo_path /dev/null
 
-# FIFO command path; this is used by Kakoune to write commands to be executed by KTS for the current session.
-declare-option str kts_cmd_fifo_path /dev/null
-
-# FIFO buffer path; this is used by Kakoune to write the content of buffers to be highlighted / analyzed by KTS for the
-# current session.
-declare-option str kts_buf_fifo_path /dev/null
+# Sentinel code used to delimit buffers in FIFOs.
+declare-option str tree_sitter_buf_sentinel
 
 # Highlight ranges used when highlighting buffers.
-declare-option range-specs kts_highlighter_ranges
+declare-option range-specs tree_sitter_hl_ranges
 
-# Tree-sitter language to use to parse buffers’ content with tree-sitter.
-declare-option str kts_lang
+# Internal verbosity; used when sending requests to KTS.
+declare-option str tree_sitter_verbose '-vvvvv'
 
-# Mark the session as non-active.
+# Language a buffer uses. That option should be set at the buffer level.
+declare-option str tree_sitter_lang
+
+# Last known timestamp of previouses buffer updates.
+declare-option int tree_sitter_buf_update_timestamp -1
+
+# Create a command to send to Kakoune for the current session.
 #
-# This is typically sent when a session is about to die; see KakEnd for further details.
-define-command -hidden kak-tree-sitter-req-end-session -docstring 'Mark the session as ended' %{
-  nop %sh{
-    kak-tree-sitter -r "{ \"type\": \"session_exit\", \"name\": \"$kak_session\" }"
+# The parameter is the string to be used as payload.
+define-command -hidden tree-sitter-request-with-session -params 1 %{
+  %sh{
+    kak-tree-sitter -vvvvv -kr "{ \"session\": \"$kak_session\", \"payload\": { \"type\": \"$1\" } }"
   }
 }
+
+# Create a command to send to Kakoune for the current session and client.
+#
+# The parameter is the string to be used as payload.
+define-command -hidden tree-sitter-request-with-session-client -params 1 %{
+  %sh{
+    kak-tree-sitter -vvvvv -kr "{ \"session\": \"$kak_session\", \"client\": \"$kak_client\", \"payload\": $1 }"
+  }
+}
+
+# Create a command to send to Kakoune for the current session and buffer.
+#
+# The parameter is the string to be used as payload.
+define-command -hidden tree-sitter-request-with-session-buffer -params 1 %{
+  %sh{
+    kak-tree-sitter -vvvvv -kr "{ \"session\": \"$kak_session\", \"buffer\": \"$kak_bufname\", \"payload\": $1 }"
+  }
+}
+
+# Notify KTS that a session exists.
+define-command tree-sitter-session-begin %{
+  tree-sitter-request-with-session 'session_begin'
+}
+
+# Notify KTS that the session is exiting.
+define-command tree-sitter-session-end %{
+  tree-sitter-request-with-session 'session_end'
+  tree-sitter-remove-all
+}
+
+# Request KTS to reload its configuration (grammar, queries, etc.).
+define-command tree-sitter-reload %{
+  tree-sitter-request-with-session 'reload'
+  tree-sitter-session-end
+  tree-sitter-session-begin
+}
+
+# Request KTS to completely shutdown.
+define-command tree-sitter-shutdown %{
+  tree-sitter-request-with-session 'shutdown'
+}
+
+# Request KTS to update its metadata regarding a buffer.
+define-command tree-sitter-buffer-metadata %{
+  tree-sitter-request-with-session-buffer "{ ""type"": ""buffer_metadata"", ""lang"": ""%opt{tree_sitter_lang}"" }"
+}
+
+# Request KTS to update its buffer representation of the current buffer.
+#
+# The parameter is the language the buffer is formatted in.
+define-command tree-sitter-buffer-update %{
+  evaluate-commands -no-hooks %{
+    write "%opt{tree_sitter_buf_fifo_path}"
+    echo -to-file "%opt{tree_sitter_buf_fifo_path}" -- "%opt{tree_sitter_buf_sentinel}"
+  }
+}
+
+# Request KTS to apply text-objects on selections.
+#
+# First parameter is the pattern.
+# Second parameter is the operation mode.
+define-command tree-sitter-text-objects -params 2 %{
+  tree-sitter-request-with-session-client "{ ""type"": ""text_objects"", ""buffer"": ""%val{bufname}"", ""pattern"": ""%arg{1}"", ""selections"": ""%val{selections_desc}"", ""mode"": ""%arg{2}"" }"
+}
+
+# Request KTS to apply “object-mode” text-objects on selections.
+#
+# First parameter is the pattern.
+define-command tree-sitter-object-text-objects -params 1 %{
+  tree-sitter-request-with-session-client "{ ""type"": ""text_objects"", ""buffer"": ""%val{bufname}"", ""pattern"": ""%arg{1}"", ""selections"": ""%val{selections_desc}"", ""mode"": { ""object"": { ""mode"": ""%val{select_mode}"", ""flags"": ""%val{object_flags}"" }}"
+}
+
+# Request KTS to navigate the tree-sitter tree on selections.
+#
+# The first parameter is the direction to move to.
+define-command tree-sitter-nav -params 1 %{
+  tree-sitter-request-with-session-client "{ ""type"": ""nav"", ""buffer"": ""%val{bufname}"", ""selections"": ""%val{selections_desc}"", ""dir"": ""%arg{1}"" }}"
+}
+
+# Install main hook for a given language.
+#
+# That hook reacts to setting the tree_sitter_lang option to enable
+# tree-sitter support.
+#
+# The first parameter is the language.
+# The second parameter is a boolean stating whether we should remove the default
+# highlighter.
+define-command -hidden tree-sitter-hook-install-lang -params 2 %{
+  hook -group tree-sitter global WinSetOption "tree_sitter_lang=%arg{1}" %{
+    tree-sitter-buffer-metadata
+    add-highlighter -override buffer/tree-sitter-highlighter ranges tree_sitter_hl_ranges
+  }
+}
+
+  # Hook that removes the default highlighter 
+
+# Install main hooks.
+define-command -hidden tree-sitter-hook-install-session %{
+	# Hook that runs when the session ends.
+  hook -group tree-sitter global KakEnd .* %{
+    tree-sitter-session-end
+  }
+
+  # HACK: this is temporary; only used to ensure %opt{tree_sitter_lang} works
+  # as expected; in the end, users should do that on their own
+  hook -group tree-sitter global WinSetOption filetype=(.*) %{
+    # Forward the filetype as tree-sitter language.
+    set-option window tree_sitter_lang "%opt{filetype}"
+  }
+}
+
+# Install a hook that updates buffer content if it has changed.
+define-command -hidden tree-sitter-hook-install-update %{
+  # Since this hook can be installed several times (after each changes of the
+  # tree_sitter_lang option; see tree-sitter-hook-install-main), it’s better
+  # to first try to remove the hooks.
+  remove-hooks buffer tree-sitter-update
+
+  hook -group tree-sitter-update buffer NormalIdle .* %{ tree-sitter-exec-if-changed tree-sitter-buffer-update }
+  hook -group tree-sitter-update buffer InsertIdle .* %{ tree-sitter-exec-if-changed tree-sitter-buffer-update }
+}
+
+# A helper function that executes its argument only if the buffer has changed.
+define-command -hidden tree-sitter-exec-if-changed -params 1 %{
+  set-option -remove buffer tree_sitter_buf_update_timestamp %val{timestamp}
+
+  try %{
+    evaluate-commands "tree-sitter-exec-nop-%opt{tree_sitter_buf_update_timestamp}"
+    set-option buffer tree_sitter_buf_update_timestamp %val{timestamp}
+  } catch %{
+  	# Actually run the command
+    set-option buffer tree_sitter_buf_update_timestamp %val{timestamp}
+    evaluate-commands %arg{1}
+  }
+}
+
+# A helper function that does nothing.
+#
+# Used with tree-sitter-exec-if-changed to have a fallback when the buffer has
+# not changed.
+define-command -hidden tree-sitter-exec-nop-0 nop
+
+# Remove every tree-sitter commands, hooks, options, etc.
+define-command tree-sitter-remove-all %{
+  remove-hooks global tree-sitter
+
+  evaluate-commands -buffer * %{
+    try %{
+      remove-highlighter buffer/tree-sitter-highlighter
+    }
+
+		try %{
+      remove-hooks buffer tree-sitter-update
+		}
+  }
+}
+
+    # == EVERYTHING AFTER THAT IS LEGACY ==
 
 # Deinit KTS for the current session.
 define-command -hidden kak-tree-sitter-deinit %{
@@ -34,7 +199,6 @@ define-command -hidden kak-tree-sitter-deinit %{
   remove-hooks global kak-tree-sitter
   set-option global kts_buf_fifo_path '/dev/null'
   set-option global kts_cmd_fifo_path '/dev/null'
-
 }
 
 # Stop the kak-tree-sitter daemon.
@@ -45,13 +209,6 @@ define-command kak-tree-sitter-req-stop -docstring 'Ask the daemon to shutdown' 
 
   nop %sh{
     kak-tree-sitter -r '{ "type": "shutdown" }'
-  }
-}
-
-# Reload KTS.
-define-command kak-tree-sitter-req-reload -docstring 'Reload kak-tree-sitter config, grammars and queries' %{
-  nop %sh{
-    kak-tree-sitter -r '{ "type": "reload" }'
   }
 }
 
@@ -100,7 +257,7 @@ define-command kak-tree-sitter-req-nav -params 1 %{
 # installing some hooks to automatically highlight the buffer.
 define-command -hidden kak-tree-sitter-highlight-enable -docstring 'Enable tree-sitter highlighting for this buffer' %{
   # Add the tree-sitter highlighter
-  add-highlighter -override buffer/kak-tree-sitter-highlighter ranges kts_highlighter_ranges
+  add-highlighter -override buffer/kak-tree-sitter-highlighter ranges tree_sitter_hl_ranges
 
   # Initial highlighting of the buffer
   kak-tree-sitter-req-highlight-buffer
@@ -141,12 +298,12 @@ define-command -hidden kak-tree-sitter-enable-highlighting %{
 }
 
 # Wait to have a client and then ask the server to initiate.
-hook -group kak-tree-sitter global -once ClientCreate .* %{
-  kak-tree-sitter-req-init
-
-  # Make kak-tree-sitter know the session has ended whenever we end it.
-  hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-req-end-session
-}
+#hook -group kak-tree-sitter global -once ClientCreate .* %{
+#  kak-tree-sitter-req-init
+#
+#  # Make kak-tree-sitter know the session has ended whenever we end it.
+#  hook -group kak-tree-sitter global KakEnd .* kak-tree-sitter-req-end-session
+#}
 
 #set-face global ts_unknown                     red+ub
 set-face global ts_attribute                    default
