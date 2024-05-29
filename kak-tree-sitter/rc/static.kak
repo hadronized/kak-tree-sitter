@@ -88,6 +88,11 @@ define-command tree-sitter-buffer-update %{
   }
 }
 
+# Request KTS to clean up resources of a closed buffer.
+define-command tree-sitter-buffer-close %{
+  tree-sitter-request-with-session-buffer "{ ""type"": ""buffer_close"" }"
+}
+
 # Request KTS to apply text-objects on selections.
 #
 # First parameter is the pattern.
@@ -125,11 +130,9 @@ define-command -hidden tree-sitter-hook-install-lang -params 2 %{
   }
 }
 
-  # Hook that removes the default highlighter 
-
 # Install main hooks.
 define-command -hidden tree-sitter-hook-install-session %{
-	# Hook that runs when the session ends.
+  # Hook that runs when the session ends.
   hook -group tree-sitter global KakEnd .* %{
     tree-sitter-session-end
   }
@@ -149,8 +152,12 @@ define-command -hidden tree-sitter-hook-install-update %{
   # to first try to remove the hooks.
   remove-hooks buffer tree-sitter-update
 
+  # Buffer update
   hook -group tree-sitter-update buffer NormalIdle .* %{ tree-sitter-exec-if-changed tree-sitter-buffer-update }
   hook -group tree-sitter-update buffer InsertIdle .* %{ tree-sitter-exec-if-changed tree-sitter-buffer-update }
+
+  # Buffer close
+  hook -group tree-sitter-update buffer BufClose .* %{ tree-sitter-buffer-close }
 }
 
 # A helper function that executes its argument only if the buffer has changed.
@@ -161,7 +168,7 @@ define-command -hidden tree-sitter-exec-if-changed -params 1 %{
     evaluate-commands "tree-sitter-exec-nop-%opt{tree_sitter_buf_update_timestamp}"
     set-option buffer tree_sitter_buf_update_timestamp %val{timestamp}
   } catch %{
-  	# Actually run the command
+    # Actually run the command
     set-option buffer tree_sitter_buf_update_timestamp %val{timestamp}
     evaluate-commands %arg{1}
   }
@@ -182,9 +189,9 @@ define-command tree-sitter-remove-all %{
       remove-highlighter buffer/tree-sitter-highlighter
     }
 
-		try %{
+    try %{
       remove-hooks buffer tree-sitter-update
-		}
+    }
   }
 }
 
