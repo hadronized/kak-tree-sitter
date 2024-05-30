@@ -156,6 +156,9 @@ define-command -hidden tree-sitter-hook-install-update %{
   hook -group tree-sitter-update buffer NormalIdle .* %{ tree-sitter-exec-if-changed tree-sitter-buffer-update }
   hook -group tree-sitter-update buffer InsertIdle .* %{ tree-sitter-exec-if-changed tree-sitter-buffer-update }
 
+  # Initial highlight
+  tree-sitter-buffer-update
+
   # Buffer close
   hook -group tree-sitter-update buffer BufClose .* %{ tree-sitter-buffer-close }
 }
