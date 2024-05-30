@@ -3,7 +3,10 @@
 //! This module exports the [`Client`] type that is used to send requests to the
 //! server.
 
-use std::{io::Write, os::unix::net::UnixStream};
+use std::{
+  io::{self, Write},
+  os::unix::net::UnixStream,
+};
 
 use crate::{error::OhNo, protocol::request::Request, server::resources::Paths};
 
@@ -17,6 +20,7 @@ impl Client {
   pub fn connect(paths: &Paths) -> Result<Self, OhNo> {
     let stream = UnixStream::connect(paths.socket_path())
       .map_err(|err| OhNo::CannotConnectToServer { err })?;
+    log::debug!("connected to KTS");
 
     Ok(Self { stream })
   }
@@ -33,11 +37,20 @@ impl Client {
       err: err.to_string(),
     })?;
 
-    self
-      .stream
-      .write_all(bytes.as_bytes())
-      .map_err(|err| OhNo::CannotSendRequest {
-        err: err.to_string(),
-      })
+    loop {
+      let r = self.stream.write_all(bytes.as_bytes());
+      match r {
+        Err(err) => match err.kind() {
+          io::ErrorKind::Interrupted => continue,
+          _ => {
+            return Err(OhNo::CannotSendRequest {
+              err: err.to_string(),
+            })
+          }
+        },
+
+        _ => return Ok(()),
+      }
+    }
   }
 }

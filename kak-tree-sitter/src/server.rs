@@ -235,11 +235,11 @@ impl IOHandler {
     &mut self,
     session_tracker: &mut SessionTracker,
   ) -> Result<Feedback, OhNo> {
+    log::debug!("client connecting");
     let (mut client, _) = self
       .unix_listener
       .accept()
       .map_err(|err| OhNo::UnixSocketError { err })?;
-
     log::debug!("client connected: {client:?}");
 
     // read the request and parse it
