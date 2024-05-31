@@ -71,8 +71,8 @@ impl Log for KakouneLogger {
     }
 
     let now = chrono::Utc::now();
-    println!(
-      "echo -debug -- tree-sitter {time} ({target}) [{level}]: {args};",
+    eprintln!(
+      "tree-sitter {time} ({target}) [{level}]: {args}",
       time = now.to_rfc3339(),
       target = record.target(),
       level = record.level(),

@@ -28,7 +28,7 @@ declare-option int tree_sitter_buf_update_timestamp -1
 # The parameter is the string to be used as payload.
 define-command -hidden tree-sitter-request-with-session -params 1 %{
   evaluate-commands -no-hooks %sh{
-    kak-tree-sitter -vvvvv -kr "{ \"session\": \"$kak_session\", \"payload\": { \"type\": \"$1\" } }"
+    kak-tree-sitter -vvv -kr "{ \"session\": \"$kak_session\", \"payload\": { \"type\": \"$1\" } }"
   }
 }
 
@@ -37,7 +37,7 @@ define-command -hidden tree-sitter-request-with-session -params 1 %{
 # The parameter is the string to be used as payload.
 define-command -hidden tree-sitter-request-with-session-client -params 1 %{
   evaluate-commands -no-hooks %sh{
-    kak-tree-sitter -vvvvv -kr "{ \"session\": \"$kak_session\", \"client\": \"$kak_client\", \"payload\": $1 }"
+    kak-tree-sitter -vvv -kr "{ \"session\": \"$kak_session\", \"client\": \"$kak_client\", \"payload\": $1 }"
   }
 }
 
@@ -46,7 +46,7 @@ define-command -hidden tree-sitter-request-with-session-client -params 1 %{
 # The parameter is the string to be used as payload.
 define-command -hidden tree-sitter-request-with-session-buffer -params 1 %{
   evaluate-commands -no-hooks %sh{
-    kak-tree-sitter -vvvvv -kr "{ \"session\": \"$kak_session\", \"buffer\": \"$kak_bufname\", \"payload\": $1 }"
+    kak-tree-sitter -vvv -kr "{ \"session\": \"$kak_session\", \"buffer\": \"$kak_bufname\", \"payload\": $1 }"
   }
 }
 
