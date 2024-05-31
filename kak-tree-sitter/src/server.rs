@@ -63,7 +63,7 @@ impl Server {
     let unix_handler = IOHandler::new(
       config,
       cli.is_standalone(),
-      cli.with_highlighting,
+      cli.with_highlighting || config.features.highlighting,
       resources,
       poll,
       enqueue_response.clone(),

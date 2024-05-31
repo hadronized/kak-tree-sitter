@@ -3,9 +3,16 @@
 # It is highly recommended for users to copy that file and edit it manually if they need to add support for languages
 # not present yet.
 
+# List of features to be enabled/disabled. Most of those features can be
+# overriden in the user configuration, or even on the CLI — see --with-* flags.
+[features]
+highlighting = true
+text_objects = true
+
+[highlight]
 # Top-level highlight capture group declarations. If your grammars uses a capture group that is not defined here, you
 # have to add it to the list.
-highlight.groups = [
+groups = [
   "attribute",
   "comment",
   "comment.block",

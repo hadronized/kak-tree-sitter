@@ -43,11 +43,14 @@ fn start() -> Result<(), OhNo> {
     }
   }
 
+  let config = Config::load_default_user()?;
+  log::trace!("running with configuration:\n{config:#?}");
+
   // inject rc if we start from Kakoune
   if cli.kakoune && cli.init.is_some() {
     println!("{}", rc::static_kak());
 
-    if cli.with_text_objects {
+    if cli.with_text_objects || config.features.text_objects {
       println!("{}", rc::text_objects_kak());
     }
   }
@@ -96,9 +99,6 @@ fn start() -> Result<(), OhNo> {
 
     let resources = ServerResources::new(paths, registry)?;
     resources.persist_process(cli.daemonize)?;
-
-    let config = Config::load_default_user()?;
-    log::trace!("running with configuration:\n{config:#?}");
 
     let mut server = Server::new(&config, &cli, resources, poll)?;
 

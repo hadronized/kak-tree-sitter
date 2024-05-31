@@ -18,6 +18,8 @@ use source::{Source, UserSource};
 /// User configuration being opt-in for every option, a different type is used, [`UserConfig`].
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
+  pub features: FeaturesConfig,
+
   pub highlight: HighlightConfig,
 
   #[serde(flatten)]
@@ -67,6 +69,10 @@ impl Config {
 
   /// Merge the config with a user-provided one.
   pub fn merge_user_config(&mut self, user_config: UserConfig) -> Result<(), ConfigError> {
+    if let Some(features) = user_config.features {
+      self.features.merge_user_config(features);
+    }
+
     if let Some(user_highlight) = user_config.highlight {
       self.highlight.merge_user_config(user_highlight);
     }
@@ -76,6 +82,20 @@ impl Config {
     }
 
     Ok(())
+  }
+}
+
+/// Feature configuration.
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct FeaturesConfig {
+  pub highlighting: bool,
+  pub text_objects: bool,
+}
+
+impl FeaturesConfig {
+  fn merge_user_config(&mut self, user_config: UserFeaturesConfig) {
+    self.highlighting = user_config.highlighting.unwrap_or(self.highlighting);
+    self.text_objects = user_config.text_objects.unwrap_or(self.text_objects);
   }
 }
 
@@ -406,6 +426,7 @@ impl TryFrom<UserLanguageQueriesConfig> for LanguageQueriesConfig {
 /// User version of configuration.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserConfig {
+  pub features: Option<UserFeaturesConfig>,
   pub highlight: Option<UserHighlightConfig>,
   pub language: Option<HashMap<String, UserLanguageConfig>>,
 }
@@ -435,6 +456,12 @@ impl UserConfig {
       err: err.to_string(),
     })
   }
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+pub struct UserFeaturesConfig {
+  pub highlighting: Option<bool>,
+  pub text_objects: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
