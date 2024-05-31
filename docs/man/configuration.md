@@ -12,6 +12,18 @@ to know which path and values to pick from.
 
 # Option paths
 
+## `features`
+
+This section contains enabled/disabled features. You can enable or disable a
+given features if you are not interested in it.
+
+List of features:
+
+- `highlighting`: enable highlighting. If set to `false`, can be overridden on
+  the CLI with `--with-highlighting`.
+- `text_objects`: enable text-objects user modes and mappings. If set to
+  `false`, can be overridden on the CLI with `--with-text-objects`.
+
 ## `highlight.groups`
 
 The `highlight` section currently contains a single list, `groups`, which is used to list every capture groups used by
