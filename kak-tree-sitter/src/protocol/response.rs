@@ -109,7 +109,12 @@ impl Payload {
           })
           .join("\n");
 
-        [per_lang, "tree-sitter-hook-install-session".to_owned()].join("\n")
+        [
+          per_lang,
+          "tree-sitter-hook-install-session".to_owned(),
+          "tree-sitter-initial-set-buffer-lang".to_owned(),
+        ]
+        .join("\n")
       }
 
       Payload::Deinit => "tree-sitter-remove-all".to_owned(),

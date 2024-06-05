@@ -163,6 +163,17 @@ define-command -hidden tree-sitter-hook-install-update %{
   hook -group tree-sitter-update buffer BufClose .* %{ tree-sitter-buffer-close }
 }
 
+# Set the tree_sitter_lang buffer-option for all known buffers.
+#
+# This command should only be used once the session is enabled, and permit to
+# dynamicall enable tree-sitter for a buffer that was opened and fully displayed
+# before the session was KTS-enabled
+define-command -hidden tree-sitter-initial-set-buffer-lang %{
+  evaluate-commands -buffer "*" %{
+    set-option buffer tree_sitter_lang "%opt{filetype}"
+  }
+}
+
 # A helper function that executes its argument only if the buffer has changed.
 define-command -hidden tree-sitter-exec-if-changed -params 1 %{
   set-option -remove buffer tree_sitter_buf_update_timestamp %val{timestamp}
