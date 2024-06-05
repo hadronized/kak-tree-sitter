@@ -500,7 +500,7 @@ mod tests {
 
   use crate::{
     source::{Source, UserSource},
-    Config, ConfigError, HighlightConfig, LanguageConfig, LanguageGrammarConfig,
+    Config, ConfigError, FeaturesConfig, HighlightConfig, LanguageConfig, LanguageGrammarConfig,
     LanguageQueriesConfig, LanguagesConfig, UserConfig, UserLanguageConfig,
     UserLanguageGrammarConfig,
   };
@@ -509,6 +509,10 @@ mod tests {
   fn user_merge() {
     // we have a config and see that we can alter it by merging with a user config
     let main_config = Config {
+      features: FeaturesConfig {
+        highlighting: true,
+        text_objects: true,
+      },
       highlight: HighlightConfig {
         groups: ["foo".to_owned(), "bar".to_owned(), "zoo".to_owned()]
           .into_iter()
@@ -552,6 +556,7 @@ mod tests {
     {
       let mut config = main_config.clone();
       let user_config = UserConfig {
+        features: None,
         highlight: None,
         language: Some(
           [(
