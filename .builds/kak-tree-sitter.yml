@@ -1,0 +1,25 @@
+# CI/CD for kak-tree-sitter
+
+image: archlinux
+packages:
+  - rustup
+sources:
+  - https://git.sr.ht/~hadronized/kak-tree-sitter
+triggers:
+  - action: email
+    condition: always
+    to: ~hadronized/kak-tree-sitter-builds@lists.sr.ht
+tasks:
+  - setup: |
+      rustup set profile minimal
+      rustup default stable
+      rustup component add cargo rustfmt
+  - check: |
+      cd kak-tree-sitter
+      cargo fmt -q
+  - build: |
+      cd kak-tree-sitter
+      cargo build
+  - test: |
+      cd kak-tree-sitter
+      cargo test
