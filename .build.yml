@@ -10,6 +10,15 @@ tasks:
       rustup set profile minimal
       rustup default stable
       rustup component add rustfmt
-  - check: cargo fmt -q
-  - build: cargo build
-  - test: cargo test
+  - check: |
+      pwd
+      cd kak-tree-sitter
+      cargo fmt -q
+  - build: |
+      pwd
+      cd kak-tree-sitter
+      cargo build
+  - test: |
+      pwd
+      cd kak-tree-sitter
+      cargo test
