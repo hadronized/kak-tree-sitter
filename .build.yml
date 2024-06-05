@@ -1,4 +1,4 @@
-# CI/CD for ktsctl
+# CI/CD
 
 image: archlinux
 packages:
@@ -10,12 +10,6 @@ tasks:
       rustup set profile minimal
       rustup default stable
       rustup component add cargo rustfmt
-  - check: |
-      cd ktsctl
-      cargo fmt -q
-  - build: |
-      cd ktsctl
-      cargo build
-  - test: |
-      cd ktsctl
-      cargo test
+  - check: cargo fmt -q
+  - build: cargo build
+  - test: cargo test
