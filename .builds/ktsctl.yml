@@ -5,10 +5,6 @@ packages:
   - rustup
 sources:
   - https://git.sr.ht/~hadronized/kak-tree-sitter
-triggers:
-  - action: email
-    condition: always
-    to: ~hadronized/kak-tree-sitter-builds@lists.sr.ht
 tasks:
   - setup: |
       rustup set profile minimal
