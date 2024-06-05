@@ -239,14 +239,14 @@ impl IOHandler {
     let (mut client, _) = self
       .unix_listener
       .accept()
-      .map_err(|err| OhNo::UnixSocketError { err })?;
+      .map_err(|err| OhNo::UnixSocketConnectionError { err })?;
     log::debug!("client connected: {client:?}");
 
     // read the request and parse it
     let mut req_str = String::new();
     client
       .read_to_string(&mut req_str)
-      .map_err(|err| OhNo::UnixSocketError { err })?;
+      .map_err(|err| OhNo::UnixSocketReadError { err })?;
     log::debug!("UNIX socket request: {req_str}");
 
     let req = serde_json::from_str(&req_str).map_err(|err| OhNo::InvalidRequest {
