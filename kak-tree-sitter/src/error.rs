@@ -64,10 +64,10 @@ pub enum OhNo {
   #[error("cannot load grammar for language {lang}: {err}")]
   CannotLoadGrammar { lang: String, err: String },
 
-  #[error("UNIX socket connection error: {err}")]
+  #[error("UNIX socket connection error: {err:?}")]
   UnixSocketConnectionError { err: io::Error },
 
-  #[error("UNIX socket read error: {err}")]
+  #[error("UNIX socket read error: {err:?}")]
   UnixSocketReadError { err: io::Error },
 
   #[error("invalid request {req}: {err}")]
