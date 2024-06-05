@@ -9,7 +9,7 @@ tasks:
   - setup: |
       rustup set profile minimal
       rustup default stable
-      rustup component add rust-fmt
+      rustup component add rustfmt
   - check: cargo fmt -q
   - build: cargo build
   - test: cargo test
