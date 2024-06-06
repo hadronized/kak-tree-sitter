@@ -4,7 +4,8 @@ pub mod resources;
 mod tokens;
 
 use std::{
-  io::Read,
+  collections::HashMap,
+  io::{self, Read},
   sync::{
     atomic::{AtomicBool, Ordering},
     mpsc::{channel, Receiver},
@@ -14,7 +15,10 @@ use std::{
 };
 
 use kak_tree_sitter_config::Config;
-use mio::{net::UnixListener, Events, Interest, Poll, Token, Waker};
+use mio::{
+  net::{UnixListener, UnixStream},
+  Events, Interest, Poll, Token, Waker,
+};
 
 use crate::{
   cli::Cli,
@@ -150,6 +154,7 @@ struct IOHandler {
   resources: ServerResources,
   poll: Poll,
   unix_listener: UnixListener,
+  connections: HashMap<Token, BufferedClient>,
   enqueue_response: EnqueueResponse,
   handler: Handler,
 }
@@ -168,6 +173,8 @@ impl IOHandler {
   ) -> Result<Self, OhNo> {
     let mut unix_listener = UnixListener::bind(resources.paths().socket_path())
       .map_err(|err| OhNo::CannotStartServer { err })?;
+    let connections = HashMap::default();
+
     poll
       .registry()
       .register(
@@ -185,6 +192,7 @@ impl IOHandler {
       resources,
       poll,
       unix_listener,
+      connections,
       enqueue_response,
       handler,
     })
@@ -201,23 +209,18 @@ impl IOHandler {
       for ev in &events {
         match ev.token() {
           Self::UNIX_LISTENER_TKN if ev.is_readable() => {
-            match self.unix_listener_accept(session_tracker) {
-              Ok(Feedback::ShouldExit) => break 'event_loop,
-
-              Err(err) => {
-                log::error!("error during UNIX request: {err}");
-              }
-
-              _ => (),
+            if let Err(err) = self.unix_listener_accept() {
+              log::error!("error while accepting UNIX connection: {err}");
             }
           }
 
-          tkn => {
-            log::debug!("FIFO readable (token = {tkn:?})");
-            if let Err(err) = self.read_buffer(tkn) {
-              log::error!("error while reading buffer (token = {tkn:?}): {err}");
+          tkn if ev.is_readable() => {
+            if let Feedback::ShouldExit = self.dispatch_read_token(session_tracker, tkn) {
+              break 'event_loop;
             }
           }
+
+          _ => (),
         }
       }
     }
@@ -231,30 +234,95 @@ impl IOHandler {
     Ok(Arc::new(waker))
   }
 
-  fn unix_listener_accept(
+  fn unix_listener_accept(&mut self) -> Result<(), OhNo> {
+    loop {
+      let (mut client, _) = match self.unix_listener.accept() {
+        Ok(conn) => conn,
+        Err(err) if err.kind() == io::ErrorKind::WouldBlock => break,
+        Err(err) if err.kind() == io::ErrorKind::Interrupted => continue,
+        Err(err) => return Err(OhNo::UnixSocketConnectionError { err }),
+      };
+
+      log::debug!("client connected: {client:?}");
+      let token = self.resources.tokens().lock().expect("tokens").create();
+      let res = self
+        .poll
+        .registry()
+        .register(&mut client, token, Interest::READABLE)
+        .map_err(|err| OhNo::PollError { err });
+      if let Err(err) = res {
+        self
+          .resources
+          .tokens()
+          .lock()
+          .expect("tokens")
+          .recycle(token);
+
+        return Err(err);
+      }
+
+      log::debug!("{client:?} will be using token {token:?}");
+
+      self.connections.insert(token, BufferedClient::new(client));
+    }
+
+    Ok(())
+  }
+
+  /// Find which object is behind the input token and perform a read action on it.
+  fn dispatch_read_token(
     &mut self,
     session_tracker: &mut SessionTracker,
-  ) -> Result<Feedback, OhNo> {
-    log::debug!("client connecting");
-    let (mut client, _) = self
-      .unix_listener
-      .accept()
-      .map_err(|err| OhNo::UnixSocketConnectionError { err })?;
-    log::debug!("client connected: {client:?}");
+    token: Token,
+  ) -> Feedback {
+    match self.read_unix_client(session_tracker, token) {
+      Ok(Some(feedback)) => return feedback,
 
-    // read the request and parse it
-    let mut req_str = String::new();
-    client
-      .read_to_string(&mut req_str)
-      .map_err(|err| OhNo::UnixSocketReadError { err })?;
-    log::debug!("UNIX socket request: {req_str}");
+      Err(err) => {
+        log::error!("error while reading from UNIX client (token = {token:?}): {err}");
+        return Feedback::Ok;
+      }
 
-    let req = serde_json::from_str(&req_str).map_err(|err| OhNo::InvalidRequest {
-      req: req_str,
-      err: err.to_string(),
-    })?;
+      _ => (),
+    }
 
-    self.process_req(session_tracker, req)
+    if let Err(err) = self.read_buffer(token) {
+      log::error!("error while reading buffer: (token = {token:?}): {err}");
+    }
+
+    Feedback::Ok
+  }
+
+  /// Try to read from a (connected) UNIX client.
+  ///
+  /// Return `false` if the token is not for a UNIX client.
+  fn read_unix_client(
+    &mut self,
+    session_tracker: &mut SessionTracker,
+    tkn: Token,
+  ) -> Result<Option<Feedback>, OhNo> {
+    let Some(client) = self.connections.get_mut(&tkn) else {
+      return Ok(None);
+    };
+
+    let req = match client.to_req() {
+      Ok(req) => req,
+
+      Err(err) => {
+        log::error!("{err}");
+        continue;
+      }
+    };
+
+    match self.process_req(session_tracker, req) {
+      Ok(Feedback::ShouldExit) => break 'event_loop,
+
+      Err(err) => {
+        log::error!("error while processing request: {err}");
+      }
+
+      _ => (),
+    }
   }
 
   fn process_req(
@@ -384,6 +452,32 @@ impl IOHandler {
     match Handler::new(&config, self.with_highlighting) {
       Ok(new_handler) => self.handler = new_handler,
       Err(err) => log::error!("reloading failed: {err}"),
+    }
+  }
+}
+
+/// UNIX socket client with associated buffer.
+pub struct BufferedClient {
+  client: UnixStream,
+  buf: String,
+}
+
+impl BufferedClient {
+  pub fn new(client: UnixStream) -> Self {
+    Self {
+      client,
+      buf: String::default(),
+    }
+  }
+
+  pub fn read(&mut self) -> Result<Option<&str>, OhNo> {
+    loop {
+      match self.client.read_to_string(&mut self.buf) {
+        Ok(0) => return Ok(Some(self.buf.as_str())),
+        Err(err) if err.kind() == io::ErrorKind::WouldBlock => return Ok(None),
+        Err(err) => return Err(OhNo::UnixSocketReadError { err }),
+        _ => continue,
+      }
     }
   }
 }

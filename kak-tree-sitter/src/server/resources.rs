@@ -163,6 +163,10 @@ impl ServerResources {
     Ok(())
   }
 
+  pub fn tokens(&self) -> &Arc<Mutex<Tokens>> {
+    &self.tokens
+  }
+
   /// Generate a new, unique FIFO path.
   fn new_fifo_path(&self) -> Result<PathBuf, OhNo> {
     let name = uuid::Uuid::new_v4();
