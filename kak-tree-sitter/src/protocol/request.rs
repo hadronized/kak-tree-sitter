@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::{kakoune::text_objects::OperationMode, tree_sitter::nav};
+use crate::{error::OhNo, kakoune::text_objects::OperationMode, tree_sitter::nav};
 
 use super::response::{self, Response};
 
@@ -17,6 +17,15 @@ pub struct Request {
 }
 
 impl Request {
+  /// Parse a [`Request`] from a JSON string.
+  pub fn from_json(s: impl AsRef<str>) -> Result<Self, OhNo> {
+    let s = s.as_ref();
+    serde_json::from_str(s).map_err(|err| OhNo::InvalidRequest {
+      req: s.to_owned(),
+      err: err.to_string(),
+    })
+  }
+
   pub fn init_session(session: impl Into<String>) -> Self {
     Self {
       session: session.into(),

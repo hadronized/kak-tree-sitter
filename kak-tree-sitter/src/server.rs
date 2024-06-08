@@ -313,24 +313,13 @@ impl IOHandler {
       return Ok(None);
     };
 
-    let req = match client.to_req() {
-      Ok(req) => req,
-
-      Err(err) => {
-        log::error!("{err}");
-        continue;
-      }
+    let Some(s) = client.read()? else {
+      return Ok(None);
     };
 
-    match self.process_req(session_tracker, req) {
-      Ok(Feedback::ShouldExit) => break 'event_loop,
+    let req = Request::from_json(s)?;
 
-      Err(err) => {
-        log::error!("error while processing request: {err}");
-      }
-
-      _ => (),
-    }
+    self.process_req(session_tracker, req).map(Some)
   }
 
   fn process_req(

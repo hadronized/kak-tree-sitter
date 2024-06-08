@@ -58,10 +58,7 @@ fn start() -> Result<(), OhNo> {
 
   if let Some(request) = cli.request {
     // otherwise, regular client
-    let req = serde_json::from_str::<Request>(&request).map_err(|err| OhNo::InvalidRequest {
-      req: request,
-      err: err.to_string(),
-    })?;
+    let req = Request::from_json(request)?;
 
     let mut client = client::Client::connect(&paths)?;
     client.send(&req)?;
