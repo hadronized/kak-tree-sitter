@@ -7,7 +7,7 @@ mod protocol;
 mod server;
 mod tree_sitter;
 
-use std::sync::Arc;
+use std::{fs::File, sync::Arc};
 
 use clap::Parser;
 use cli::Cli;
@@ -73,6 +73,17 @@ fn start() -> Result<(), OhNo> {
   }
 
   if cli.server {
+    if Server::is_server_running(&paths) {
+      if let Some(session) = cli.init {
+        log::debug!("server already running, but initiating first session {session}");
+        client::Client::init_session(&paths, session)?;
+      }
+
+      return Ok(());
+    }
+
+    persist_process(&paths, cli.daemonize)?;
+
     let poll = Poll::new().map_err(|err| OhNo::PollError { err })?;
 
     // whatever we do, we will need to know about where the resources are; this
@@ -83,19 +94,7 @@ fn start() -> Result<(), OhNo> {
         .try_clone()
         .map_err(|err| OhNo::PollError { err })?,
     );
-
-    if Server::is_server_running(&paths) {
-      if let Some(session) = cli.init {
-        log::debug!("server already running, but initiating first session {session}");
-        client::Client::init_session(&paths, session)?;
-      }
-
-      return Ok(());
-    }
-
     let resources = ServerResources::new(paths, registry)?;
-    resources.persist_process(cli.daemonize)?;
-
     let mut server = Server::new(&config, &cli, resources, poll)?;
 
     if let Some(session) = cli.init {
@@ -106,4 +105,67 @@ fn start() -> Result<(), OhNo> {
   }
 
   Err(OhNo::NothingToDo)
+}
+
+/// Create the PID file from the current process, or the one of the child
+/// process if daemonized.
+fn persist_process(paths: &Paths, daemonize: bool) -> Result<(), OhNo> {
+  let pid_file = paths.pid_path();
+
+  // check whether a pid file exists; remove it if any
+  if let Ok(true) = pid_file.try_exists() {
+    log::debug!("removing previous PID file");
+    std::fs::remove_file(&pid_file).map_err(|err| OhNo::CannotStartDaemon {
+      err: format!(
+        "cannot remove previous PID file {path}: {err}",
+        path = pid_file.display()
+      ),
+    })?;
+
+    log::debug!("removing previous socket file");
+    let socket_path = paths.socket_path();
+
+    if let Ok(true) = socket_path.try_exists() {
+      if let Err(err) = std::fs::remove_file(&socket_path) {
+        return Err(OhNo::CannotStartDaemon {
+          err: format!(
+            "cannot remove previous socket file {path}: {err}",
+            path = socket_path.display()
+          ),
+        });
+      }
+    }
+  }
+
+  if daemonize {
+    // create stdout / stderr files
+    let stdout_path = paths.stdout();
+    let stderr_path = paths.stderr();
+    let stdout = File::create(&stdout_path).map_err(|err| OhNo::CannotCreateFile {
+      file: stdout_path,
+      err,
+    })?;
+    let stderr = File::create(&stderr_path).map_err(|err| OhNo::CannotCreateFile {
+      file: stderr_path,
+      err,
+    })?;
+
+    daemonize::Daemonize::new()
+      .stdout(stdout)
+      .stderr(stderr)
+      .pid_file(pid_file)
+      .start()
+      .map_err(|err| OhNo::CannotStartDaemon {
+        err: err.to_string(),
+      })?;
+  } else {
+    std::fs::write(&pid_file, format!("{}", std::process::id())).map_err(|err| {
+      OhNo::CannotWriteFile {
+        file: pid_file,
+        err,
+      }
+    })?;
+  }
+
+  Ok(())
 }

@@ -1,5 +1,5 @@
 use std::{
-  fs::{self, File},
+  fs,
   path::PathBuf,
   process::Command,
   sync::{Arc, Mutex},
@@ -25,6 +25,14 @@ impl Paths {
         std::env::var("TMPDIR").map(PathBuf::from).ok())
       .ok_or_else(|| OhNo::NoRuntimeDir)?;
     let runtime_dir = dir.join("kak-tree-sitter");
+
+    // create the runtime dir if it doesn’t exist
+    if let Ok(false) = runtime_dir.try_exists() {
+      fs::create_dir(&runtime_dir).map_err(|err| OhNo::CannotCreateDir {
+        dir: runtime_dir.clone(),
+        err,
+      })?;
+    }
 
     Ok(Paths { runtime_dir })
   }
@@ -91,75 +99,11 @@ impl ServerResources {
       err,
     })?;
 
-    let pid_file = self.paths.pid_path();
-
-    // check whether a pid file exists; remove it if any
-    if let Ok(true) = pid_file.try_exists() {
-      log::debug!("removing previous PID file");
-      std::fs::remove_file(&pid_file).map_err(|err| OhNo::CannotStartDaemon {
-        err: format!(
-          "cannot remove previous PID file {path}: {err}",
-          path = pid_file.display()
-        ),
-      })?;
-
-      log::debug!("removing previous socket file");
-      let socket_file = self.paths.runtime_dir.join("socket");
-      if let Err(err) = std::fs::remove_file(&socket_file) {
-        if err.kind() != std::io::ErrorKind::NotFound {
-          return Err(OhNo::CannotStartDaemon {
-            err: format!(
-              "cannot remove previous socket file {path}: {err}",
-              path = socket_file.display()
-            ),
-          });
-        }
-      }
-    }
-
     Ok(())
   }
 
   pub fn paths(&self) -> &Paths {
     &self.paths
-  }
-
-  /// Create the PID file from the current process, or the one of the child
-  /// process if daemonized.
-  pub fn persist_process(&self, daemonize: bool) -> Result<(), OhNo> {
-    let pid_file = self.paths.pid_path();
-
-    if daemonize {
-      // create stdout / stderr files
-      let stdout_path = self.paths.stdout();
-      let stderr_path = self.paths.stderr();
-      let stdout = File::create(&stdout_path).map_err(|err| OhNo::CannotCreateFile {
-        file: stdout_path,
-        err,
-      })?;
-      let stderr = File::create(&stderr_path).map_err(|err| OhNo::CannotCreateFile {
-        file: stderr_path,
-        err,
-      })?;
-
-      daemonize::Daemonize::new()
-        .stdout(stdout)
-        .stderr(stderr)
-        .pid_file(pid_file)
-        .start()
-        .map_err(|err| OhNo::CannotStartDaemon {
-          err: err.to_string(),
-        })?;
-    } else {
-      fs::write(&pid_file, format!("{}", std::process::id())).map_err(|err| {
-        OhNo::CannotWriteFile {
-          file: pid_file,
-          err,
-        }
-      })?;
-    }
-
-    Ok(())
   }
 
   pub fn tokens(&self) -> &Arc<Mutex<Tokens>> {
