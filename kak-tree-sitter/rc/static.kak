@@ -112,7 +112,7 @@ define-command tree-sitter-object-text-objects -params 1 %{
 #
 # The first parameter is the direction to move to.
 define-command tree-sitter-nav -params 1 %{
-  tree-sitter-request-with-session-client "{ ""type"": ""nav"", ""buffer"": ""%val{bufname}"", ""selections"": ""%val{selections_desc}"", ""dir"": ""%arg{1}"" }"
+  tree-sitter-request-with-session-client "{ ""type"": ""nav"", ""buffer"": ""%val{bufname}"", ""selections"": ""%val{selections_desc}"", ""dir"": %arg{1} }"
 }
 
 # Install main hook for a given language.
