@@ -51,7 +51,7 @@ impl Response {
     };
 
     Some(format!(
-      "evaluate-commands -no-hooks {prefix} -- %{{ {payload} }}"
+      "evaluate-commands -no-hooks {prefix} -- %[ {payload} ]"
     ))
   }
 }

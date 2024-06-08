@@ -25,7 +25,7 @@ use crate::{kakoune::rc, logging::KakouneLogger};
 
 fn main() {
   if let Err(err) = start() {
-    log::error!("{err}");
+    log::error!("fatal error: {err}");
     std::process::exit(1);
   }
 }

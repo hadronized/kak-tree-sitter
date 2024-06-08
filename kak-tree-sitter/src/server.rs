@@ -60,11 +60,18 @@ impl Server {
     resources: ServerResources,
     poll: Poll,
   ) -> Result<Self, OhNo> {
+    log::debug!(
+      "starting server on socket at {}",
+      resources.paths().socket_path().display()
+    );
+
     let (resp_queue, enqueue_response) = ResponseQueue::new();
 
+    log::debug!("creating session tracker");
     let session_tracker = SessionTracker::default();
 
-    let unix_handler = IOHandler::new(
+    log::debug!("creating IO handler");
+    let io_handler = IOHandler::new(
       config,
       cli.is_standalone(),
       cli.with_highlighting || config.features.highlighting,
@@ -73,12 +80,13 @@ impl Server {
       enqueue_response.clone(),
     )?;
 
+    log::debug!("creating response queue");
     let _resp_queue_handle = resp_queue.run();
 
     Ok(Server {
       _resp_queue_handle,
       enqueue_response,
-      io_handler: unix_handler,
+      io_handler,
       session_tracker,
     })
   }

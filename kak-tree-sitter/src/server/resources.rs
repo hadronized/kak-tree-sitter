@@ -61,6 +61,7 @@ pub struct ServerResources {
 
 impl ServerResources {
   pub fn new(paths: Paths, registry: Arc<Registry>) -> Result<Self, OhNo> {
+    log::debug!("initializing server resources");
     let tokens = Arc::new(Mutex::new(Tokens::default()));
 
     // create the resources
@@ -83,8 +84,6 @@ impl ServerResources {
 
   /// Create resources, if not already there.
   fn io_create(&self) -> Result<(), OhNo> {
-    log::info!("running in {}", self.paths.runtime_dir.display());
-
     log::debug!("ensuring that runtime directories exist (creating if not)");
     let buffers_dir = self.paths.bufs_dir();
     fs::create_dir_all(&buffers_dir).map_err(|err| OhNo::CannotCreateDir {
