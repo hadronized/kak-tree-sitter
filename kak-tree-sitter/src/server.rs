@@ -209,7 +209,19 @@ impl IOHandler {
   fn start(&mut self, session_tracker: &mut SessionTracker, quit: Arc<AtomicBool>) {
     let mut events = Events::with_capacity(64);
 
-    'event_loop: while self.poll.poll(&mut events, None).is_ok() {
+    log::debug!("starting event loop");
+    'event_loop: loop {
+      match self.poll.poll(&mut events, None) {
+        Err(err) if err.kind() == io::ErrorKind::Interrupted => continue,
+
+        Err(err) => {
+          log::error!("error while polling: {err}");
+          break;
+        }
+
+        _ => (),
+      }
+
       if quit.load(Ordering::Relaxed) {
         break 'event_loop;
       }
