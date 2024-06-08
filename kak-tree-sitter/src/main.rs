@@ -44,7 +44,6 @@ fn start() -> Result<(), OhNo> {
   }
 
   let config = Config::load_default_user()?;
-  log::trace!("running with configuration:\n{config:#?}");
 
   // inject rc if we start from Kakoune
   if cli.kakoune && cli.init.is_some() {
