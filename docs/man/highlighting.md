@@ -1,59 +1,53 @@
 # Highlighting
 
-In order to enable highlighting, you must pass the `--with-highlighting` flag when starting `kak-tree-sitter`. Then,
-**after `kak-tree-sitter --kakoune` is called**, you can use the `colorscheme` command with a tree-sitter compatible
-colorschemes. [See this section](#tree-sitter-enabled-colorschemes) for further information.
+In order to enable highlighting, the feature must be enabled, either in the
+configuration — `features.highlighting = true`, or by passing the
+`--with-highlighting` CLI flag when starting `kak-tree-sitter`. Then, **after
+`kak-tree-sitter --kakoune` is called**, you can use the `colorscheme` command
+with a tree-sitter compatible colorscheme.
+[See this section](#tree-sitter-enabled-colorschemes) for further information.
 
 ## Automatic highlighting of buffers
 
-Once the server is run, if your buffer can be highlighted, Kakoune will send (via hooks) requests to `kak-tree-sitter`
-to highlight your buffer. The current mechanism to detect whether a buffer can be highlighted uses `%opt{kts_lang}`.
-This option is automatically set by a hook for you, but you can override the default behavior (see below). Furthermore,
-highlighting is currently performed on `NormalIdle` and `InsertIdle`.
+Once the server is run, if your buffer can be highlighted, Kakoune will send
+(via hooks) requests to `kak-tree-sitter` to highlight your buffer. The current
+behavior is to highlight on `NormalIdle` and `InsertIdle` hooks.
 
-## Override the `%opt{kts_lang}` setting
+#	Tree-sitter-enabled colorschemes
 
-The default setting forwards `%opt{filetype}` to `%opt{kts_lang}`. Depending on your setup, that might not be enough.
-The forwarding is done via a hidden command, called `kak-tree-sitter-set-lang`. To implement the default behavior, you
-could write something like this:
+Colorscheme support is provided by the various capture-groups taken from
+grammars and queries, which get translated to Kakoune `set-face` commands. You
+have two options:
 
-```kakrc
-define-command -override kak-tree-sitter-set-lang %{
-  set-option buffer kts_lang %opt{filetype}
-}
-```
-
-The only requirement for implementing this function is to eventually `set-option buffer kts_lang` to something, and that
-the function shouldn’t be long to return. It should be run once for each buffer after being created but you should try
-to keep that function as fast as possible.
-
-# Tree-sitter-enabled colorschemes
-
-Colorscheme support is provided by the various capture-groups taken from grammars and queries, which get
-translated to Kakoune `set-face` commands. You have two options:
-
-- Roam around and look for tree-sitter-enabled colorschemes. A starting point is [kakoune-tree-sitter-themes].
+- Roam around and look for tree-sitter-enabled colorschemes. A starting point is
+  [kakoune-tree-sitter-themes].
 - Write your own colorscheme. You may want to read on this page.
 
 ## How to make your colorscheme tree-sitter aware
 
-The way tree-sitter colorschemes work is by calling `set-face` for the particular capture-groups you want to set the
-highlight for. Faces are organized in a _cascaded_ way, which means that by default, faces might have a parental
-relationship with others. For instance, the `ts_keyword_storage_modifier` face is defined as `ts_keyword_storage`, which
-is defined as `ts_keyword`. When a keyword doesn’t have any parent, by default, it’s set to `default`.
+The way tree-sitter colorschemes work is by calling `set-face` for the
+particular capture-groups you want to set the highlight for. Faces are organized
+in a _cascaded_ way, which means that by default, faces might have a parental
+relationship with others. For instance, the `ts_keyword_storage_modifier` face
+is defined as `ts_keyword_storage`, which is defined as `ts_keyword`. When a
+keyword doesn’t have any parent, by default, it’s set to `default`.
 
-> This behavior is _wanted_ and will make things look odd if you are not using a proper tree-sitter colorschemes.
+> This behavior is _wanted_ and will make things look odd if you are not using a
+> proper tree-sitter colorschemes.
 
-It is recommended to set, at least, the top-level faces. If you want more granularity — for instance, a
-different color for `ts_keyword_storage` and `ts_keyword_storage_modifier` — you should specialize faces as well.
+It is recommended to set, at least, the top-level faces. If you want more
+granularity — for instance, a different color for `ts_keyword_storage` and
+`ts_keyword_storage_modifier` — you should specialize faces as well.
 
-You will need the list of faces to set, which can be find below in the [faces list section](#faces)
+You will need the list of faces to set, which can be find below in the
+[faces list section](#faces)
 
 ## Faces
 
-The following faces can and should be set in tree-sitter-enabled colorschemes. Cascaded faces inherit from their parent
-by default, so if you want all underlying faces to have the same highlight as their parent, you do not need to set them
-at all.
+The following faces can and should be set in tree-sitter-enabled colorschemes.
+Cascaded faces inherit from their parent by default, so if you want all
+underlying faces to have the same highlight as their parent, you do not need to
+set them at all.
 
 - `ts_attribute`
 - `ts_comment`

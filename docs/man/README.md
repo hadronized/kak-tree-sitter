@@ -1,6 +1,7 @@
 # User manual
 
-This is the official user manual. You may want to visit the following links to know more.
+This is the official user manual. You may want to visit the following links to
+know more.
 
 - [Getting started](getting-started.md)
 - [How to install](how-to-install.md)
