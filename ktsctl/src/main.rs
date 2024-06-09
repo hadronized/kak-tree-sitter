@@ -37,24 +37,20 @@ fn start() -> Result<(), HellNo> {
   log::debug!("ktsctl configuration:\n{config:#?}");
 
   match cli.cmd {
-    cli::Cmd::Manage {
-      fetch,
-      compile,
-      install,
-      sync,
-      lang,
-      all,
-    } => {
-      let manage_flags = ManageFlags::new(fetch, compile, install, sync);
+    cli::Cmd::Fetch { all, lang } => {
+      manage(config, true, false, false, false, all, lang.as_deref())?
+    }
 
-      if let Some(lang) = lang {
-        let manager = Manager::new(config, manage_flags)?;
-        manager.manage(&lang)?;
-      } else if all {
-        let all_langs: HashSet<_> = config.languages.language.keys().cloned().collect();
-        let manager = Manager::new(config, manage_flags)?;
-        manager.manage_all(all_langs.iter().map(|s| s.as_str()));
-      }
+    cli::Cmd::Compile { all, lang } => {
+      manage(config, false, true, false, false, all, lang.as_deref())?
+    }
+
+    cli::Cmd::Install { all, lang } => {
+      manage(config, false, false, true, false, all, lang.as_deref())?
+    }
+
+    cli::Cmd::Sync { all, lang } => {
+      manage(config, false, false, false, true, all, lang.as_deref())?
     }
 
     cli::Cmd::Query { lang, all } => {
@@ -69,6 +65,29 @@ fn start() -> Result<(), HellNo> {
         println!("{all_tbl}");
       }
     }
+  }
+
+  Ok(())
+}
+
+fn manage(
+  config: Config,
+  fetch: bool,
+  compile: bool,
+  install: bool,
+  sync: bool,
+  all: bool,
+  lang: Option<&str>,
+) -> Result<(), HellNo> {
+  let manage_flags = ManageFlags::new(fetch, compile, install, sync);
+
+  if let Some(lang) = lang {
+    let manager = Manager::new(config, manage_flags)?;
+    manager.manage(lang)?;
+  } else if all {
+    let all_langs: HashSet<_> = config.languages.language.keys().cloned().collect();
+    let manager = Manager::new(config, manage_flags)?;
+    manager.manage_all(all_langs.iter().map(|s| s.as_str()));
   }
 
   Ok(())

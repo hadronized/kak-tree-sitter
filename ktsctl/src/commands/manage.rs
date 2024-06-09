@@ -119,6 +119,8 @@ impl Manager {
       } else {
         report.info(format!("{lang} grammar was already cloned (cached)"));
       }
+
+      return Ok(());
     }
 
     let lang_build_dir = self
@@ -129,6 +131,8 @@ impl Manager {
       let report = Report::new(StatusIcon::Compile, format!("compiling {lang} grammar"));
       Self::compile_git_grammar(&report, lang, lang_config, &lang_build_dir)?;
       report.success(format!("built {lang} grammar"));
+
+      return Ok(());
     }
 
     if self.flags.install {
@@ -305,11 +309,14 @@ impl Manager {
     if self.flags.fetch {
       let report = Report::new(StatusIcon::Fetch, format!("cloning {lang} queries"));
       let clone = Self::git_clone(&report, lang, &sources_path, url, pin)?;
+
       if let Clone::Cloned = clone {
         report.success(format!("cloned {lang} queries"));
       } else {
         report.info(format!("{lang} queries were already cloned (cached)"));
       }
+
+      return Ok(());
     }
 
     if self.flags.install {

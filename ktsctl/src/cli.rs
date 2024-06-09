@@ -17,48 +17,64 @@ pub struct Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Cmd {
-  /// Manage tree-sitter resources (grammers, queries).
-  Manage {
-    /// Fetch resources.
-    #[clap(short, long)]
-    fetch: bool,
-
-    /// Whether we should compile fetched grammars.
-    #[clap(short, long)]
-    compile: bool,
-
-    /// Whether we should install compiled grammars/queries to the Kakoune tree-sitter data location.
+  /// Fetch resources.
+  Fetch {
+    /// Execute commands for all known languages.
     ///
-    /// Implies --compile for grammars.
+    /// The list of languages can be seen with `ktsctl query -a`.
     #[clap(short, long)]
-    install: bool,
-
-    /// Synchronize resources.
-    ///
-    /// This command uses the `pin` configuration option of the language to synchronize. This command doesn’t remove
-    /// previous pinned resources; see --clear.
-    #[clap(short, long)]
-    sync: bool,
+    all: bool,
 
     /// Language to manage.
-    #[clap(short, long)]
     lang: Option<String>,
+  },
 
+  /// Compile resources.
+  Compile {
     /// Execute commands for all known languages.
     ///
     /// The list of languages can be seen with `ktsctl info --all`.
     #[clap(short, long)]
     all: bool,
+
+    /// Language to manage.
+    lang: Option<String>,
+  },
+
+  /// Install resources.
+  Install {
+    /// Execute commands for all known languages.
+    ///
+    /// The list of languages can be seen with `ktsctl query -a`.
+    #[clap(short, long)]
+    all: bool,
+
+    /// Language to manage.
+    lang: Option<String>,
+  },
+
+  /// Synchronize resources (implies fetch, compile and install).
+  ///
+  /// This command also checks whether pinned version are already there; if so,
+  /// nothing is performed.
+  Sync {
+    /// Execute commands for all known languages.
+    ///
+    /// The list of languages can be seen with `ktsctl query -a`.
+    #[clap(short, long)]
+    all: bool,
+
+    /// Language to manage.
+    lang: Option<String>,
   },
 
   /// Get information on installed resources.
   Query {
-    /// Get information about a specific language.
-    #[clap(short, long)]
-    lang: Option<String>,
-
     /// List all known languages and display information about them.
     #[clap(short, long)]
     all: bool,
+
+    /// Get information about a specific language.
+    lang: Option<String>,
   },
 }

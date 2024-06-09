@@ -16,32 +16,24 @@ You can configure it via the [configuration file](configuration.md).
 
 Usage: `ktsctl <COMMAND>`. Commands can be:
 
-- `manage`, used to manage runtime resources, such as grammar and queries. Use
-  this command to fetch, compile, link and install resources.
+- `fetch` used to fetch runtime resources.
+- `compile` used to compile runtime resources. You should have fetched them
+  first though.
+- `install` used to install runtime resources. For grammars, you should compile
+  them first.
+- `sync` used to synchronize resources — fetching, compiling, installing and
+  checking pinned resources all at once.
 - `query`, used to get information about the languages configuration, installed
 - resources, etc.
 
 ### Managing resources
 
-`ktsctl manage --help` will provide more than enough help for you to get
-started, but here’s some more:
+You can fetch, compile and install resources manually with the `ktsctl fetch`,
+`ktsctl compile` and `ktsctl install` commands. However, a much more
+straightforward command to use is `ktsctl sync`, which does all of those at
+once, plus the additional feature of being idempotent.
 
-- A typical one-liner to install a language is `ktsctl manage -fcil <LANG>`, or
-  even simpler, `ktsctl manage -sl <LANG>`.
-- `-f, --fetch` will make `ktsctl` fetch and download grammars and queries. You
-  can decide to first fetch resources for a given language, and then call the
-  other commands later without fetching anymore; or you can combine everything
-  at once.
-- `-c, --compile` compiles and link grammars.
-- `-i, --install` installs grammars and queries into
-  `$XDG_DATA_HOME/kak-tree-sitter`. The install path can change depending on the
-  operating system (for instance, it might be
-  `$HOME/Library/Application\ Support` for macOS).
-- `-l, --lang <LANG>` is the name of the language to install.
-- `-s, --sync` does all of the above for you, but allows to synchronize already
-  installed languages, so it won’t try to reinstall / recompile already
-  installed resources. Use this to update your configuration (i.e. the language
-  pins get changed for instance).
+A typical one-liner to install a language is `ktsctl sync <LANG>`, or
 
 > The list of language names you can installed can be found with the
 > [info command](#getting-information).
@@ -50,39 +42,22 @@ For instance, to fetch, compile and install the grammar and queries for the Rust
 programming language:
 
 ```sh
-ktsctl manage -fcil rust
+ktsctl sync rust
 ```
 
 Once a language is installed, you will probably eventually update `ktsctl`, and
 if you haven’t set a specific `pin` for this language, you can benefit from the
-default shipped configuration updates by using the `--sync` flag:
-
-```sh
-ktsctl manage -sl rust
-```
-
-That command will fetch, install and re-compile if required. You can also use
-that command for the very first time too, so it’s a nice one-liner for people
-who don’t care about only fetching or only compiling.
-
-#### Installing all languages at once
-
-A useful one-liner that you can use to install everything at once is to use the
-`-a, --all` flag:
-
-```bash
-ktsctl manage -fcia
-```
+default shipped configuration updates by using the `sync` command again.
 
 #### Synchronizing everything
 
 If there was one command you should remember, it’s this one:
 
 ```sh
-ktsctl manage -sa
+ktsctl sync -a
 ```
 
-It calls `--sync` with `--all`. Basically, it will:
+It synchronizes everything. Basically, it will:
 
 - Ensure all the languages from the configuration are cloned / fetched.
 - If you don’t have a resource for one of them, the resource is fetched,
@@ -90,9 +65,9 @@ It calls `--sync` with `--all`. Basically, it will:
 - If you do, the resource is checked against the pinned version of the
   configuration. If it’s too old, a new version is fetched, compiled, etc.
 
-> **Important note**: for both `-fcia` and `-sa`, the runtime directory
-> might get completely filled, as grammars weigh a lot. If you encounter error,
-> you can cleanup the runtime directory, and run the command again.
+> **Important note**: for `--all`, the runtime directory might get completely
+> filled, as grammars weigh a lot. If you encounter error, you can cleanup the
+> runtime directory, and run the command again.
 
 ### Getting information
 
@@ -100,7 +75,7 @@ The `query` command allows to get information about tree-sitter resources. As
 with `manage`, you can use `--help` to know what you can do, but here are some
 useful commands:
 
-- `ktsctl query -l rust` will provide information about a specific language
+- `ktsctl query rust` will provide information about a specific language
   (here Rust). It will print out various configuration options, as well as
   whether the grammar and queries are installed.
 - `ktsctl query -a` will display a short summary for all available and

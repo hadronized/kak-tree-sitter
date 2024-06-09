@@ -3,13 +3,13 @@
 ## I don’t want to deal with options; give me a oneliner to install a language
 
 ```sh
-ktsctl manage -sl yaml
+ktsctl sync yaml
 ```
 
 ## How do I install all the languages at once?
 
 ```sh
-ktsctl manage -sa
+ktsctl sync -a
 ```
 
 ## Something broke and there is no highlighting anymore

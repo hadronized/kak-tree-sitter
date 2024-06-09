@@ -197,7 +197,7 @@ impl Query {
         StatusIcon::Info,
         format!(
           "{lang} grammar out of sync; synchronize with {help}",
-          help = format!("ktsctl manage -sl {lang}").bold()
+          help = format!("ktsctl sync {lang}").bold()
         ),
       )
     } else {
@@ -205,7 +205,7 @@ impl Query {
         StatusIcon::Error,
         format!(
           "{lang} grammar missing; install with {help}",
-          help = format!("ktsctl manage -fcil {lang}").bold()
+          help = format!("ktsctl sync {lang}").bold()
         ),
       )
     };
@@ -278,7 +278,7 @@ impl Query {
           StatusIcon::Error,
           format!(
             "{lang} queries missing; install with {help}",
-            help = format!("ktsctl manage -fil {lang}").bold()
+            help = format!("ktsctl sync {lang}").bold()
           ),
         ));
       }
@@ -292,7 +292,7 @@ impl Query {
           StatusIcon::Error,
           format!(
             "{lang} queries out of sync; synchronize with {help}",
-            help = format!("ktsctl manage -s {lang}").bold()
+            help = format!("ktsctl sync {lang}").bold()
           ),
         )
       } else {
@@ -300,7 +300,7 @@ impl Query {
           StatusIcon::Error,
           format!(
             "{lang} queries missing; install with {help}",
-            help = format!("ktsctl manage -fcil {lang}").bold()
+            help = format!("ktsctl sync {lang}").bold()
           ),
         )
       };
