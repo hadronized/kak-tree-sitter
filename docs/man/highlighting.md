@@ -13,6 +13,22 @@ Once the server is run, if your buffer can be highlighted, Kakoune will send
 (via hooks) requests to `kak-tree-sitter` to highlight your buffer. The current
 behavior is to highlight on `NormalIdle` and `InsertIdle` hooks.
 
+## Interoperability with other highlighters
+
+Some other highlighters might operate on the content of the buffer, such as the
+`show-matching` one. If you are using such highlighters, because KTS
+highlighting is very likely to change _everything_ in the buffer, you should
+remove your global `add-highlighter`, and instead override the
+`tree-sitter-user-after-highlighter` command, adding your highlighter in it.
+
+For instance with `show-matching`:
+
+```kak
+define-command -override tree-sitter-user-after-highlighter %{
+  add-highlighter buffer/show-matching show-matching
+}
+```
+
 #	Tree-sitter-enabled colorschemes
 
 Colorscheme support is provided by the various capture-groups taken from
