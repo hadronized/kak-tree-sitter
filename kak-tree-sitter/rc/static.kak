@@ -115,21 +115,6 @@ define-command tree-sitter-nav -params 1 %{
   tree-sitter-request-with-session-client "{ ""type"": ""nav"", ""buffer"": ""%val{bufname}"", ""selections"": ""%val{selections_desc}"", ""dir"": %arg{1} }"
 }
 
-# Install main hook for a given language.
-#
-# That hook reacts to setting the tree_sitter_lang option to enable
-# tree-sitter support.
-#
-# The first parameter is the language.
-# The second parameter is a boolean stating whether we should remove the default
-# highlighter.
-define-command -hidden tree-sitter-hook-install-lang -params 2 %{
-  hook -group tree-sitter global BufSetOption "tree_sitter_lang=%arg{1}" %{
-    tree-sitter-buffer-metadata
-    add-highlighter -override buffer/tree-sitter-highlighter ranges tree_sitter_hl_ranges
-  }
-}
-
 # Install main hooks.
 define-command -hidden tree-sitter-hook-install-session %{
   # Hook that runs when the session ends.
