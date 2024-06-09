@@ -101,8 +101,9 @@ impl Payload {
           .map(|(lang, remove_default_highlighter)| {
             format!(
               "hook -group tree-sitter global WinSetOption tree_sitter_lang={lang} %<
-							   tree-sitter-buffer-metadata
+                 tree-sitter-buffer-metadata
                  add-highlighter -override buffer/tree-sitter-highlighter ranges tree_sitter_hl_ranges
+                 tree-sitter-user-after-highlighter
                  {extra}
                >", extra = if *remove_default_highlighter { format!("remove-highlighter window/{lang}") } else { String::default() }
             )

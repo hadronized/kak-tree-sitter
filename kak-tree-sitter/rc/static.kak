@@ -115,6 +115,13 @@ define-command tree-sitter-nav -params 1 %{
   tree-sitter-request-with-session-client "{ ""type"": ""nav"", ""buffer"": ""%val{bufname}"", ""selections"": ""%val{selections_desc}"", ""dir"": %arg{1} }"
 }
 
+# User-overrideable command called right after inserting the tree-sitter
+# highlighter.
+#
+# Useful to introduce a highlighter with higher priority to prevent the
+# tree-sitter highlighter from overriding it.
+define-command tree-sitter-user-after-highlighter nop
+
 # Install main hooks.
 define-command -hidden tree-sitter-hook-install-session %{
   # Hook that runs when the session ends.
