@@ -1,3 +1,37 @@
+# v1.0.0
+
+- Add `tree-sitter-user-after-highlighter` overrideable command.
+  This allows to set external highlighters, like `show-matching`, without being
+  overridden by KTS.
+- Fix event loop polling.
+  Some I/O errors were left uncaught, like interruptions.
+- Fix daemonization process.
+  That was one of the main reasons why sometimes the _poll_ object got
+  corrupted; it was created before daemonization (i.e. before _forking_),
+  causing early-free of file descriptors and, thus, basically, massive failures.
+- Enhance logging.
+- Remove config dump.
+  If users eventually want it back, we could add a special command for that.
+- Fix tree-sitter objects and finalize their first stable version.
+- Add features in the config.
+  Features live under the `features` sections, and we start with two:
+
+  - `highlighting`, a `bool` to enable/disable highlighting.
+  - `text_objects`, a `bool` to enable/disable text-objects user-modes / hooks.
+- Support buffer close hook to cleanup and purge resources on KTS.
+- Rewrite the protocol / FIFO.
+  This is one of the biggest change of this new release. The new protocol is
+  written in a much safer way than it used to, since it’s based off non-blocking
+  FIFOs. The main difference is using one FIFO per session-buffer, allowing to
+  send metadata (which change very rarely) via a KTS UNIX command
+  (`kak-tree-sitter -r`), and stream buffers’ content only via a `write()` on
+  the KTS side.
+- Update MSRV and dependencies.
+- Always ensure runtime directories are correctly created.
+- Move to sr.ht.
+- Fix buffer not being read correctly.
+- Add tree-sitter navigation.
+
 # v0.6.0
 
 - First shot at text-objects. [1350fa1](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/1350fa1)

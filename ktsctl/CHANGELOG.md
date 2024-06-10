@@ -1,3 +1,20 @@
+# v1.0.0
+
+- Enhance ktsctl UX by removing `manage` and `-l`.
+  The `manage` command was replaced with `fetch`, `compile`, `install` and
+  `sync`.
+
+  Additionally, for all commands, the `-l` flag was removed, so that instead of
+  doing `ktsctl query -l rust`, we now do `ktsctl query rust`. The `-a` flag
+  remains the same. For what used to be `ktsctl manage -sl rust`, you now just
+  do `ktsctl sync rust`.
+
+  The only drawback is `ktsctl manage -fcil rust`. You now need to do
+  `ktsctl fetch rust`, `ktsctl compile rust` and `ktsctl install rust`; that
+  was made in a way so that people prefer using `sync` instead.
+- Update MSRV and dependencies.
+- Move to sr.ht.
+
 # v0.4.0
 
 - Update Rust grammar and queries pins. [7b590f4](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/7b590f4)

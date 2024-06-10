@@ -1,3 +1,20 @@
+# v1.0.0
+
+- Fix tests.
+- Add features in the config.
+  This allows to automatically set highlighting and text-objects by default,
+  preventing users from having to pass `--with-highlighting` and
+  `--with-text-objects` all the time.
+
+  The CLI still has precedence.
+- Add astro to default config.
+- Update tree-sitter-llvm patch version.
+- Add LLVM config.
+- Update MSRV and dependencies.
+- Zig grammar / queries.
+- Move to sr.ht.
+- Add `nim` to default-config.toml
+
 # v0.5.0
 
 - Introduce user-only configuration. [fc7c5c6](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/fc7c5c6)
