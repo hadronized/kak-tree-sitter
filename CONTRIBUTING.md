@@ -1,100 +1,140 @@
 # How to contribute
 
-Everyone is welcome to contribute. There is no small contributions. Please take the time to read this document before
-starting.
+Everyone is welcome to contribute. There is no small contributions. Please take
+the time to read this document before starting.
 
-## Important links
+## Table of Content
 
-There are several places where you hang around to both know what you can work on, and how you can communicate about it.
-First thing first, you need to know that communication happen by **plain text** emails, and so, you might want to
-subscribe to the following mailing lists:
+- [Prerequisites](#prerequisites)
+- [Setup](#setup)
+- [How to find what to work on](#how-to-find-what-to-work-on)
+- [Contribution workflow](#contribution-workflow)
+  - [Contributing language support](#contributing-language-support)
+- [Commit hygiene](#commit-hygiene)
 
-- The [discuss list](https://lists.sr.ht/~hadronized/kak-tree-sitter-discuss), that you can use to ask any question,
-  share your experience, etc.
-- The [devel list](https://lists.sr.ht/~hadronized/kak-tree-sitter-devel), that you will have to use to send patches and
-  talk about the development of the project. More on that below.
-- The [announcement list](https://lists.sr.ht/~hadronized/kak-tree-sitter-announce), which is used to communicate about
-  new releases and various official announcements about the project.
+## Prerequisites
 
-Additionally, you want to have a look at the following trackers:
+Before contributing, some prerequisites:
 
-- The [feature tracker](https://todo.sr.ht/~hadronized/kak-tree-sitter-features), that you can use to create feature
-  requests.
-- The [bug tracker](https://todo.sr.ht/~hadronized/kak-tree-sitter-bugs), where you can report a bug.
+- You must have [git] installed, as this project uses it as VCS.
+- Rust is used to compile everything; you should have [rustup] installed.
+- Especially, you want to have `rustc`, `cargo`, `clippy`, `rust-analyzer` and
+  `rustfmt` installed.
+- This project accepts contributions via _git patches_. It is likely that you
+  are not used to this workflow. A mail client that can send emails in
+  plain-text mode is highly advised — for instance, [aerc]. More on that in
+  the [Guidelines](#guidelines) section.
+- Not mandatory but highly recommended; you should have a GPG key hosted on a
+  third-party location — for instance, [keys.openpgp.org] — and sign your
+  emails with it. More on that in the the [Guidelines](#guidelines) section.
 
-## How to start contributing
+## Setup
 
-There are two main ways of contributing:
+Before starting up, you need to setup your tools.
 
-- You read the feature/bug tracker and spotted something no one is actively working on.
-- You have a new feature requests or you have found a new bug.
+### git send-email
 
-Whatever you decide, a ticket should exist for what you are working on, so that it’s easier for everyone to know what’s
-being worked on. So if you find a bug, please open an issue on the bug tracker first before even trying to fix it. Who
-knows, maybe that bug is already fixed by someone’s else patch?
+You should follow [this link](https://git-send-email.io/) as a first source of
+information on how to configure `git send-email`. Additionally, you want to
+setup the per-project part.
 
-## Contribution format
+Contributions must be sent to <~hadronized/kak-tree-sitter-devel@lists.sr.ht>.
+Instead of using the `--to` flag everytime you use `git send-email`, you should
+edit the local configuration of your repository with:
 
-We implement an email-based git flow; summary:
+```sh
+git config --local sendemail.to "~hadronized/kak-tree-sitter-devel@lists.sr.ht"
+```
 
-1. Clone the project
-2. Ensure to switch to the `master` branch, and keep in sync with the remote branch (`git pull --rebase` or
-  `git fetch <upstream>` + `git rebase <upstream>/master`.
-3. Create your commits, either on your `master` branch, or feature branches. That part of the workflow is totally local
-  and up to you.
-4. Once you are done, generate a patch and email it to the `~hadronized/kak-tree-sitter-devel@lists.sr.ht` development
-  list.
+You also must set the prefix to `PATCH kak-tree-sitter` — that helps reviewing
+and it is also mandatory for the CI to run:
 
-More on how to contribute via email [here](https://git-send-email.io).
+```sh
+git config --local format.subjectprefix "PATCH kak-tree-sitter"
+```
 
-## Contributing language support
+Once this is done, all you have to do is to use `git send-email` normally.
 
-Language support is mainly done via two files:
+> Note: if you would rather go your webmail instead, **ensure it does plain
+> text**, and use `git format-patch` accordingly.
 
-- The default configuration file.
-- The rc file, if you need to add capture groups.
+## How to find what to work on
 
-The configuration file already contains a wide variety of examples. Just clone the two sections for a given language
-(grammar and queries), and adjust as needed.
+You can first check the list of [bugs] and [features] on the bug trackers. If
+you cannot find your issue there, you should open one. You can use the UI, or
+simply send an email to the appropriate tracker:
 
-**An important guideline here**: [Helix](https://helix-editor.com/) is a well appreciated editor and their queries are
-pretty excellent. You are highly suggested to reuse their work and point the `url` of the configuration you add to
-their repository. For `queries`, the `url` is most likely to always be `https://github.com/helix-editor/helix`, and the
-`path` something like `runtime/queries/<lang>`. **Please fill in the `pin` option for both `queries` and `grammar`**.
+- For bugs, send your email to <~hadronized/kak-tree-sitter-bugs@todo.sr.ht>.
+- For features, send your email to <~hadronized/kak-tree-sitter-features@todo.sr.ht>.
+
+If you are not sure, you can still open a discussion on the
+[discuss mailing list], by using the UI or sending an email to
+<~hadronized/kak-tree-sitter-discuss@lists.sr.ht>.
+
+## Contribution workflow
+
+You have found something to work on and want to start contributing. Follow these
+simple steps:
+
+1. Ensure you have followed the steps in the [Setup](#setup) section.
+2. Clone the repository.
+3. Create a branch; it will help when sending patches upstream.
+4. Make your changes and make some commits!
+5. Once ready to get your changes reviewed, send them with
+  `git send-email master`.
+6. Wait for the review and check your inbox.
+
+If your change was accepted, you should have an email telling you it was
+applied. If not, you should repeat the process.
+
+> Note: please use the `--annotate -v2` flag of `git send-enail` if pushing a
+> new version. `-v3` for the next one, etc. etc.
+
+### Contributing language support
+
+**An important guideline here**: [Helix](https://helix-editor.com/) is a well
+appreciated editor and their queries are pretty excellent. You are highly
+suggested to reuse their work and point the `url` of the configuration you add
+to their repository. For `queries`, the `url` is most likely to always be
+`https://github.com/helix-editor/helix`, and the `path` something like
+`runtime/queries/<lang>`. **Please fill in the `pin` option for both `queries`
+and `grammar`**.
 
 For the grammar to use, you are advised to look in
-[this Helix’ languages.toml](https://github.com/helix-editor/helix/blob/master/languages.toml) file. It even has the
-`rev` (i.e. what we call `pin`) to use.
+[this Helix’ languages.toml](https://github.com/helix-editor/helix/blob/master/languages.toml)
+file. It even has the `rev` (i.e. what we call `pin`) to use.
 
-Sometimes, the queries from Helix are not enough, because it contains Helix’ specificities (like capture nodes for
-injections that is not exactly what we use, or `; inherits` annotations). In such cases, you need to check the queries
-in [our runtime/queries](./runtime/queries) directory. Refer to already existing queries for the process **but you
-must credit the source, license terms and copy the `LICENSE` file in the language directory**. FOSS should be respected;
-let us be an example.
+Sometimes, the queries from Helix are not enough, because it contains Helix’
+specificities (like capture nodes for injections that is not exactly what we
+use, or `; inherits` annotations). In such cases, you need to check the queries
+in [our runtime/queries](./runtime/queries) directory. Refer to already existing
+queries for the process **but you must credit the source, license terms and copy
+the `LICENSE` file in the language directory**. FOSS should be respected; let us
+be an example.
 
-## General contribution advices
+## Commit hygiene
 
-### Tooling
+Please refrain from creating gigantic commits. I reserve the right to refuse
+your patch if it’s not atomic enough: I engage my spare-time to review and
+understand your code so **please** keep that in mind.
 
-In terms of tooling, you should be using a recent Rust compiler, along with `rustfmt`. If you are not sure, update
-your toolchain with `rustup update` and ensure you have `rustfmt` installed with `rustup component add rustfmt`.
+There is no limit on the number of commits per patch, but keep in mind that
+individual commits should still remain small enough to be easily reviewable. Try
+to scope a patch down to a single ticket, or even subpart of a ticket if you
+think it makes sense.
 
-Always format your code, as the CI will test that your code is correctly formatted. The CI also enforces `clippy`, so
-you should have it installed and check your code with it.
+Also, remember to include the ticket link in your commit, and to write concise
+but acute commit messages. Those are used for writing changelog, so please keep
+that in mind. Keep the line width to 80-char if possible.
 
-### Commit and PR hygiene
+Finally, **merging `master` into your branch is not appreciated**, and will end
+up with your patch refused. If you want to “synchronize” your work with the
+recent changes, please use `git rebase origin/master`.
 
-Please refrain from creating gigantic commits. I reserve the right to refuse your patch if it’s not atomic enough: I
-engage my spare-time to review and understand your code so **please** keep that in mind.
-
-There is no limit on the number of commits per patch, but keep in mind that individual commits should still remain small
-enough to be easily reviewable. Try to scope a patch down to a single ticket, or even subpart of a ticket if you think
-it makes sense.
-
-Also, remember to include the ticket link in your commit, and to write concise but acute commit messages. Those are
-used for writing changelog, so please keep that in mind.
-
-Finally, **merging `master` into your branch is not appreciated**. If you want to “synchronize” your work with the
-recent changes, please use `git rebase origin/master` and force-push to your remote branch. Please read on the TODO
-tooling.
-
+[git]: https://git-scm.com/
+[rustup]: https://rustup.rs/
+[aerc]: https://aerc-mail.org/
+[keys.openpgp.org]: https://keys.openpgp.org/
+[bugs]: https://todo.sr.ht/~hadronized/kak-tree-sitter-bugs
+[features]: https://todo.sr.ht/~hadronized/kak-tree-sitter-features
+[discuss mailing list]: https://lists.sr.ht/~hadronized/kak-tree-sitter-discuss
