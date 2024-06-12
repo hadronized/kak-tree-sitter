@@ -10,6 +10,9 @@ next versions.
 - __v1.2.0__
   - [Indent guidelines](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/3)
 - __v1.0.*__
+  - [Use direct UNIX socket instead of kak -p](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/4)
+  - [Upgrade tree-sitter](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/7)
+  - [Support session renaming](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/9)
 
 ## How do I get my issue as part of the roadmap?
 
