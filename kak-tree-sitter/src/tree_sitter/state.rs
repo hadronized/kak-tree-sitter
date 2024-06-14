@@ -548,11 +548,13 @@ impl TreeState {
   fn find_sel_node(&self, sel: &Sel) -> Option<Node> {
     log::trace!("finding node for selection {sel:?}");
 
-    // TODO: this is wrong too; the anchor can be after the cursor
+    let start = sel.anchor.min(sel.cursor);
+    let mut end= sel.cursor.max(sel.anchor);
+    end.col += 1; // Kakoune ranges are inclusive
     let node = self
       .tree
       .root_node()
-      .descendant_for_point_range(sel.anchor.into(), sel.cursor.into());
+      .descendant_for_point_range(start.into(), end.into());
 
     log::trace!("found node: {node:?}");
 
