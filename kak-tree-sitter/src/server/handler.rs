@@ -68,10 +68,8 @@ impl Handler {
 
   /// Update a full buffer update.
   pub fn handle_full_buffer_update(&mut self, tkn: Token) -> Result<Option<Response>, OhNo> {
-    log::debug!("updating buffer (token = {tkn:?})");
-
     let id = self.trees.get_buf_id(&tkn)?.clone();
-    log::info!("updating {id:?}");
+    log::debug!("updating {id:?}, token {tkn:?}");
     let tree = self.trees.get_tree_mut(&id)?;
 
     // update the tree
