@@ -89,15 +89,18 @@ impl Languages {
           log::debug!("  queries directory: {}", queries_dir.display());
 
           let queries = Queries::load_from_dir(queries_dir);
-          let mut hl_config = HighlightConfiguration::new(
+          let mut hl_config = match HighlightConfiguration::new(
             ts_lang,
             queries.highlights.as_deref().unwrap_or(""),
             queries.injections.as_deref().unwrap_or(""),
             queries.locals.as_deref().unwrap_or(""),
-          )
-          .map_err(|err| OhNo::HighlightError {
-            err: err.to_string(),
-          })?;
+          ) {
+            Ok(x) => x,
+            Err(err) => {
+              log::error!("failed to load highlighter for {lang_name}: {err}");
+              continue;
+            }
+          };
 
           let hl_names: Vec<_> = config.highlight.groups.iter().cloned().collect();
           hl_config.configure(&hl_names);
