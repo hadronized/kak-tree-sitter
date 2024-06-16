@@ -11,14 +11,12 @@ tasks:
       rustup default stable
       rustup component add rustfmt
   - check: |
-      pwd
       cd kak-tree-sitter
-      cargo fmt -q
+      cargo fmt --check
+      cargo clippy
   - build: |
-      pwd
       cd kak-tree-sitter
       cargo build
   - test: |
-      pwd
       cd kak-tree-sitter
       cargo test
