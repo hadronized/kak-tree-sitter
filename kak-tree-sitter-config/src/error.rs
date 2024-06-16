@@ -15,6 +15,9 @@ pub enum ConfigError {
 
   #[error("missing configuration option: {opt}")]
   MissingOption { opt: String },
+
+  #[error("no configuration for language {lang}")]
+  MissingLang { lang: String },
 }
 
 impl ConfigError {

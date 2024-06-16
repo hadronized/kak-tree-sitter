@@ -142,8 +142,14 @@ impl LanguagesConfig {
   }
 
   /// Get the configuration for `lang`.
-  pub fn get_lang_conf(&self, lang: impl AsRef<str>) -> Option<&LanguageConfig> {
-    self.language.get(lang.as_ref())
+  pub fn get_lang_config(&self, lang: impl AsRef<str>) -> Result<&LanguageConfig, ConfigError> {
+    let lang = lang.as_ref();
+    self
+      .language
+      .get(lang)
+      .ok_or_else(|| ConfigError::MissingLang {
+        lang: lang.to_owned(),
+      })
   }
 
   /// Get the directory where all grammars live in.
@@ -577,8 +583,8 @@ mod tests {
 
       assert!(config.merge_user_config(user_config).is_ok());
 
-      let prev_rust_config = main_config.languages.get_lang_conf("rust").unwrap();
-      let new_rust_config = config.languages.get_lang_conf("rust").unwrap();
+      let prev_rust_config = main_config.languages.get_lang_config("rust").unwrap();
+      let new_rust_config = config.languages.get_lang_config("rust").unwrap();
 
       assert_eq!(prev_rust_config.queries, new_rust_config.queries);
 

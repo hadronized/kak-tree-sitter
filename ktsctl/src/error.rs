@@ -30,9 +30,6 @@ pub enum HellNo {
     err: ConfigError,
   },
 
-  #[error("no configuration for language {lang}")]
-  MissingLangConfig { lang: String },
-
   #[error("{process} failed to run: {err}")]
   ProcessRunError { process: String, err: io::Error },
 

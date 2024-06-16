@@ -82,7 +82,7 @@ impl Query {
 
   /// Sections providing information about a given language.
   pub fn lang_info_sections(&self, lang: &str) -> Vec<Section> {
-    let Some(lang_config) = self.config.languages.get_lang_conf(lang) else {
+    let Ok(lang_config) = self.config.languages.get_lang_config(lang) else {
       return Vec::default();
     };
 

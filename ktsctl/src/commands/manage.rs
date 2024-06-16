@@ -52,15 +52,7 @@ impl Manager {
   }
 
   pub fn manage(&self, lang: &str) -> Result<(), HellNo> {
-    let lang_config =
-      self
-        .config
-        .languages
-        .get_lang_conf(lang)
-        .ok_or_else(|| HellNo::MissingLangConfig {
-          lang: lang.to_owned(),
-        })?;
-
+    let lang_config = self.config.languages.get_lang_config(lang)?;
     self.manage_grammar(lang, lang_config)?;
     self.manage_queries(lang, lang_config)
   }
