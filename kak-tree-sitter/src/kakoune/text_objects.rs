@@ -56,6 +56,12 @@ pub enum OperationMode {
   ///
   /// Similar to `<a-F>`.
   ExtendPrev,
+
+  /// Select the text-object inside selections.
+  ///
+  /// Similar to `s`.
+  Select,
+
   /// Object mode.
   ///
   /// This combines select mode with object flags.

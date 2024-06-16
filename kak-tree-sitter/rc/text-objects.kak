@@ -7,6 +7,7 @@ declare-user-mode tree-sitter-find
 declare-user-mode tree-sitter-find-rev
 declare-user-mode tree-sitter-find-extend
 declare-user-mode tree-sitter-find-extend-rev
+declare-user-mode tree-sitter-select
 
 map global tree-sitter /     ':enter-user-mode tree-sitter-search<ret>'                            -docstring 'search next'
 map global tree-sitter <a-/> ':enter-user-mode tree-sitter-search-rev<ret>'                        -docstring 'search prev'
@@ -16,6 +17,7 @@ map global tree-sitter f     ':enter-user-mode tree-sitter-find<ret>'           
 map global tree-sitter <a-f> ':enter-user-mode tree-sitter-find-rev<ret>'                          -docstring 'find prev'
 map global tree-sitter F     ':enter-user-mode tree-sitter-find-extend<ret>'                       -docstring 'find(extend) next'
 map global tree-sitter <a-F> ':enter-user-mode tree-sitter-find-extend-rev<ret>'                   -docstring 'find(extend) prev'
+map global tree-sitter k     ':enter-user-mode tree-sitter-select<ret>'                            -docstring 'select'
 map global tree-sitter s     ":tree-sitter-nav '""parent""'<ret>"                                  -docstring 'select parent'
 map global tree-sitter t     ":tree-sitter-nav '""first_child""'<ret>"                             -docstring 'select first child'
 map global tree-sitter <c-t> ":tree-sitter-nav '""last_child""'<ret>"                              -docstring 'select last child'
@@ -67,6 +69,11 @@ map global tree-sitter-find-extend-rev f ':tree-sitter-text-objects function.aro
 map global tree-sitter-find-extend-rev a ':tree-sitter-text-objects parameter.around extend_prev<ret>' -docstring 'parameter'
 map global tree-sitter-find-extend-rev t ':tree-sitter-text-objects class.around extend_prev<ret>'     -docstring 'class'
 map global tree-sitter-find-extend-rev T ':tree-sitter-text-objects test.around extend_prev<ret>'      -docstring 'test'
+
+map global tree-sitter-select f ':tree-sitter-text-objects function.around select<ret>'  -docstring 'function'
+map global tree-sitter-select a ':tree-sitter-text-objects parameter.around select<ret>' -docstring 'parameter'
+map global tree-sitter-select t ':tree-sitter-text-objects class.around select<ret>'     -docstring 'class'
+map global tree-sitter-select T ':tree-sitter-text-objects test.around select<ret>'      -docstring 'test'
 
 map global object f '<a-;>tree-sitter-object-text-objects function<ret>'  -docstring 'function (tree-sitter)'
 map global object t '<a-;>tree-sitter-object-text-objects class<ret>'     -docstring 'type (tree-sitter)'

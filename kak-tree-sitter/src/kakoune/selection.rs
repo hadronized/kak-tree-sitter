@@ -111,6 +111,19 @@ impl Sel {
     self.replace(&node.start_position().into(), &b)
   }
 
+  /// Check whether a selection selects a node.
+  pub fn selects(&self, node: &Node) -> bool {
+    let start: Pos = node.start_position().into();
+    let mut end: Pos = node.end_position().into();
+    end.col -= 1;
+
+    if self.anchor <= self.cursor {
+      self.anchor <= start && self.cursor >= end
+    } else {
+      self.cursor <= start && self.anchor >= end
+    }
+  }
+
   /// Check whether a selection fully selects a node.
   pub fn fully_selects(&self, node: &Node) -> bool {
     let start: Pos = node.start_position().into();

@@ -279,6 +279,14 @@ impl TreeState {
           .collect()
       }
 
+      OperationMode::Select => {
+        let nodes = get_captures_nodes(pattern)?;
+        selections
+          .iter()
+          .flat_map(|sel| Self::select_text_object(sel, nodes.iter().cloned()))
+          .collect()
+      }
+
       OperationMode::Object { mode, flags } => {
         let flags = ObjectFlags::parse_kak_str(flags);
 
@@ -380,6 +388,18 @@ impl TreeState {
     let anchor = sel.anchor;
 
     Some(Sel { anchor, cursor })
+  }
+
+  /// Select text-object occurrences inside the current selection.
+  fn select_text_object<'a>(
+    sel: &'a Sel,
+    nodes: impl 'a + Iterator<Item = Node<'a>>,
+  ) -> impl 'a + Iterator<Item = Sel> {
+    nodes.filter(move |node| sel.selects(node)).map(|node| {
+      let start = Pos::from(node.start_position());
+      let end = Pos::from(node.end_position());
+      sel.replace(&start, &end)
+    })
   }
 
   /// Object-mode text-objects.
