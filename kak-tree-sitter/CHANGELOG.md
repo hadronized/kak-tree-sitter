@@ -1,3 +1,13 @@
+# v1.0.1
+
+This release fixes bugs and adapts to the change introduced in
+`kak-tree-sitter-config-2.0.0`.
+
+## Bug fixes
+
+- Fix coordinate conversion in navigation [6506bff](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/6506bff)
+- Fix crash when highlighter fails to load for a language. [8cb1acd](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/8cb1acd)
+
 # v1.0.0
 
 - Add `tree-sitter-user-after-highlighter` overrideable command.

@@ -1,3 +1,18 @@
+# v2.0.0
+
+This release is needed for a small fix in the API for error handling purposes.
+The `ConfigError` now contains a `MissingLang` variant that is used when
+retrieving the configuration of a language
+(`Result<LanguageConfig, ConfigError>`), while it used to be
+`Option<LanguageConfig>`.
+
+This change has implication on `ktsctl`, but doesn’t have any on
+`kak-tree-sitter`.
+
+## API
+
+- Move missing language error as part of `kak-tree-sitter-config`. [cd35f75](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/cd35f75)
+
 # v1.0.0
 
 - Fix tests.

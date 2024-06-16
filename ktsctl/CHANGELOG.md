@@ -1,3 +1,12 @@
+# v1.1.0
+
+## Features
+
+- Add `--prune` to `ktsctl rm`. [56e11cc](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/56e11cc)
+- Add support for `ktsctl rm`. [e115b56](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/e115b56)
+
+## Bug fixes
+
 # v1.0.0
 
 - Enhance ktsctl UX by removing `manage` and `-l`.
