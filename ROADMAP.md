@@ -1,18 +1,22 @@
 # Roadmap
 
 This document gathers the next features and bug fixes to be introduced in the
-next versions.
+next major and minor versions.
 
-- __v2.0.0__
-- __v1.1.0__
-  - [Allow to specify which hooks trigger highlighting ](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/8)
-  - [Add tree-sitter based select / split / keep](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/10)
-- __v1.2.0__
-  - [Indent guidelines](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/3)
-- __v1.0.*__
-  - [Use direct UNIX socket instead of kak -p](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/4)
-  - [Upgrade tree-sitter](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/7)
-  - [Support session renaming](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/9)
+> Patch versions are meant not meant to be part as any roadmap as they are
+> easy to land in any version, causing no breaking changes.
+
+## Major +1
+
+## Minor +1
+
+- [ ] [Allow to specify which hooks trigger highlighting ](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/8)
+- [x] [Add tree-sitter based select / split / keep](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/10)
+- [ ] [Support session renaming](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/9)
+
+## Minor +2
+
+- [ ] [Indent guidelines](https://todo.sr.ht/~hadronized/kak-tree-sitter-features/3)
 
 ## How do I get my issue as part of the roadmap?
 
