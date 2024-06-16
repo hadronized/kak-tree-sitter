@@ -6,9 +6,13 @@ use colored::Colorize;
 use error::HellNo;
 use kak_tree_sitter_config::Config;
 
-use crate::commands::{
-  manage::{ManageFlags, Manager},
-  query::Query,
+use crate::{
+  commands::{
+    manage::{ManageFlags, Manager},
+    query::Query,
+    remove,
+  },
+  resources::Resources,
 };
 
 mod cli;
@@ -64,6 +68,20 @@ fn start() -> Result<(), HellNo> {
         let all_tbl = query.all_lang_info_tbl();
         println!("{all_tbl}");
       }
+    }
+
+    cli::Cmd::Remove {
+      mut grammar,
+      mut queries,
+      lang,
+    } => {
+      let resources = Resources::new()?;
+      if !grammar && !queries {
+        grammar = true;
+        queries = true;
+      }
+
+      remove::remove(&config, &resources, grammar, queries, lang)?;
     }
   }
 

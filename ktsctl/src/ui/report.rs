@@ -48,6 +48,10 @@ impl Report {
   pub fn info(&self, msg: impl AsRef<str>) {
     self.update(StatusIcon::Info, msg)
   }
+
+  pub fn error(&self, msg: impl AsRef<str>) {
+    self.update(StatusIcon::Error, msg)
+  }
 }
 
 impl Drop for Report {

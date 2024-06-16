@@ -77,4 +77,21 @@ pub enum Cmd {
     /// Get information about a specific language.
     lang: Option<String>,
   },
+
+  /// Remove resources.
+  ///
+  /// If no flag is passed, -g and -q are assumed.
+  #[clap(aliases = &["rm"])]
+  Remove {
+    /// Remove grammar.
+    #[clap(short, long)]
+    grammar: bool,
+
+    /// Remove queries.
+    #[clap(short, long)]
+    queries: bool,
+
+    /// Remove resources for the specific language.
+    lang: String,
+  },
 }
