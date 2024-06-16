@@ -17,6 +17,7 @@ pub fn remove(
   resources: &Resources,
   grammar: bool,
   queries: bool,
+  prune: bool,
   lang: impl AsRef<str>,
 ) -> Result<(), HellNo> {
   let lang = lang.as_ref();
@@ -25,11 +26,11 @@ pub fn remove(
   let mut errors = Vec::new();
 
   if grammar {
-    remove_grammar(resources, lang, lang_config, &report, &mut errors);
+    remove_grammar(resources, lang, lang_config, prune, &report, &mut errors);
   }
 
   if queries {
-    remove_queries(resources, lang, lang_config, &report, &mut errors);
+    remove_queries(resources, lang, lang_config, prune, &report, &mut errors);
   }
 
   if errors.is_empty() {
@@ -45,38 +46,57 @@ pub fn remove(
   Ok(())
 }
 
-fn remove_queries(
+fn remove_grammar(
   resources: &Resources,
   lang: &str,
   lang_config: &kak_tree_sitter_config::LanguageConfig,
+  prune: bool,
   report: &Report,
   errors: &mut Vec<String>,
 ) {
-  if let Some(queries_dir) = resources.queries_dir_from_config(lang, lang_config) {
-    if let Ok(true) = queries_dir.try_exists() {
-      report.info(format!("removing {lang} queries"));
+  if prune {
+    let dir = resources.grammars_dir(lang);
+    if let Ok(true) = dir.try_exists() {
+      report.info(format!("removing {lang} grammar"));
 
-      if let Err(err) = fs::remove_dir_all(queries_dir) {
-        errors.push(format!("cannot remove {lang} queries: {err}"));
+      if let Err(err) = fs::remove_dir_all(dir) {
+        errors.push(format!("cannot remove {lang} grammar: {err}"));
+      }
+    }
+  } else {
+    let grammar_path = resources.grammar_path_from_config(lang, lang_config);
+
+    if let Ok(true) = grammar_path.try_exists() {
+      report.info(format!("removing {lang} grammar"));
+
+      if let Err(err) = fs::remove_file(grammar_path) {
+        errors.push(format!("cannot remove {lang} grammar: {err}"));
       }
     }
   }
 }
 
-fn remove_grammar(
+fn remove_queries(
   resources: &Resources,
   lang: &str,
   lang_config: &kak_tree_sitter_config::LanguageConfig,
+  prune: bool,
   report: &Report,
   errors: &mut Vec<String>,
 ) {
-  let grammar_path = resources.grammar_path_from_config(lang, lang_config);
+  let dir = if prune {
+    Some(resources.queries_dir(lang))
+  } else {
+    resources.queries_dir_from_config(lang, lang_config)
+  };
 
-  if let Ok(true) = grammar_path.try_exists() {
-    report.info(format!("removing {lang} grammar"));
+  if let Some(dir) = dir {
+    if let Ok(true) = dir.try_exists() {
+      report.info(format!("removing {lang} queries"));
 
-    if let Err(err) = fs::remove_file(grammar_path) {
-      errors.push(format!("cannot remove {lang} grammar: {err}"));
+      if let Err(err) = fs::remove_dir_all(dir) {
+        errors.push(format!("cannot remove {lang} queries: {err}"));
+      }
     }
   }
 }

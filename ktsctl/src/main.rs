@@ -73,6 +73,7 @@ fn start() -> Result<(), HellNo> {
     cli::Cmd::Remove {
       mut grammar,
       mut queries,
+      prune,
       lang,
     } => {
       let resources = Resources::new()?;
@@ -81,7 +82,7 @@ fn start() -> Result<(), HellNo> {
         queries = true;
       }
 
-      remove::remove(&config, &resources, grammar, queries, lang)?;
+      remove::remove(&config, &resources, grammar, queries, prune, lang)?;
     }
   }
 

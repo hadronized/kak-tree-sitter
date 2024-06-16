@@ -80,7 +80,10 @@ pub enum Cmd {
 
   /// Remove resources.
   ///
-  /// If no flag is passed, -g and -q are assumed.
+  /// If no flag is passed, -g and -q are assumed. Passing -p will also prune
+  /// out-of-sync pins; so to completely remove everything for a given language:
+  ///
+  ///     ktsctl rm -p <LANG>
   #[clap(aliases = &["rm"])]
   Remove {
     /// Remove grammar.
@@ -90,6 +93,13 @@ pub enum Cmd {
     /// Remove queries.
     #[clap(short, long)]
     queries: bool,
+
+    /// Prune resources.
+    ///
+    /// Pruning resources implies resources deletion for which the pin is out
+    /// of date.
+    #[clap(short, long)]
+    prune: bool,
 
     /// Remove resources for the specific language.
     lang: String,
