@@ -4,7 +4,7 @@ use clap::Parser;
 #[clap(
   author = "Dimitri Sabadie <hadronized@strongly-typed-thoughts.net>",
   name = "kak-tree-sitter",
-  version = concat!(env!("CARGO_PKG_VERSION"), "-", env!("GIT_HEAD")),
+  version = env!("VERSION"),
   about = "A client/server interface between Kakoune and tree-sitter."
 )]
 pub struct Cli {
