@@ -299,12 +299,9 @@ impl TreeState {
   }
 
   /// Search the next text-object for a given selection.
-  fn search_next_text_object<'a>(
-    sel: &Sel,
-    captures: impl Iterator<Item = Node<'a>>,
-  ) -> Option<Sel> {
+  fn search_next_text_object<'a>(sel: &Sel, nodes: impl Iterator<Item = Node<'a>>) -> Option<Sel> {
     let p = sel.anchor.max(sel.cursor);
-    let node = Self::node_after(&p, captures)?;
+    let node = Self::node_after(&p, nodes)?;
     let start = Pos::from(node.start_position());
     let mut end = Pos::from(node.end_position());
     end.col -= 1;
@@ -313,12 +310,9 @@ impl TreeState {
   }
 
   /// Search the prev text-object for a given selection.
-  fn search_prev_text_object<'a>(
-    sel: &Sel,
-    captures: impl Iterator<Item = Node<'a>>,
-  ) -> Option<Sel> {
+  fn search_prev_text_object<'a>(sel: &Sel, nodes: impl Iterator<Item = Node<'a>>) -> Option<Sel> {
     let p = sel.anchor.min(sel.cursor);
-    let node = Self::node_before(&p, captures)?;
+    let node = Self::node_before(&p, nodes)?;
     let start = Pos::from(node.start_position());
     let mut end = Pos::from(node.end_position());
     end.col -= 1;
@@ -329,9 +323,9 @@ impl TreeState {
   /// Search-extend the next text-object for a given selection.
   fn search_extend_next_text_object<'a>(
     sel: &Sel,
-    captures: impl Iterator<Item = Node<'a>>,
+    nodes: impl Iterator<Item = Node<'a>>,
   ) -> Option<Sel> {
-    let node = Self::node_after(&sel.cursor, captures)?;
+    let node = Self::node_after(&sel.cursor, nodes)?;
     let cursor = Pos::from(node.start_position());
 
     Some(Sel {
@@ -343,9 +337,9 @@ impl TreeState {
   /// Search extend the prev text-object for a given selection.
   fn search_extend_prev_text_object<'a>(
     sel: &Sel,
-    captures: impl Iterator<Item = Node<'a>>,
+    nodes: impl Iterator<Item = Node<'a>>,
   ) -> Option<Sel> {
-    let node = Self::node_before(&sel.cursor, captures)?;
+    let node = Self::node_before(&sel.cursor, nodes)?;
     let cursor = Pos::from(node.start_position());
 
     Some(Sel {
@@ -549,7 +543,7 @@ impl TreeState {
     log::trace!("finding node for selection {sel:?}");
 
     let start = sel.anchor.min(sel.cursor);
-    let mut end= sel.cursor.max(sel.anchor);
+    let mut end = sel.cursor.max(sel.anchor);
     end.col += 1; // Kakoune ranges are inclusive
     let node = self
       .tree
