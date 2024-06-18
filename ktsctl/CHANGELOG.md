@@ -1,5 +1,7 @@
 # v1.1.1
 
+## Bug fixes
+
 - Fix build.rs files to allow for missing SHA1. [49951d1](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/49951d1)
 
 # v1.1.0
