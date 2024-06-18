@@ -1,3 +1,13 @@
+# v1.1.0
+
+- Properly remove default highlighter. [8a76d3a](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/8a76d3a)
+- Fix `build.rs` files to allow for missing SHA1. [49951d1](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/49951d1)
+- Implement Split text-object. [9d4b9f4](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/9d4b9f4)
+	This change is pretty nice as it provides the equivalent of `s` but with
+	tree-sitter text-objects. A default setup is available via the `tree-sitter`
+	user-mode on `k`, `s` being already used by tree-sitter navigation (that was a
+	mistake that should be fixed later; sorry about that).
+
 # v1.0.1
 
 This release fixes bugs and adapts to the change introduced in

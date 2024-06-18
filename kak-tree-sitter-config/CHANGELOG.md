@@ -1,3 +1,9 @@
+# v2.1.0
+
+## Language support
+
+- Add support for Koka. [6bab165](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/6bab165)
+
 # v2.0.0
 
 This release is needed for a small fix in the API for error handling purposes.
