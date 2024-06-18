@@ -729,6 +729,27 @@ path = "runtime/queries/julia"
 # kdl
 # TODO
 
+# koka
+[language.koka.grammar.source.git]
+url = "https://github.com/mtoohey31/tree-sitter-koka"
+pin = "96d070c3700692858035f3524cc0ad944cef2594"
+
+[language.koka.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../scanner.c", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "koka.so"]
+link_flags = ["-O3" ]
+
+[language.koka.queries.source.git]
+url = "https://github.com/mtoohey31/tree-sitter-koka"
+pin = "96d070c3700692858035f3524cc0ad944cef2594"
+
+[language.koka.queries]
+path = "queries"
+
 # kotlin
 [language.kotlin.grammar.source.git]
 url = "https://github.com/fwcd/tree-sitter-kotlin"
