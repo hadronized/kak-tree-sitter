@@ -96,17 +96,24 @@ impl Payload {
   pub fn to_kak(&self) -> String {
     match self {
       Payload::Init { enabled_langs } => {
+        let add_hl =
+          "add-highlighter -override buffer/tree-sitter-highlighter ranges tree_sitter_hl_ranges";
         let per_lang = enabled_langs
           .iter()
           .map(|(lang, remove_default_highlighter)| {
-            format!(
+            let mut config = format!(
               "hook -group tree-sitter global WinSetOption tree_sitter_lang={lang} %<
                  tree-sitter-buffer-metadata
-                 add-highlighter -override buffer/tree-sitter-highlighter ranges tree_sitter_hl_ranges
+                 {add_hl}
                  tree-sitter-user-after-highlighter
-                 {extra}
-               >", extra = if *remove_default_highlighter { format!("remove-highlighter window/{lang}") } else { String::default() }
-            )
+               >"
+            );
+
+            if *remove_default_highlighter {
+              config.push_str(&format!("\nremove-hooks global {lang}-highlight"));
+            }
+
+            config
           })
           .join("\n");
 
