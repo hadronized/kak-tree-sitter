@@ -1,3 +1,10 @@
+# v1.1.1
+
+## Bug fixes
+
+- Properly disable **tree-sitter** when using `tree-sitter-session-end`. [142a245](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/)
+- Fix removing default highlighter in already existing buffers. [46279fe](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/)
+
 # v1.1.0
 
 ## Features
