@@ -101,12 +101,19 @@ impl Payload {
         let per_lang = enabled_langs
           .iter()
           .map(|(lang, remove_default_highlighter)| {
+            let remove_default_hl = if *remove_default_highlighter {
+              format!("remove-highlighter window/{lang}")
+            } else {
+              String::new()
+            };
+
             let mut config = format!(
               "hook -group tree-sitter global WinSetOption tree_sitter_lang={lang} %<
+                 {remove_default_hl}
                  tree-sitter-buffer-metadata
                  {add_hl}
                  tree-sitter-user-after-highlighter
-               >"
+               >",
             );
 
             if *remove_default_highlighter {
