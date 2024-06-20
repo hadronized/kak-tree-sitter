@@ -25,9 +25,14 @@ For instance with `show-matching`:
 
 ```kak
 define-command -override tree-sitter-user-after-highlighter %{
-  add-highlighter buffer/show-matching show-matching
+  add-highlighter -override buffer/show-matching show-matching
 }
 ```
+
+> Note: you should be using `-override` when adding highlighters via
+> `tree-sitter-user-after-highlighter` because if you disconnect from KTS
+> (`tree-sitter-session-end`) and reconnect (`tree-sitter-session-begin`), the
+> highlighters will be inserted again.
 
 #	Tree-sitter-enabled colorschemes
 

@@ -198,6 +198,12 @@ define-command tree-sitter-remove-all %{
     try %{
       remove-hooks buffer tree-sitter-update
     }
+
+    unset-option buffer tree_sitter_lang
+    unset-option buffer tree_sitter_buf_update_timestamp
+    unset-option buffer tree_sitter_buf_fifo_path
+    unset-option buffer tree_sitter_buf_sentinel
+    unset-option buffer tree_sitter_hl_ranges
   }
 }
 
