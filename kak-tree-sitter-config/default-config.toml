@@ -218,7 +218,7 @@ link = "cc"
 link_args = ["-shared", "-fpic", "parser.o", "-o", "c.so"]
 link_flags = ["-O3"]
 
-[language.c.queries.git.source]
+[language.c.queries.source.git]
 url = "https://github.com/helix-editor/helix"
 pin = "dbd248fdfa680373d94fbc10094a160aafa0f7a7"
 
