@@ -102,7 +102,7 @@ impl Payload {
           .iter()
           .map(|(lang, remove_default_highlighter)| {
             let remove_default_hl = if *remove_default_highlighter {
-              format!("remove-highlighter window/{lang}")
+              format!("try 'remove-highlighter window/{lang}'")
             } else {
               String::new()
             };
@@ -117,7 +117,7 @@ impl Payload {
             );
 
             if *remove_default_highlighter {
-              config.push_str(&format!("\nremove-hooks global {lang}-highlight"));
+              config.push_str(&format!("\ntry 'remove-hooks global {lang}-highlight'"));
             }
 
             config
