@@ -10,6 +10,9 @@ The project contains two binaries:
 Depending on your operating system, you should target a _release channel_ and a
 package manager to use.
 
+Additionally, completions are available for some shells. Feel free to visit
+the [completion](completions.md) document for installation.
+
 - [crates.io](#crates-io)
 
 ## crates.io

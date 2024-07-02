@@ -29,6 +29,7 @@ This is a binary server that interfaces [tree-sitter](https://tree-sitter.github
 - [x] Ships with no mappings, defined options, but allows to use well-crafted values, user-modes, mappings and
   commands by picking them by hand.
 - [x] Transformation-oriented; actual data (i.e. grammars, queries, etc.) can be used from any sources.
+- [x] Shell completions.
 
 ## User manual
 
