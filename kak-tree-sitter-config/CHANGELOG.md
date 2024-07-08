@@ -1,3 +1,9 @@
+# v2.1.1
+
+## Language support
+
+- Fix `c` queries specification. [e42001b](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/e42001b)
+
 # v2.1.0
 
 ## Language support
