@@ -1,3 +1,9 @@
+# v1.1.2
+
+## Bug fixes
+
+- Do not fail initialization if default highlighter was not found [9ad8d28](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/9ad8d28)
+
 # v1.1.1
 
 ## Bug fixes
