@@ -1,6 +1,6 @@
 [package]
 name = "kak-tree-sitter-config"
-version = "2.1.1"
+version = "2.1.1-dev"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <hadronized@strongly-typed-thoughts.net>"]
 description = "Server between Kakoune and tree-sitter; configuration layer"
