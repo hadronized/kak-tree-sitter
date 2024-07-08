@@ -84,6 +84,7 @@ impl ServerResources {
   }
 
   pub fn is_running(pid: &str) -> bool {
+    log::debug!("checking whether kak-tree-sitter ({pid}) is still running");
     Command::new("ps")
       .args(["-p", pid])
       .output()

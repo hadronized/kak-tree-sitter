@@ -74,8 +74,10 @@ fn start() -> Result<(), OhNo> {
 
   if cli.server {
     if Server::is_server_running(&paths) {
+      log::debug!("server already running");
+
       if let Some(session) = cli.init {
-        log::debug!("server already running, but initiating first session {session}");
+        log::debug!("initiating first session {session}");
         client::Client::init_session(&paths, session)?;
       }
 
