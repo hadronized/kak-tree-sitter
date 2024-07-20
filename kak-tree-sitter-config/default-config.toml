@@ -610,7 +610,25 @@ path = "runtime/queries/html"
 # TODO
 
 # ini
-# TODO
+[language.ini.grammar.source.git]
+url = "https://github.com/justinmk/tree-sitter-ini"
+pin = "15af2ebc2d36941e07740eda2beb3a4150f5046c"
+
+[language.ini.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "ini.so"]
+link_flags = ["-O3"]
+
+[language.ini.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "ed7ea8c9ba639daebdbc81630bd789aeb344e2d4"
+
+[language.ini.queries]
+path = "runtime/queries/ini"
 
 # java
 [language.java.grammar.source.git]
