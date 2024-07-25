@@ -1242,7 +1242,25 @@ path = "runtime/queries/scheme"
 # TODO
 
 # task
-# TODO
+[language.task.grammar.source.git]
+url = "https://github.com/alexanderbrevig/tree-sitter-task"
+pin = "ed4fb3674dd2d889c36e121f7173099290452af2"
+
+[language.task.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "task.so"]
+link_flags = ["-O3"]
+
+[language.task.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "aef00a3ab640417f06dc9f59938283ffde5c451e"
+
+[language.task.queries]
+path = "runtime/queries/task"
 
 # tfvars
 # TODO
