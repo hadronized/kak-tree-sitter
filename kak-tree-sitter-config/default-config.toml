@@ -606,6 +606,27 @@ path = "runtime/queries/html"
 # hurl
 # TODO
 
+# hyprlang
+[language.hyprlang.grammar.source.git]
+url = "https://github.com/tree-sitter-grammars/tree-sitter-hyprlang"
+pin = "6858695eba0e63b9e0fceef081d291eb352abce8"
+
+[language.hyprlang.grammar]
+path = "src"
+compile = "cc"
+compile_args = ["-c", "-fpic", "../parser.c", "-I", ".."]
+compile_flags = ["-O3"]
+link = "cc"
+link_args = ["-shared", "-fpic", "parser.o", "-o", "hyprlang.so"]
+link_flags = ["-O3"]
+
+[language.hyprlang.queries.source.git]
+url = "https://github.com/helix-editor/helix"
+pin = "079f544260f4f5eaff08104bf07abd57bfb7b611"
+
+[language.hyprlang.queries]
+path = "runtime/queries/hyprlang"
+
 # iex
 # TODO
 
