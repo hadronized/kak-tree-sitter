@@ -16,7 +16,7 @@ rust-version = "1.70.0"
 clap = { version = "4.5", features = ["derive"] }
 colored = "2.1"
 dirs = "5.0"
-kak-tree-sitter-config = { version = "2.1.1-dev", path = "../kak-tree-sitter-config" }
+kak-tree-sitter-config = { version = "2.1.2-dev", path = "../kak-tree-sitter-config" }
 log = "0.4"
 simple_logger = "5"
 thiserror = "1.0"

@@ -362,7 +362,7 @@ dependencies = [
 
 [[package]]
 name = "kak-tree-sitter-config"
-version = "2.1.1-dev"
+version = "2.1.2"
 dependencies = [
  "dirs",
  "log",

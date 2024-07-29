@@ -1,3 +1,11 @@
+# v2.2.0
+
+## Language support
+
+- Add hyprlang suport. [52fa98f](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/52fa98f)
+- Add taskwarrior support. [64cc98a](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/64cc98a)
+- Add ini support. [1484673](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/1484673)
+
 # v2.1.1
 
 ## Language support
