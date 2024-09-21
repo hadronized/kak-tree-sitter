@@ -374,7 +374,7 @@ impl Manager {
       let new_to = to.join(entry.file_name());
 
       if entry.file_type()?.is_file() {
-        fs::copy(&entry.path(), &new_to)?;
+        fs::copy(entry.path(), &new_to)?;
       }
     }
 

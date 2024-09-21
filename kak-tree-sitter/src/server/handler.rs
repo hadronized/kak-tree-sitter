@@ -4,8 +4,12 @@ use mio::Token;
 use crate::{
   error::OhNo,
   kakoune::{buffer::BufferId, selection::Sel, text_objects::OperationMode},
-  protocol::response::{Payload, Response},
-  tree_sitter::{languages::Languages, nav, state::Trees},
+  protocol::response::{EnqueueResponse, Payload, Response},
+  tree_sitter::{
+    languages::{Language, Languages},
+    nav,
+    state::{TreeState, Trees},
+  },
 };
 
 use super::resources::ServerResources;
@@ -73,40 +77,60 @@ impl Handler {
   }
 
   /// Update a full buffer update.
-  pub fn handle_full_buffer_update(&mut self, tkn: Token) -> Result<Option<Response>, OhNo> {
+  pub fn handle_full_buffer_update(
+    &mut self,
+    enqueue_response: &EnqueueResponse,
+    tkn: Token,
+  ) -> Result<(), OhNo> {
     let id = self.trees.get_buf_id(&tkn)?.clone();
     log::debug!("updating {id:?}, token {tkn:?}");
     let tree = self.trees.get_tree_mut(&id)?;
+    let lang = self.langs.get(tree.lang())?;
 
-    // update the tree
+    // update the tree and early return if no update occurred
     if !tree.update_buf()? {
-      // early return if no update occurred
-      return Ok(None);
+      return Ok(());
     }
 
     // run any additional post-processing on the buffer
-    if !self.with_highlighting {
-      return Ok(None);
+    if self.with_highlighting {
+      let resp = Self::handle_highlighting(&self.langs, lang, &id, tree)?;
+      enqueue_response.enqueue(resp);
     }
 
-    // serve highlight
-    let lang = self.langs.get(tree.lang())?;
+    if self.with_indent_guidelines {
+      let resp = Self::handle_indent_guidelines(&self.langs, lang, &id, tree)?;
+      enqueue_response.enqueue(resp);
+    }
+
+    Ok(())
+  }
+
+  fn handle_highlighting(
+    langs: &Languages,
+    lang: &Language,
+    id: &BufferId,
+    tree: &mut TreeState,
+  ) -> Result<Response, OhNo> {
     let ranges = tree.highlight(lang, |inject_lang| {
-      self
-        .langs
-        .get(inject_lang)
-        .ok()
-        .map(|lang2| &lang2.hl_config)
+      langs.get(inject_lang).ok().map(|lang2| &lang2.hl_config)
     })?;
 
-    let resp = Response::new(
+    Ok(Response::new(
       id.session(),
       None,
       id.buffer().to_owned(),
       Payload::Highlights { ranges },
-    );
+    ))
+  }
 
-    Ok(Some(resp))
+  fn handle_indent_guidelines(
+    langs: &Languages,
+    lang: &Language,
+    id: &BufferId,
+    tree: &mut TreeState,
+  ) -> Result<Response, OhNo> {
+    todo!()
   }
 
   pub fn handle_text_objects(

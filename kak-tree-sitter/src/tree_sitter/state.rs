@@ -13,6 +13,7 @@ use crate::{
     text_objects::OperationMode,
   },
   server::{fifo::Fifo, resources::ServerResources},
+  tree_sitter::indent_guidelines::{IndentGuideline, IndentGuidelines},
 };
 
 use super::{highlighting::KakHighlightRange, languages::Language, nav};
@@ -152,6 +153,11 @@ impl TreeState {
     Ok(())
   }
 
+  // TODO: we eventually want incremental / partial updates, but this is
+  // currently not supported, so we have to rebuild the tree every time. Moving
+  // to incremental updates might change the API, or require another function
+  // to accept deltas.
+  /// Highlight the whole buffer.
   pub fn highlight<'a>(
     &'a mut self,
     lang: &'a Language,
@@ -175,6 +181,18 @@ impl TreeState {
       &lang.hl_names,
       events.flatten(),
     ))
+  }
+
+  /// Compute indent guidelines for the whole buffer.
+  pub fn indent_guidelines(&self, lang: &Language) -> Result<IndentGuidelines, OhNo> {
+    let mut guidelines = Vec::default();
+    Self::indent_guidelines_rec(&mut guidelines, self.tree.root_node())?;
+    Ok(IndentGuidelines::new(guidelines))
+  }
+
+  fn indent_guidelines_rec(guidelines: &mut Vec<IndentGuideline>, node: Node) -> Result<(), OhNo> {
+    // TODO: how do we detect whether the node should spawn indent guidelines?
+    todo!()
   }
 
   /// Get the text-objects for the given pattern.

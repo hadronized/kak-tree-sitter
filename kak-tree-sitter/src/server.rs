@@ -446,11 +446,9 @@ impl IOHandler {
 
   /// Read the buffer associated with the argument token.
   fn read_buffer(&mut self, tkn: Token) -> Result<(), OhNo> {
-    if let Some(resp) = self.handler.handle_full_buffer_update(tkn)? {
-      self.enqueue_response.enqueue(resp);
-    }
-
-    Ok(())
+    self
+      .handler
+      .handle_full_buffer_update(&self.enqueue_response, tkn)
   }
 
   fn reload(&mut self) {
