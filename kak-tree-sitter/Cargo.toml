@@ -35,4 +35,4 @@ unicode-segmentation = "1.11"
 uuid = { version = "1.8.0", features = ["v4"] }
 
 [dev-dependencies]
-tree-sitter-rust = "0.20"
+tree-sitter-rust = "0.23"
