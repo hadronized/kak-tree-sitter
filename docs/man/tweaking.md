@@ -1,7 +1,7 @@
 # Tweaking
 
 If you are using the
-[provided config.toml](https://git.sr.ht/~hadronized/kak-tree-sitter/tree/master/item/kak-tree-sitter-config/default-config.toml),
+[provided config.toml](https://github.com/hadronized/kak-tree-sitter/tree/master/kak-tree-sitter-config/default-config.toml),
 some languages might require more setup. They are listed in this section.
 
 - [JSX](#jsx]

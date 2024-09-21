@@ -126,7 +126,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "astro.so"]
 link_flags = ["-O3"]
 
 [language.astro.queries.source.git]
-url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "862f6cd58b38d9d1b4abfb722b4a4b25bdae2586"
 
 [language.astro.queries]
@@ -300,7 +300,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "cpp.so"]
 link_flags = ["-O3", "-lstdc++"]
 
 [language.cpp.queries.source.git]
-url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "b0ecb0d376c94d2fa4814816b41986bf5d735384"
 
 [language.cpp.queries]
@@ -687,7 +687,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "javascript.so"]
 link_flags = ["-O3"]
 
 [language.javascript.queries.source.git]
-url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "834d348b85868fbe9033231e72f29be361346aeb"
 
 [language.javascript.queries]
@@ -735,7 +735,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "jsx.so"]
 link_flags = ["-O3"]
 
 [language.jsx.queries.source.git]
-url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "834d348b85868fbe9033231e72f29be361346aeb"
 
 [language.jsx.queries]
@@ -906,7 +906,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "markdown.so"]
 link_flags = ["-O3"]
 
 [language.markdown.queries.source.git]
-url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "d2d9761f309d6204a8f4480dc23f10558a165e29"
 
 [language.markdown.queries]
@@ -1325,7 +1325,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "tsx.so"]
 link_flags = ["-O3"]
 
 [language.tsx.queries.source.git]
-url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "b0ecb0d376c94d2fa4814816b41986bf5d735384"
 
 [language.tsx.queries]
@@ -1349,7 +1349,7 @@ link_args = ["-shared", "-fpic", "scanner.o", "parser.o", "-o", "typescript.so"]
 link_flags = ["-O3"]
 
 [language.typescript.queries.source.git]
-url = "https://git.sr.ht/~hadronized/kak-tree-sitter"
+url = "https://github.com/hadronized/kak-tree-sitter"
 pin = "b0ecb0d376c94d2fa4814816b41986bf5d735384"
 
 [language.typescript.queries]

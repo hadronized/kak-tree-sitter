@@ -93,7 +93,7 @@ Whatever you decide to use, you need to update your
 and queries. **However**, as explained in the linked section, 99% of people will
 just be satisfied with the default settings shipped with `kak-tree-sitter`’s
 `default-config.toml`, which you can find at the root of the repository,
-[here](https://git.sr.ht/~hadronized/kak-tree-sitter/tree/master/item/kak-tree-sitter-config/default-config.toml).
+[here](https://github.com/hadronized/kak-tree-sitter/tree/master/kak-tree-sitter-config/default-config.toml).
 That configuration file is shipped with the binary (`kak-tree-sitter`), so you
 do not need to copy it; just add what you need!
 

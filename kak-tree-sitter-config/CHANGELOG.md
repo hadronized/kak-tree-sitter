@@ -2,21 +2,21 @@
 
 ## Language support
 
-- Add hyprlang suport. [52fa98f](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/52fa98f)
-- Add taskwarrior support. [64cc98a](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/64cc98a)
-- Add ini support. [1484673](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/1484673)
+- Add hyprlang suport. [52fa98f](https://github.com/hadronized/kak-tree-sitter/commit/52fa98f)
+- Add taskwarrior support. [64cc98a](https://github.com/hadronized/kak-tree-sitter/commit/64cc98a)
+- Add ini support. [1484673](https://github.com/hadronized/kak-tree-sitter/commit/1484673)
 
 # v2.1.1
 
 ## Language support
 
-- Fix `c` queries specification. [e42001b](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/e42001b)
+- Fix `c` queries specification. [e42001b](https://github.com/hadronized/kak-tree-sitter/commit/e42001b)
 
 # v2.1.0
 
 ## Language support
 
-- Add support for Koka. [6bab165](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/6bab165)
+- Add support for Koka. [6bab165](https://github.com/hadronized/kak-tree-sitter/commit/6bab165)
 
 # v2.0.0
 
@@ -31,7 +31,7 @@ This change has implication on `ktsctl`, but doesn’t have any on
 
 ## API
 
-- Move missing language error as part of `kak-tree-sitter-config`. [cd35f75](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/cd35f75)
+- Move missing language error as part of `kak-tree-sitter-config`. [cd35f75](https://github.com/hadronized/kak-tree-sitter/commit/cd35f75)
 
 # v1.0.0
 
@@ -52,12 +52,12 @@ This change has implication on `ktsctl`, but doesn’t have any on
 
 # v0.5.0
 
-- Introduce user-only configuration. [fc7c5c6](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/fc7c5c6)
-- Introduce `ktsctl` sources. [e083aad](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/e083aad)
+- Introduce user-only configuration. [fc7c5c6](https://github.com/hadronized/kak-tree-sitter/commit/fc7c5c6)
+- Introduce `ktsctl` sources. [e083aad](https://github.com/hadronized/kak-tree-sitter/commit/e083aad)
 
 # v0.4.0
 
-- Add `remove_default_highlighter` option [d78abc0](https://git.sr.ht/~hadronized/kak-tree-sitter/commit/d78abc0)
+- Add `remove_default_highlighter` option [d78abc0](https://github.com/hadronized/kak-tree-sitter/commit/d78abc0)
 
 # v0.3.0
 

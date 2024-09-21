@@ -6,7 +6,7 @@ possible to override the default options via the user configuration.
 The `$XDG_CONFIG_HOME/kak-tree-sitter/config.toml` contains the user
 configuration of both `kak-tree-sitter` and `ktsctl`. If you want to tweak
 something, you can have a look at the
-[default configuration file](https://git.sr.ht/~hadronized/kak-tree-sitter/tree/master/item/kak-tree-sitter-config/default-config.toml)
+[default configuration file](https://github.com/hadronized/kak-tree-sitter/tree/master/kak-tree-sitter-config/default-config.toml)
 to know which path and values to pick from.
 
 > The user and default configurations get merged, so you do not have to copy the
