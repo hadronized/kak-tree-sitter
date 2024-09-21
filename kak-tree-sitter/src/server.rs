@@ -75,6 +75,7 @@ impl Server {
       config,
       cli.is_standalone(),
       cli.with_highlighting || config.features.highlighting,
+      cli.with_indent_guidelines || config.features.indent_guidelines,
       resources,
       poll,
       enqueue_response.clone(),
@@ -159,6 +160,7 @@ impl Server {
 struct IOHandler {
   is_standalone: bool,
   with_highlighting: bool,
+  with_indent_guidelines: bool,
   resources: ServerResources,
   poll: Poll,
   unix_listener: UnixListener,
@@ -175,6 +177,7 @@ impl IOHandler {
     config: &Config,
     is_standalone: bool,
     with_highlighting: bool,
+    with_indent_guidelines: bool,
     resources: ServerResources,
     poll: Poll,
     enqueue_response: EnqueueResponse,
@@ -192,11 +195,12 @@ impl IOHandler {
       )
       .map_err(|err| OhNo::PollError { err })?;
 
-    let handler = Handler::new(config, with_highlighting)?;
+    let handler = Handler::new(config, with_highlighting, with_indent_guidelines)?;
 
     Ok(Self {
       is_standalone,
       with_highlighting,
+      with_indent_guidelines,
       resources,
       poll,
       unix_listener,
@@ -458,7 +462,7 @@ impl IOHandler {
       }
     };
 
-    match Handler::new(&config, self.with_highlighting) {
+    match Handler::new(&config, self.with_highlighting, self.with_indent_guidelines) {
       Ok(new_handler) => self.handler = new_handler,
       Err(err) => log::error!("reloading failed: {err}"),
     }

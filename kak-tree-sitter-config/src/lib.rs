@@ -89,12 +89,16 @@ impl Config {
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct FeaturesConfig {
   pub highlighting: bool,
+  pub indent_guidelines: bool,
   pub text_objects: bool,
 }
 
 impl FeaturesConfig {
   fn merge_user_config(&mut self, user_config: UserFeaturesConfig) {
     self.highlighting = user_config.highlighting.unwrap_or(self.highlighting);
+    self.indent_guidelines = user_config
+      .indent_guidelines
+      .unwrap_or(self.indent_guidelines);
     self.text_objects = user_config.text_objects.unwrap_or(self.text_objects);
   }
 }
@@ -467,6 +471,7 @@ impl UserConfig {
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 pub struct UserFeaturesConfig {
   pub highlighting: Option<bool>,
+  pub indent_guidelines: Option<bool>,
   pub text_objects: Option<bool>,
 }
 
@@ -517,6 +522,7 @@ mod tests {
     let main_config = Config {
       features: FeaturesConfig {
         highlighting: true,
+        indent_guidelines: true,
         text_objects: true,
       },
       highlight: HighlightConfig {

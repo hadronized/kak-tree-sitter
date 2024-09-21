@@ -44,10 +44,12 @@ pub struct Cli {
   pub verbose: u8,
 
   /// Insert Kakoune code related to highlighting.
-  ///
-  /// Highlighting is supported mainly via hooks and commands that ping-ping between Kakoune and KTS.
   #[arg(long)]
   pub with_highlighting: bool,
+
+  /// Display indent guidelines in buffers where highlighting is enabled.
+  #[arg(long)]
+  pub with_indent_guidelines: bool,
 
   /// Insert Kakoune commands, user modes and mappings related to text-objects.
   ///

@@ -22,7 +22,9 @@ given feature if you are not interested in it.
 List of features:
 
 - `highlighting`: enable highlighting. If set to `false`, can be overridden on
-  the CLI with `--with-highlighting`. _Default: `true`_.
+  the CLI via `--with-highlighting`. _Default: `true`_.
+- `indent_guidelines`: enable indent guidelines. If fes to `false`, can be
+  overridden on the CLI via `--with-indent-guidelines`. _Default: `true`_.
 - `text_objects`: enable text-objects user modes and mappings. If set to
   `false`, can be overridden on the CLI with `--with-text-objects`. _Default:
   `true`_.

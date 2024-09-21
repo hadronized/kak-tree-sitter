@@ -18,10 +18,15 @@ pub struct Handler {
   trees: Trees,
   langs: Languages,
   with_highlighting: bool,
+  with_indent_guidelines: bool,
 }
 
 impl Handler {
-  pub fn new(config: &Config, with_highlighting: bool) -> Result<Self, OhNo> {
+  pub fn new(
+    config: &Config,
+    with_highlighting: bool,
+    with_indent_guidelines: bool,
+  ) -> Result<Self, OhNo> {
     let trees = Trees::default();
     let langs = Languages::load_from_dir(config)?;
 
@@ -29,6 +34,7 @@ impl Handler {
       trees,
       langs,
       with_highlighting,
+      with_indent_guidelines,
     })
   }
 
