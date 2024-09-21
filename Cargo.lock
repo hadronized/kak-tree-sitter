@@ -353,7 +353,7 @@ dependencies = [
  "serde_json",
  "simple_logger",
  "thiserror",
- "tree-sitter",
+ "tree-sitter 0.20.10",
  "tree-sitter-highlight",
  "tree-sitter-rust",
  "unicode-segmentation",
@@ -726,14 +726,25 @@ dependencies = [
 ]
 
 [[package]]
-name = "tree-sitter-highlight"
-version = "0.20.1"
+name = "tree-sitter"
+version = "0.22.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "042342584c5a7a0b833d9fc4e2bdab3f9868ddc6c4b339a1e01451c6720868bc"
+checksum = "df7cc499ceadd4dcdf7ec6d4cbc34ece92c3fa07821e287aedecd4416c516dca"
 dependencies = [
+ "cc",
+ "regex",
+]
+
+[[package]]
+name = "tree-sitter-highlight"
+version = "0.22.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "eaca0fe34fa96eec6aaa8e63308dbe1bafe65a6317487c287f93938959b21907"
+dependencies = [
+ "lazy_static",
  "regex",
  "thiserror",
- "tree-sitter",
+ "tree-sitter 0.22.6",
 ]
 
 [[package]]
@@ -743,7 +754,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b0832309b0b2b6d33760ce5c0e818cb47e1d72b468516bfe4134408926fa7594"
 dependencies = [
  "cc",
- "tree-sitter",
+ "tree-sitter 0.20.10",
 ]
 
 [[package]]
